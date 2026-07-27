@@ -3,7 +3,7 @@ An attempt at shoving a PPO into Casualties: Unknown and seeing if it'll make it
 
 ## Overview
 
-Reinforcement-Unknown is my attempt at training reinforcement learning agents in *Casualties: Unknown* using standard RL models and techniques, such as Proximal Policy Optimization (PPO)
+Reinforcement-Unknown is my attempt at training AI-powered NPCs in *Casualties: Unknown* using reinforcement learning (RL), beginning with Proximal Policy Optimization (PPO). It stemmed from my mod [Project Mechanism](https://www.nexusmods.com/scavprototype/mods/45) needing competent NPC behavior rather than structures holed up in pods
 
 ## Releases
 
