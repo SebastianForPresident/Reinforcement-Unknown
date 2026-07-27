@@ -1,18 +1,26 @@
-# Generated/runtime data
+# Generated and runtime data
 checkpoints/
 tensorboard/
-*.log
+inference_debug.log
 __pycache__/
 *.pyc
 
-# Game/build artifacts
+# Local editor settings
+.vscode/
+
+# Decompiled game source and game installation files
+SearchBase/
+BepInEx/
 CasualtiesUnknown_Data/
 MonoBleedingEdge/
-UnityCrashHandler*
-*.exe
-*.dll
+CasualtiesUnknown.exe
+UnityCrashHandler64.exe
+UnityPlayer.dll
+winhttp.dll
+doorstop_config.ini
+.doorstop_version
 
-# Local recordings
+# Recordings
 *.mp4
 *.mkv
 *.mov
