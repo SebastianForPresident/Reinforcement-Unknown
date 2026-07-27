@@ -239,6 +239,11 @@ def _reset_health_reward(env, obs):
     env.prev_health_qualities = _health_qualities(obs)
     env.health_integrals = {name: 0.0 for name in env.prev_health_qualities}
 
+# Reward V1
+# - Layer progress reward
+# - Health proportional/integral/derivative shaping
+# - Survival bonus
+# - Death penalty
 
 def Reward(obs, env):
     """Bootstrap reward: progress plus a weighted PID-like health signal."""
