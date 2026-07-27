@@ -1,0 +1,18 @@
+# Generated/runtime data
+checkpoints/
+tensorboard/
+*.log
+__pycache__/
+*.pyc
+
+# Game/build artifacts
+CasualtiesUnknown_Data/
+MonoBleedingEdge/
+UnityCrashHandler*
+*.exe
+*.dll
+
+# Local recordings
+*.mp4
+*.mkv
+*.mov
