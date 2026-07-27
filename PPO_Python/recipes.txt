@@ -1,0 +1,132 @@
+Rope -> 0
+Foliage -> 1
+String (x3) -> 2
+Canvas -> 3
+Wood scraps -> 4
+Ripped dressing -> 5
+Sterilized dressing -> 6
+Bio-chem fluid (10mL) -> 7
+Opium (50mL) -> 8
+Morphine (50mL) -> 9
+Fentanyl (10mL) -> 10
+Painkillers (200mL) -> 11
+Neural booster -> 12
+Canteen -> 13
+Foliage bag -> 14
+Sling bag -> 15
+Scrap cube -> 16
+Scrap panel (x5) -> 17
+Scrap tube (x2) -> 18
+Nails (x2) -> 19
+Wood cube -> 20
+Wood panel (x5) -> 21
+Stick (x2) -> 22
+Flimsy knife -> 23
+Processed copper -> 24
+Bundle of wires (x6) -> 25
+Titanium slab -> 26
+Titanium sheet (x5) -> 27
+Titanium rod (x2) -> 28
+Alien blood (50mL) -> 29
+Saline (175mL) -> 30
+Antivenom (50mL) -> 31
+Blood (100mL) -> 32
+Makeshift wrench -> 33
+Wrench -> 34
+Crude cleaver -> 35
+Machete -> 36
+Flammable powder -> 37
+Casing (x5) -> 38
+9mm round (x5) -> 39
+5.56 round (x4) -> 40
+12-Gauge buckshot (x3) -> 41
+Magazine base -> 42
+Small magazine -> 43
+Rifle magazine -> 44
+Box of 12-Gauge -> 45
+Dynamite -> 46
+Large carcass -> 47
+Repair Circuit board -> 48
+Small battery (x2) -> 49
+Medium battery -> 50
+Large battery -> 51
+Flashlight -> 52
+Headlamp -> 53
+LCD screen -> 54
+Flexiglass -> 55
+Lightbulb -> 56
+Limb wraps -> 57
+Makeshift headlamp -> 58
+Bicycle helmet -> 59
+Riot helmet -> 60
+Makeshift helmet -> 61
+Makeshift digging tool -> 62
+Makeshift rifle -> 63
+Mini laser drill -> 64
+Dressing -> 65
+Lantern -> 66
+Terrain scanner -> 67
+Geiger counter -> 68
+Lock-picking kit (10%) -> 69
+Advanced scuba diving gear -> 70
+Pickaxe -> 71
+Scaffolding pack -> 72
+Backpack -> 73
+Wood sandals -> 74
+Tactical boots -> 75
+Tactical gloves -> 76
+Duffel bag -> 77
+Material pouch -> 78
+Belt (50%) -> 79
+Trauma rig -> 80
+Bowl of cereal (x3) -> 81
+Fat (100mL) -> 82
+Soap (100mL) -> 83
+Clotting mush -> 84
+Naltrexone (200mL) -> 85
+Antidepressants (200mL) -> 86
+Auto-injector -> 87
+Chest drain -> 88
+Hand crank charger -> 89
+Antiseptic mush -> 90
+Plastic dressing -> 91
+Tourniquet (50%) -> 92
+Bone welding tool -> 93
+Tweezers (10%) -> 94
+Blood bag -> 95
+IV bag -> 96
+Antiseptic (100mL) -> 97
+Relief cream (100mL) -> 98
+Splint (80%) -> 99
+Bruise kit -> 100
+Carcass splint -> 101
+Makeshift L.R.D. -> 102
+L.R.D. -> 103
+L.R.D. Serum (25mL) -> 104
+Produce juice (250mL) -> 105
+Milk (500mL) -> 106
+Refined juice (200mL) -> 107
+Drill repair kit -> 108
+Procoagulant (100mL) -> 109
+Spray bottle -> 110
+Syringe -> 111
+Firestarter -> 112
+Campfire -> 113
+Water (50mL) -> 114
+Charcoal (x3) -> 115
+Bread -> 116
+Pancakes -> 117
+Rye flour -> 118
+Torch (0%) -> 119
+Repair Torch -> 120
+Nutrient bar -> 121
+Pemmican -> 122
+Foliage meal -> 123
+Burger -> 124
+Soup (300mL) -> 125
+Ice pack -> 126
+Scarf -> 127
+Titanium pickaxe -> 128
+Titanium machete -> 129
+Titanium multitool -> 130
+Climbing rope -> 131
