@@ -110,7 +110,7 @@ class Env(gym.Env):
         self.episode_steps += 1
 
         obs = self.latest_obs
-        reward = Reward_Luna.Reward(obs, self)
+        reward = Reward.Reward(obs, self)
         terminated = bool(obs["PlayerDead"]) or obs["LayerProgress"] >= 1.0
         truncated = self.episode_steps >= self.max_episode_steps
         return Preprocess(obs), reward, terminated, truncated, {}
