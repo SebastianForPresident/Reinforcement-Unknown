@@ -1,6 +1,4 @@
-import win32pipe
-import win32file
-import pywintypes
+import socket
 import os
 import Human_Input
 import Visualization
@@ -14,43 +12,45 @@ import gymnasium as gym
 import Train
 import Inference
 
-OBS_PIPE = r'\\.\pipe\CasU_PPO_Pipe'
-ACTION_PIPE = r'\\.\pipe\CasU_PPO_Action_Pipe'
+TCP_HOST = "127.0.0.1"
+OBS_PORT = 45701
+ACTION_PORT = 45702
 running = True
 reset_requested = threading.Event()
 action_write_lock = threading.Lock()
 shutdown_lock = threading.Lock()
 shutdown_started = False
 
-print("Creating observation pipe...")
+def CreateTcpListener(port):
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind((TCP_HOST, port))
+    listener.listen(1)
+    return listener
 
-obs_pipe = win32pipe.CreateNamedPipe(
-    OBS_PIPE,
-    win32pipe.PIPE_ACCESS_INBOUND,
-    win32pipe.PIPE_TYPE_MESSAGE |
-    win32pipe.PIPE_READMODE_MESSAGE |
-    win32pipe.PIPE_WAIT,
-    1,
-    2097152, # 2 MB
-    2097152,
-    0,
-    None
-)
 
-print("Creating action pipe...")
+print(f"Creating observation TCP listener on {TCP_HOST}:{OBS_PORT}...")
+obs_listener = CreateTcpListener(OBS_PORT)
 
-action_pipe = win32pipe.CreateNamedPipe(
-    ACTION_PIPE,
-    win32pipe.PIPE_ACCESS_OUTBOUND,
-    win32pipe.PIPE_TYPE_MESSAGE |
-    win32pipe.PIPE_READMODE_MESSAGE |
-    win32pipe.PIPE_WAIT,
-    1,
-    65536,
-    65536,
-    0,
-    None
-)
+print(f"Creating action TCP listener on {TCP_HOST}:{ACTION_PORT}...")
+action_listener = CreateTcpListener(ACTION_PORT)
+
+obs_pipe = None
+action_pipe = None
+
+
+def RecvExact(connection, size):
+    chunks = []
+    remaining = size
+
+    while remaining:
+        chunk = connection.recv(remaining)
+        if not chunk:
+            raise ConnectionError("Unity observation connection closed")
+        chunks.append(chunk)
+        remaining -= len(chunk)
+
+    return b"".join(chunks)
 
 def ActionLoop():
     global move, jump, vertMove, crouch, running
@@ -65,10 +65,10 @@ def ActionLoop():
 
             with action_write_lock:
                 if not reset_requested.is_set():
-                    win32file.WriteFile(action_pipe, msg)
+                    action_pipe.sendall(msg)
             time.sleep(0.005)
-        except pywintypes.error as e:
-            print(f"Action pipe Closed: {e}")
+        except OSError as e:
+            print(f"Action TCP connection closed: {e}")
             running = False
             break
 
@@ -85,15 +85,16 @@ def Shutdown():
 
         try:
             with action_write_lock:
-                win32file.WriteFile(action_pipe, b"SHUTDOWN\n")
-                win32file.FlushFileBuffers(action_pipe)
-        except pywintypes.error:
+                if action_pipe is not None:
+                    action_pipe.sendall(b"SHUTDOWN\n")
+        except OSError:
             pass
 
-        for pipe in (obs_pipe, action_pipe):
+        for connection in (obs_pipe, action_pipe, obs_listener, action_listener):
             try:
-                win32file.CloseHandle(pipe)
-            except pywintypes.error:
+                if connection is not None:
+                    connection.close()
+            except OSError:
                 pass
 
 if (
@@ -106,12 +107,12 @@ if (
     raise SystemExit("Usage: python Server.py train/inference <checkpoint.zip>")
 
 print("Waiting for Unity observation connection...")
-win32pipe.ConnectNamedPipe(obs_pipe, None)
+obs_pipe, _ = obs_listener.accept()
 
 print("Waiting for Unity action connection...")
-win32pipe.ConnectNamedPipe(action_pipe, None)
+action_pipe, _ = action_listener.accept()
 
-print("Unity connected to both pipes!")
+print("Unity connected to both TCP streams!")
 
 move = 0
 jump = 0
@@ -450,7 +451,7 @@ elif sys.argv[1] == "inference":
 
 while running:
     try:
-        result, data = win32file.ReadFile(obs_pipe, 2097152) # 2 MB
+        data = RecvExact(obs_pipe, OBSERVATION_SIZE)
 
         if len(data) != OBSERVATION_SIZE:
             raise RuntimeError(

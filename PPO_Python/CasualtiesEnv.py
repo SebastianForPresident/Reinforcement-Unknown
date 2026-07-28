@@ -2,7 +2,6 @@ import gymnasium as gym
 import numpy as np
 import threading
 import time
-import win32file
 from ObservationFlattener import build_plan, flatten
 
 _server = None
@@ -305,7 +304,7 @@ def SendReset():
 
     _server.reset_requested.set()
     with _server.action_write_lock:
-        win32file.WriteFile(_server.action_pipe, b"RESET\n")
+        _server.action_pipe.sendall(b"RESET\n")
 
 class Env(gym.Env):
     def __init__(self):

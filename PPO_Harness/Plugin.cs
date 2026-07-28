@@ -1,7 +1,7 @@
 ﻿using BepInEx;
 using UnityEngine;
 using HarmonyLib;
-using System.IO.Pipes;
+using System.Net.Sockets;
 using System.IO;
 using System.Threading;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Collections;
 using UnityEngine.SceneManagement;
 
-[BepInPlugin("sebastian.ppoharness", "PPO Harness", "0.2.0")]
+[BepInPlugin("sebastian.ppoharness", "PPO Harness", "1.0.0")]
 public class PPO_Harness : BaseUnityPlugin
 {
     private void Awake()
@@ -585,6 +585,10 @@ public class Action
 
 public static class PPOBridge
 {
+    const string TcpHost = "127.0.0.1";
+    const int ObservationPort = 45701;
+    const int ActionPort = 45702;
+
     public static readonly string[] WearableSlots =
     {
         "arms", // 6
@@ -637,11 +641,13 @@ public static class PPOBridge
     public static bool ControlEnabled = false;
     public static Observation CurrentObservation = new Observation();
 
-    static NamedPipeClientStream obsPipe;
+    static TcpClient obsClient;
+    static NetworkStream obsPipe;
     static BinaryObservationWriter bufferWriter;
     static bool connected;
 
-    static NamedPipeClientStream actionPipe;
+    static TcpClient actionClient;
+    static NetworkStream actionPipe;
     static StreamReader actionReader;
     static bool actionConnected;
 
@@ -1750,18 +1756,22 @@ public static class PPOBridge
         {
             try
             {
-                Debug.Log("Connecting observation pipe...");
-                obsPipe = new NamedPipeClientStream(".", "CasU_PPO_Pipe", PipeDirection.Out);
+                Debug.Log("Connecting observation TCP stream...");
+                obsClient = new TcpClient();
                 bufferWriter = new BinaryObservationWriter();
 
-                obsPipe.Connect(0);
+                obsClient.Connect(TcpHost, ObservationPort);
+                obsPipe = obsClient.GetStream();
 
                 connected = true;
-                Debug.Log("Observation pipe connected.");
+                Debug.Log("Observation TCP stream connected.");
             }
-            catch
+            catch (Exception ex)
             {
-                Debug.LogWarning("Failed to connect to observation pipe. Is the Server process running?");
+                Debug.LogWarning(
+                    $"Failed to connect to observation TCP stream. " +
+                    $"Is the Server process running? {ex.Message}"
+                );
                 return;
             }
         }
@@ -1807,17 +1817,12 @@ public static class PPOBridge
         {
             try
             {
-                Debug.Log("Connecting action pipe...");
+                Debug.Log("Connecting action TCP stream...");
+                actionClient = new TcpClient();
+                actionClient.Connect(TcpHost, ActionPort);
+                actionPipe = actionClient.GetStream();
 
-                actionPipe = new NamedPipeClientStream(
-                    ".",
-                    "CasU_PPO_Action_Pipe",
-                    PipeDirection.In
-                );
-
-                actionPipe.Connect(0);
-
-                Debug.Log("Action pipe connected.");
+                Debug.Log("Action TCP stream connected.");
 
                 actionReader = new StreamReader(actionPipe);
 
@@ -1827,9 +1832,12 @@ public static class PPOBridge
 
                 actionConnected = true;
             }
-            catch
+            catch (Exception ex)
             {
-                Debug.LogWarning("Failed to connect to action pipe. Is the Server process running?");
+                Debug.LogWarning(
+                    $"Failed to connect to action TCP stream. " +
+                    $"Is the Server process running? {ex.Message}"
+                );
             }
         }
     }
