@@ -2426,8 +2426,9 @@ public static class PPOBridge
     
     public static IEnumerator Reset()
 	{
-		resetComplete = false;
-		yield return WorldGeneration.world.Clear();
+        resetComplete = false;
+		BestLayerDepth = 0;
+        yield return WorldGeneration.world.Clear();
 		Time.timeScale = 1f;
 		SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 		yield break;
