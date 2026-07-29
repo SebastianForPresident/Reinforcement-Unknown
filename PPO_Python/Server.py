@@ -156,10 +156,12 @@ if (
     len(sys.argv) < 2
     or len(sys.argv) > 3
     or sys.argv[1] not in ("train", "inference")
-    or (sys.argv[1] == "train" and len(sys.argv) != 2)
     or (sys.argv[1] == "inference" and len(sys.argv) != 3)
 ):
-    raise SystemExit("Usage: python Server.py train/inference <checkpoint.zip>")
+    raise SystemExit(
+        "Usage: python Server.py train [checkpoint-directory] | "
+        "inference <checkpoint.zip>"
+    )
 
 print("Waiting for Unity observation connection...")
 obs_pipe, _ = obs_listener.accept()
@@ -498,7 +500,12 @@ if OBSERVATION_SIZE != EXPECTED_OBSERVATION_SIZE:
 env = CasualtiesEnv.Env()
 
 if sys.argv[1] == "train":
-    threading.Thread(target=Train.Begin_Training, args=(env, PauseSimulation), daemon=True).start()
+    resume_dir = sys.argv[2] if len(sys.argv) == 3 else None
+    threading.Thread(
+        target=Train.Begin_Training,
+        args=(env, PauseSimulation, resume_dir),
+        daemon=True,
+    ).start()
 elif sys.argv[1] == "inference":
     if len(sys.argv) == 3:
         threading.Thread(target=Inference.Infer, args=(env, sys.argv[2]), daemon=True).start()
