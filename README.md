@@ -29,3 +29,4 @@ The stretch goal is to complete multiple.
 |------------|--------|----------|
 | Test | None | Random thrashing |
 | Checkpoint 1 | V1 | Holds right, attacks upward, avoids ragdolling |
+| Checkpoint 2 | V2 | Thrashing for mobility and terrain destruction |
