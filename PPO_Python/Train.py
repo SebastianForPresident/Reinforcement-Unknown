@@ -6,7 +6,21 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-def Begin_Training(env):
+
+class PausingPPO(PPO):
+    """Freeze Unity while PPO performs an optimizer update."""
+
+    def __init__(self, *args, pause_simulation=None, **kwargs):
+        self._pause_simulation = pause_simulation
+        super().__init__(*args, **kwargs)
+
+    def train(self):
+        if self._pause_simulation is not None:
+            self._pause_simulation()
+        return super().train()
+
+
+def Begin_Training(env, pause_simulation=None):
     run_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -18,11 +32,12 @@ def Begin_Training(env):
 
     try:
         print(f"Training run directory: {run_dir}")
-        model = PPO(
+        model = PausingPPO(
             "MlpPolicy",
             env,
             device="auto",
             tensorboard_log=str(run_dir / "tensorboard"),
+            pause_simulation=pause_simulation,
         )
         model.learn(250000, callback=checkpoint_callback)
         model.save(str(run_dir / "casu_ppo_final"))

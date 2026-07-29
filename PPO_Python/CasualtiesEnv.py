@@ -64,6 +64,11 @@ def Decode(action):
     _server.drainLiquid = action[26]
     _server.pullLiquidFromWorld = action[27]
 
+    # PPO optimizer updates leave Unity paused.  Resume only after this fresh
+    # policy action has been decoded, so no physics tick can replay the action
+    # that preceded the update.
+    _server.ResumeSimulation()
+
 def SendReset():
     if _server is None:
         raise RuntimeError("PPO server has not been started")

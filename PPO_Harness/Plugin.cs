@@ -12,6 +12,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Collections;
+using System.Text;
 using UnityEngine.SceneManagement;
 
 [BepInPlugin("sebastian.ppoharness", "PPO Harness", "1.0.0")]
@@ -660,6 +661,10 @@ public static class PPOBridge
     static Thread actionThread;
     static volatile bool resetRequested = false;
     static volatile bool shutdownRequested = false;
+    static volatile bool ppoPauseRequested = false;
+    static volatile bool ppoResumeActionReceived = false;
+    static bool ppoPaused = false;
+    static float prePPOPauseTimeScale = 1f;
     static int resetSourceWorldInstanceId;
 
     private static GameObject lookDebugDot;
@@ -1955,6 +1960,18 @@ public static class PPOBridge
                             shutdownRequested = true;
                             continue;
                         }
+                        if (line == "PAUSE")
+                        {
+                            ppoPauseRequested = true;
+                            ppoResumeActionReceived = false;
+                            continue;
+                        }
+                        if (line == "RESUME")
+                        {
+                            ppoPauseRequested = false;
+                            ppoResumeActionReceived = false;
+                            continue;
+                        }
                         string[] parts = line.Split(',');
                         if (parts.Length >= 28)
                         {
@@ -1986,6 +2003,8 @@ public static class PPOBridge
                             LatestAction.LiquidAmount = int.Parse(parts[25]);
                             LatestAction.DrainLiquid = int.Parse(parts[26]);
                             LatestAction.PullLiquidFromWorld = int.Parse(parts[27]);
+                            if (!ppoPauseRequested)
+                                ppoResumeActionReceived = true;
                         }
                     }
                 }
@@ -2001,6 +2020,9 @@ public static class PPOBridge
 
     public static void ApplyPPOActions(PlayerCamera playerCamera)
     {
+        if (HandlePPOPause())
+            return;
+
         if (!resetComplete || resetRequested)
             return;
 
@@ -2280,6 +2302,46 @@ public static class PPOBridge
         }
     }
 
+    static bool HandlePPOPause()
+    {
+        if (ppoPauseRequested)
+        {
+            if (!ppoPaused)
+            {
+                prePPOPauseTimeScale = Time.timeScale;
+                Time.timeScale = 0f;
+                ppoPaused = true;
+                SendActionAcknowledgement("PAUSED");
+            }
+            return true;
+        }
+
+        if (ppoPaused)
+        {
+            if (!ppoResumeActionReceived)
+                return true;
+
+            Time.timeScale = prePPOPauseTimeScale;
+            ppoPaused = false;
+            SendActionAcknowledgement("RESUMED");
+        }
+
+        return false;
+    }
+
+    static void SendActionAcknowledgement(string message)
+    {
+        try
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(message + "\n");
+            actionPipe?.Write(bytes, 0, bytes.Length);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"Failed to acknowledge PPO pause state: {ex.Message}");
+        }
+    }
+
     public static bool TryPerformInventoryAction(int selSlot, int tarSlot, int bagIndex, PlayerCamera pc, Body body)
 	{
         var containerOperation = false;
@@ -2427,6 +2489,9 @@ public static class PPOBridge
     public static IEnumerator Reset()
 	{
         resetComplete = false;
+		ppoPauseRequested = false;
+		ppoResumeActionReceived = false;
+		ppoPaused = false;
 		BestLayerDepth = 0;
         yield return WorldGeneration.world.Clear();
 		Time.timeScale = 1f;

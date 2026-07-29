@@ -20,6 +20,9 @@ reset_requested = threading.Event()
 action_write_lock = threading.Lock()
 shutdown_lock = threading.Lock()
 shutdown_started = False
+simulation_paused = threading.Event()
+pause_applied = threading.Event()
+resume_applied = threading.Event()
 
 def CreateTcpListener(port):
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,16 +55,68 @@ def RecvExact(connection, size):
 
     return b"".join(chunks)
 
+
+def BuildActionMessage():
+    return f"{move},{jump},{vertMove},{crouch},{lookdX},{lookdY},{attack},{interact},{targetSlotIndex},{selectedSlotIndex},{dropItem},{moveItem},{selectedBagIndex},{useItem},{useItemWorld},{selectedLimb},{useItemMedical},{selectedRecipe},{favoriteItem},{switchMainHand},{trySleep},{ragdoll},{exercise},{bark},{throw},{liquidAmount},{drainLiquid},{pullLiquidFromWorld}\n".encode("utf-8")
+
+
+def ControlAckLoop():
+    """Receive pause-state acknowledgements from the Unity bridge."""
+    buffer = b""
+    while running:
+        try:
+            data = action_pipe.recv(256)
+            if not data:
+                return
+            buffer += data
+            while b"\n" in buffer:
+                line, buffer = buffer.split(b"\n", 1)
+                if line == b"PAUSED":
+                    pause_applied.set()
+                elif line == b"RESUMED":
+                    resume_applied.set()
+        except OSError:
+            return
+
+
+def PauseSimulation():
+    """Freeze Unity before PPO's optimizer touches the collected rollout."""
+    if simulation_paused.is_set():
+        return
+
+    pause_applied.clear()
+    simulation_paused.set()
+    with action_write_lock:
+        action_pipe.sendall(b"PAUSE\n")
+
+    if not pause_applied.wait(timeout=5.0):
+        raise RuntimeError("Unity did not acknowledge the PPO pause")
+
+
+def ResumeSimulation():
+    """Resume Unity with the newly decoded post-update action already queued."""
+    if not simulation_paused.is_set():
+        return
+
+    resume_applied.clear()
+    with action_write_lock:
+        action_pipe.sendall(b"RESUME\n")
+        action_pipe.sendall(BuildActionMessage())
+    simulation_paused.clear()
+
+    if not resume_applied.wait(timeout=5.0):
+        raise RuntimeError("Unity did not acknowledge the PPO resume")
+
 def ActionLoop():
     global move, jump, vertMove, crouch, running
     running = True
     while running:
         try:
-            if reset_requested.is_set():
+            if reset_requested.is_set() or simulation_paused.is_set():
                 time.sleep(0.005)
                 continue
 
-            msg = f"{move},{jump},{vertMove},{crouch},{lookdX},{lookdY},{attack},{interact},{targetSlotIndex},{selectedSlotIndex},{dropItem},{moveItem},{selectedBagIndex},{useItem},{useItemWorld},{selectedLimb},{useItemMedical},{selectedRecipe},{favoriteItem},{switchMainHand},{trySleep},{ragdoll},{exercise},{bark},{throw},{liquidAmount},{drainLiquid},{pullLiquidFromWorld}\n".encode("utf-8")
+            msg = BuildActionMessage()
 
             with action_write_lock:
                 if not reset_requested.is_set():
@@ -164,6 +219,7 @@ aux = {
 CasualtiesEnv.Start(sys.modules[__name__])
 
 threading.Thread(target=ActionLoop, daemon=True).start()
+threading.Thread(target=ControlAckLoop, daemon=True).start()
 
 # Fixed binary observation protocol.
 MAX_NEARBY_BUILDINGS = 16
@@ -442,7 +498,7 @@ if OBSERVATION_SIZE != EXPECTED_OBSERVATION_SIZE:
 env = CasualtiesEnv.Env()
 
 if sys.argv[1] == "train":
-    threading.Thread(target=Train.Begin_Training, args=(env,), daemon=True).start()
+    threading.Thread(target=Train.Begin_Training, args=(env, PauseSimulation), daemon=True).start()
 elif sys.argv[1] == "inference":
     if len(sys.argv) == 3:
         threading.Thread(target=Inference.Infer, args=(env, sys.argv[2]), daemon=True).start()
