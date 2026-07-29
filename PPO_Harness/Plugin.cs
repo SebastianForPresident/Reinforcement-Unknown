@@ -667,6 +667,8 @@ public static class PPOBridge
     static float prePPOPauseTimeScale = 1f;
     static int resetSourceWorldInstanceId;
 
+    public static bool PPOPauseActive => ppoPauseRequested || ppoPaused;
+
     private static GameObject lookDebugDot;
     
     // Minigame Junk
@@ -2313,6 +2315,10 @@ public static class PPOBridge
                 ppoPaused = true;
                 SendActionAcknowledgement("PAUSED");
             }
+            else if (Time.timeScale != 0f)
+            {
+                Time.timeScale = 0f;
+            }
             return true;
         }
 
@@ -2511,6 +2517,18 @@ public static class PPOBridge
             actionPipe?.Close();
         }
         catch {}
+    }
+}
+
+[HarmonyPatch(typeof(PauseHandler))]
+[HarmonyPatch("Update")]
+public static class PPoPausePatch
+{
+    // PauseHandler normally restores normal speed whenever its own UI is not
+    // paused. PPO pauses without opening that UI, so bypass it only then.
+    static bool Prefix()
+    {
+        return !PPOBridge.PPOPauseActive;
     }
 }
 
