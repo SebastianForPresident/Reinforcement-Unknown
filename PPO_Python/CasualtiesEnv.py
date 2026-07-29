@@ -80,7 +80,8 @@ class Env(gym.Env):
         self.latest_obs = None
         self.obs_ready = threading.Event()
         self.previous_progress = None
-        self.previous_health = None
+        self.previous_risk = None
+        self.last_reward_terms = {}
 
         self.max_episode_steps = 5000
         self.episode_steps = 0
@@ -97,8 +98,7 @@ class Env(gym.Env):
         _server.reset_requested.clear()
 
         obs = self.latest_obs
-        self.previous_progress = float(obs["LayerProgress"])
-        self.previous_health = Reward._health_potential(obs)
+        Reward.Reset(self, obs)
         return Preprocess(obs), {}
 
     def step(self, action):
@@ -113,7 +113,7 @@ class Env(gym.Env):
         reward = Reward.Reward(obs, self)
         terminated = bool(obs["PlayerDead"]) or obs["LayerProgress"] >= 1.0
         truncated = self.episode_steps >= self.max_episode_steps
-        return Preprocess(obs), reward, terminated, truncated, {}
+        return Preprocess(obs), reward, terminated, truncated, self.last_reward_terms.copy()
 
     def close(self):
         if _server is not None:
