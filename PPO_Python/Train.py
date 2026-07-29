@@ -5,6 +5,7 @@ from stable_baselines3.common.env_checker import check_env
 import traceback
 from datetime import datetime
 from pathlib import Path
+import zipfile
 
 
 class PausingPPO(PPO):
@@ -13,6 +14,19 @@ class PausingPPO(PPO):
     def __init__(self, *args, pause_simulation=None, **kwargs):
         self._pause_simulation = pause_simulation
         super().__init__(*args, **kwargs)
+
+    def _excluded_save_params(self):
+        """Exclude the live Unity control callback from SB3 serialization.
+
+        The callback closes over Server's socket/threading state.  That state
+        is deliberately process-local and includes threading.Event locks,
+        which cloudpickle cannot serialize.  The callback is restored by the
+        training entry point after loading a checkpoint.
+        """
+        excluded = super()._excluded_save_params()
+        if "_pause_simulation" not in excluded:
+            excluded.append("_pause_simulation")
+        return excluded
 
     def train(self):
         if self._pause_simulation is not None:
@@ -23,20 +37,20 @@ class PausingPPO(PPO):
 def FindResumeModel(run_dir):
     """Select the newest completed PPO model in an existing run directory."""
     candidates = sorted(
-        run_dir.glob("casu_ppo*_final.zip"),
+        (
+            path
+            for path in run_dir.glob("casu_ppo*.zip")
+            if path.is_file() and zipfile.is_zipfile(path)
+        ),
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
     if candidates:
         return candidates[0]
 
-    start_model = run_dir / "casu_ppo_start.zip"
-    if start_model.is_file():
-        return start_model
-
     raise FileNotFoundError(
         f"No resumable PPO model found in {run_dir}. Expected a "
-        "casu_ppo*_final.zip or casu_ppo_start.zip file."
+        "valid casu_ppo*.zip file."
     )
 
 
