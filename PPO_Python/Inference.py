@@ -24,7 +24,7 @@ def Infer(env, checkpoint_path):
             )
 
             while True:
-                action, _ = model.predict(obs, deterministic=True)
+                action, _ = model.predict(obs, deterministic=False)
                 action_list = action.tolist()
                 action_changed = previous_action is None or action_list != previous_action
 
