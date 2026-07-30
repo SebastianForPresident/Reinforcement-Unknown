@@ -1,0 +1,209 @@
+"""Episode-level CSV tracing for reward and action diagnostics."""
+
+import csv
+import json
+from datetime import datetime
+from pathlib import Path
+
+import numpy as np
+
+
+ACTION_NAMES = (
+    "move",
+    "jump",
+    "vert_move",
+    "crouch",
+    "look_dx",
+    "look_dy",
+    "attack",
+    "interact",
+    "target_slot",
+    "selected_slot",
+    "drop_item",
+    "move_item",
+    "selected_bag",
+    "use_item",
+    "use_item_world",
+    "selected_limb",
+    "use_item_medical",
+    "selected_recipe",
+    "favorite_item",
+    "switch_main_hand",
+    "try_sleep",
+    "ragdoll",
+    "exercise",
+    "bark",
+    "throw",
+    "liquid_amount",
+    "drain_liquid",
+    "pull_liquid_from_world",
+)
+
+
+BASE_COLUMNS = (
+    "episode",
+    "step",
+    "reward",
+    "terminated",
+    "truncated",
+    "episode_complete",
+    *[f"action_{name}" for name in ACTION_NAMES],
+    "obs_layer_progress",
+    "obs_best_layer_depth",
+    "obs_layer_time_remaining",
+    "obs_radline_displacement",
+    "obs_time_ragdolled",
+    "obs_crawl_time",
+    "obs_grounded",
+    "obs_in_water",
+    "obs_velocity_x",
+    "obs_velocity_y",
+    "obs_stamina",
+    "obs_energy",
+    "obs_average_pain",
+    "obs_shock",
+    "obs_consciousness",
+    "obs_player_dead",
+    "extra_info_json",
+)
+
+
+def _scalar(value):
+    """Convert numpy scalar values to CSV-friendly Python values."""
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray) and value.size == 1:
+        return value.reshape(-1)[0].item()
+    if isinstance(value, (bool, int, float, str)) or value is None:
+        return value
+    return str(value)
+
+
+def _json_default(value):
+    converted = _scalar(value)
+    if converted is not value:
+        return converted
+    return str(value)
+
+
+class EpisodeTraceWriter:
+    """Buffer one episode, then append its complete rows to a CSV file."""
+
+    def __init__(self, output_path=None):
+        if output_path is None:
+            output_dir = Path(__file__).resolve().parent / "episode_traces"
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            output_path = output_dir / f"episode_trace_{timestamp}.csv"
+
+        self.path = Path(output_path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._columns = None
+        self._rows = []
+        self._episode = None
+
+    @property
+    def episode_open(self):
+        return self._episode is not None
+
+    def begin_episode(self, episode):
+        if self.episode_open:
+            self.finish_episode(complete=False)
+        self._episode = int(episode)
+        self._rows = []
+
+    def record(self, step, action, obs, reward, info, terminated, truncated):
+        if not self.episode_open:
+            raise RuntimeError("Cannot record a step without an active episode")
+
+        action_values = list(action)
+        row = {
+            "episode": self._episode,
+            "step": int(step),
+            "reward": _scalar(reward),
+            "terminated": bool(terminated),
+            "truncated": bool(truncated),
+            "episode_complete": "",
+            "extra_info_json": "",
+        }
+
+        for index, name in enumerate(ACTION_NAMES):
+            row[f"action_{name}"] = _scalar(action_values[index])
+
+        row.update(
+            {
+                "obs_layer_progress": _scalar(obs["LayerProgress"]),
+                "obs_best_layer_depth": _scalar(obs["BestLayerDepth"]),
+                "obs_layer_time_remaining": _scalar(obs["LayerTimeRemaining"]),
+                "obs_radline_displacement": _scalar(obs["RadLineDisplacement"]),
+                "obs_time_ragdolled": _scalar(obs["TimeRagdolled"]),
+                "obs_crawl_time": _scalar(obs["CrawlTime"]),
+                "obs_grounded": _scalar(obs["Grounded"]),
+                "obs_in_water": _scalar(obs["InWater"]),
+                "obs_velocity_x": _scalar(obs["Velocity"]["X"]),
+                "obs_velocity_y": _scalar(obs["Velocity"]["Y"]),
+                "obs_stamina": _scalar(obs["Stamina"]),
+                "obs_energy": _scalar(obs["Energy"]),
+                "obs_average_pain": _scalar(obs["AveragePain"]),
+                "obs_shock": _scalar(obs["Shock"]),
+                "obs_consciousness": _scalar(obs["Consciousness"]),
+                "obs_player_dead": _scalar(obs["PlayerDead"]),
+            }
+        )
+
+        extra_info = {}
+        for key, value in info.items():
+            column = f"reward_{key}"
+            converted = _scalar(value)
+            if isinstance(converted, (bool, int, float, str)) or converted is None:
+                row[column] = converted
+            else:
+                extra_info[key] = converted
+
+        if extra_info:
+            row["extra_info_json"] = json.dumps(extra_info, default=_json_default)
+
+        self._rows.append(row)
+
+    def finish_episode(self, complete=True):
+        if not self.episode_open:
+            return
+        if not self._rows:
+            self._episode = None
+            return
+
+        for row in self._rows:
+            row["episode_complete"] = bool(complete)
+
+        self._append_rows(self._rows)
+        self._rows = []
+        self._episode = None
+
+    def _append_rows(self, rows):
+        discovered = []
+        for row in rows:
+            for key in row:
+                if key not in discovered:
+                    discovered.append(key)
+
+        if self._columns is None:
+            self._columns = list(BASE_COLUMNS)
+            self._columns.extend(
+                key for key in discovered if key not in self._columns
+            )
+        else:
+            unknown = [key for key in discovered if key not in self._columns]
+            if unknown:
+                for row in rows:
+                    extras = json.loads(row.get("extra_info_json") or "{}")
+                    for key in unknown:
+                        if key in row:
+                            extras[key] = row.pop(key)
+                    row["extra_info_json"] = json.dumps(extras, default=_json_default)
+
+        write_header = not self.path.exists() or self.path.stat().st_size == 0
+        with self.path.open("a", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=self._columns, extrasaction="ignore")
+            if write_header:
+                writer.writeheader()
+            writer.writerows(rows)
+            handle.flush()

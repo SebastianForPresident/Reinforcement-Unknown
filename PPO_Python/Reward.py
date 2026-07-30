@@ -1,4 +1,4 @@
-"""Reward V4: descend while preserving the capacity to keep descending.
+"""Reward V5: descend while preserving the capacity to keep descending.
 
 This reward deliberately operates on continuous observation fields rather than
 the UI moodle levels.  Moodle thresholds inform the caution/critical ranges
@@ -9,7 +9,8 @@ Inventory and crafting are intentionally out of scope.  This version rewards
 layer progress and penalizes the physiological costs of locomotion, combat,
 ragdoll impacts, and environmental exposure.  It also discourages the
 non-progressing ragdoll exploit: cumulative ragdoll time becomes costly only
-after one minute without reaching another 10 m depth milestone.
+after thirty seconds without reaching another 10 m depth milestone, and now
+only if the policy explicitly chooses to ragdoll in that same step.
 """
 
 import numpy as np
@@ -30,9 +31,9 @@ LAYER_COMPLETE_BONUS = 20.0
 # exploit only when the body spends a long cumulative time ragdolled without
 # reaching meaningfully deeper terrain.  These are game-time seconds/meters.
 RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
-RAGDOLL_STALL_GRACE_SECONDS = 60.0
+RAGDOLL_STALL_GRACE_SECONDS = 30.0
 RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
-RAGDOLL_STALL_PENALTY_BASE = 0.0005
+RAGDOLL_STALL_PENALTY_BASE = 0.001
 RAGDOLL_STALL_PENALTY_CAP = 0.01
 
 
@@ -192,7 +193,7 @@ def Reset(env, obs):
     env.last_reward_terms = {}
 
 
-def Reward(obs, env):
+def Reward(obs, act, env):
     """Return the scalar reward and preserve a named breakdown on the env."""
     current_progress = float(obs["LayerProgress"])
     risks = RiskBreakdown(obs)
@@ -212,25 +213,16 @@ def Reward(obs, env):
     current_time_ragdolled = float(obs["TimeRagdolled"])
     ragdoll_seconds_delta = max(0.0, current_time_ragdolled - env.previous_time_ragdolled)
 
-    if current_best_depth >= (
-        env.ragdoll_depth_milestone + RAGDOLL_DEPTH_MILESTONE_METERS
-    ):
+    if current_best_depth >= (env.ragdoll_depth_milestone + RAGDOLL_DEPTH_MILESTONE_METERS):
         env.ragdoll_depth_milestone = current_best_depth
         env.ragdoll_seconds_since_depth_milestone = 0.0
     else:
         env.ragdoll_seconds_since_depth_milestone += ragdoll_seconds_delta
 
-    overdue_ragdoll_seconds = max(
-        0.0,
-        env.ragdoll_seconds_since_depth_milestone - RAGDOLL_STALL_GRACE_SECONDS,
-    )
+    overdue_ragdoll_seconds = max(0.0, env.ragdoll_seconds_since_depth_milestone - RAGDOLL_STALL_GRACE_SECONDS)
     ragdoll_stall_penalty = 0.0
-    if current_time_ragdolled > 0.0:
-        ragdoll_stall_penalty = min(
-            RAGDOLL_STALL_PENALTY_CAP,
-            RAGDOLL_STALL_PENALTY_BASE
-            * (2.0 ** (overdue_ragdoll_seconds / RAGDOLL_STALL_DOUBLING_SECONDS) - 1.0),
-        )
+    if act[21] == 1: # ragdoll action, only penalize when the policy chooses to ragdoll
+        ragdoll_stall_penalty = min(RAGDOLL_STALL_PENALTY_CAP, RAGDOLL_STALL_PENALTY_BASE * (2.0 ** (overdue_ragdoll_seconds / RAGDOLL_STALL_DOUBLING_SECONDS) - 1.0))
 
     progress_reward = PROGRESS_REWARD_SCALE * progress_delta
     safety_delta_reward = SAFETY_DELTA_REWARD_SCALE * risk_delta

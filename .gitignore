@@ -2,6 +2,7 @@
 checkpoints/
 tensorboard/
 inference_debug.log
+PPO_Python/episode_traces/
 __pycache__/
 *.pyc
 bin/

@@ -3,6 +3,7 @@ import numpy as np
 import threading
 from ObservationFlattener import build_plan, flatten
 import Reward
+from EpisodeTrace import EpisodeTraceWriter
 
 _server = None
 _flatten_plan = None
@@ -90,10 +91,14 @@ class Env(gym.Env):
 
         self.max_episode_steps = 5000
         self.episode_steps = 0
+        self.episode_number = 0
+        self.episode_trace = EpisodeTraceWriter()
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
+        self.episode_number += 1
+        self.episode_trace.begin_episode(self.episode_number)
         self.episode_steps = 0
 
         self.obs_ready.clear()
@@ -115,12 +120,26 @@ class Env(gym.Env):
         self.episode_steps += 1
 
         obs = self.latest_obs
-        reward = Reward.Reward(obs, self)
+        reward = Reward.Reward(obs, action, self)
         terminated = bool(obs["PlayerDead"]) or obs["LayerProgress"] >= 1.0
         truncated = self.episode_steps >= self.max_episode_steps
-        return Preprocess(obs), reward, terminated, truncated, self.last_reward_terms.copy()
+        info = self.last_reward_terms.copy()
+        self.episode_trace.record(
+            self.episode_steps,
+            action,
+            obs,
+            reward,
+            info,
+            terminated,
+            truncated,
+        )
+        if terminated or truncated:
+            self.episode_trace.finish_episode()
+
+        return Preprocess(obs), reward, terminated, truncated, info
 
     def close(self):
+        self.episode_trace.finish_episode(complete=False)
         if _server is not None:
             _server.Shutdown()
         
