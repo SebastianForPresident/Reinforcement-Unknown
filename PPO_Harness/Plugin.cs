@@ -9,7 +9,6 @@ using static HarmonyLib.AccessTools;
 using Debug = UnityEngine.Debug;
 using System.Linq;
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Collections;
 using System.Text;
@@ -33,7 +32,10 @@ public class PPO_Harness : BaseUnityPlugin
 
 class BinaryObservationWriter
 {
-    public const int ExpectedSize = 1056511;
+    // The observation payload is the original fixed schema plus one trailing
+    // little-endian uint64 observation ID.  Keep the ID at the end so all
+    // existing field offsets remain unchanged.
+    public const int ExpectedSize = 1056519;
 
     public int BytesWritten { get; private set; }
     public byte[] Buffer { get; } = new byte[ExpectedSize];
@@ -92,6 +94,19 @@ class BinaryObservationWriter
         Buffer[BytesWritten++] = unchecked((byte)(value >> 8));
         Buffer[BytesWritten++] = unchecked((byte)(value >> 16));
         Buffer[BytesWritten++] = unchecked((byte)(value >> 24));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Write(ulong value)
+    {
+        Buffer[BytesWritten++] = unchecked((byte)value);
+        Buffer[BytesWritten++] = unchecked((byte)(value >> 8));
+        Buffer[BytesWritten++] = unchecked((byte)(value >> 16));
+        Buffer[BytesWritten++] = unchecked((byte)(value >> 24));
+        Buffer[BytesWritten++] = unchecked((byte)(value >> 32));
+        Buffer[BytesWritten++] = unchecked((byte)(value >> 40));
+        Buffer[BytesWritten++] = unchecked((byte)(value >> 48));
+        Buffer[BytesWritten++] = unchecked((byte)(value >> 56));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -709,7 +724,11 @@ public static class PPOBridge
 
     public static float ThrowCharge;
 
-    static float nextObsTime = 0f;
+    static ulong nextObservationId = 0;
+    static float lastObservationFixedTime;
+    static bool hasObservationFixedTime;
+    static int fixedStepsUntilObservation;
+    static int lastObservationSkipCount;
     
     static List<string> ItemNameList = new();
 
@@ -1107,11 +1126,62 @@ public static class PPOBridge
         }
     }
 
-    static void UpdateCraftableRecipes()
+    static List<Item> BuildRecipeCandidateItems(Body body)
     {
+        // Recipe.GetItemsForRecipe() rebuilds this same candidate set for
+        // every recipe. Build it once per observation instead. Preserve the
+        // game's ordering and duplicate behavior: inventory/wearables first,
+        // then pickup-eligible nearby items.
+        List<Item> candidates = body.GetAllItemsThorough();
+        Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(
+            body.transform.position,
+            10f,
+            LayerMask.GetMask("Item")
+        );
+
+        for (int i = 0; i < nearbyColliders.Length; i++)
+        {
+            if (
+                nearbyColliders[i].TryGetComponent<Item>(out var item) &&
+                body.DoPickupCheck(item, noAlerts: true)
+            )
+            {
+                candidates.Add(item);
+            }
+        }
+
+        return candidates;
+    }
+
+    static bool HasItemsForRecipe(Recipe recipe, List<Item> candidates, List<Item> exclusions)
+    {
+        exclusions.Clear();
+
+        foreach (RecipeItem recipeItem in recipe.items)
+        {
+            Item matchingItem = recipeItem.GetMatchingItem(candidates, exclusions);
+            if (matchingItem == null)
+                return false;
+
+            if (recipeItem.destroyItem && !recipeItem.isLiquid)
+                exclusions.Add(matchingItem);
+        }
+
+        return true;
+    }
+
+    static void UpdateCraftableRecipes(Body body)
+    {
+        List<Item> candidates = BuildRecipeCandidateItems(body);
+        List<Item> exclusions = new List<Item>();
+
         for (int i = 0; i < RecipeDatabase.Length; i++)
         {
-            RecipeDatabase[i].IsCraftable = Recipes.recipes[i].GetItemsForRecipe() != null;
+            RecipeDatabase[i].IsCraftable = HasItemsForRecipe(
+                Recipes.recipes[i],
+                candidates,
+                exclusions
+            );
         }
     }
     
@@ -1168,8 +1238,11 @@ public static class PPOBridge
 
         // Surroundings
         FetchRelTileMap(obs.RelativeBlockMap, playerTile, new Vector2Int(Observation.SIGHT_RANGE_X, Observation.SIGHT_RANGE_Y));
+
         FetchVisibleBuildings(obs.VisibleBuildings, body.transform.position);
+
         FetchVisibleItems(obs.VisibleItems, body.transform.position);
+
         FetchRelFluidMap(obs.RelativeFluidMap, playerTile, new Vector2Int(Observation.SIGHT_RANGE_X, Observation.SIGHT_RANGE_Y));
 
         // Basic Locomotion
@@ -1328,7 +1401,7 @@ public static class PPOBridge
         GetInventory(obs.Inventory, body);
 
         // Crafting
-        UpdateCraftableRecipes();
+        UpdateCraftableRecipes(body);
 
         // Limbs
         GetLimbs(obs.Limbs, body);
@@ -1364,7 +1437,7 @@ public static class PPOBridge
         for (int i = max; i < Observation.MAX_SOUNDS_HEARD; i++) ClearSoundObservation(obs.SoundsHeard[i]);
 
         SoundEvents.Clear(); // Flush sound candidates after using them for tick
-        
+
         return obs;
     }
 
@@ -1514,7 +1587,11 @@ public static class PPOBridge
         writer.Write(limb.TotalBleedAmount);
     }
 
-    static void WriteObservation(BinaryObservationWriter writer, Observation obs)
+    static void WriteObservation(
+        BinaryObservationWriter writer,
+        Observation obs,
+        ulong observationId
+    )
     {
         // Surroundings
         for (int x = 0; x < Observation.SIGHT_RANGE_X * 2 + 1; x++)
@@ -1705,6 +1782,10 @@ public static class PPOBridge
         // Sounds
         foreach (SoundObservation sound in obs.SoundsHeard)
             WriteSound(writer, sound);
+
+        // Metadata is appended after the existing schema so the Python
+        // observation dtype and policy input layout remain unchanged.
+        writer.Write(observationId);
     }
 
     public static void Tick(Body body)
@@ -1742,22 +1823,37 @@ public static class PPOBridge
             return;
         }
 
-        if (Time.unscaledTime < nextObsTime)
-            return;
-
         if (Item.GlobalItems == null)
             return;
         
         if (!StartRan) Start();
 
-        Stopwatch sw = Stopwatch.StartNew();
+        // Body.FixedUpdate is patched once per Body. Publish at most one
+        // observation for each distinct physics step. During the game's
+        // intentional unconscious fast-forward, sample one step and skip
+        // round(Time.timeScale) - 1 subsequent fixed steps.
+        if (hasObservationFixedTime && Time.fixedTime == lastObservationFixedTime)
+            return;
+
+        hasObservationFixedTime = true;
+        lastObservationFixedTime = Time.fixedTime;
+
+        int observationSkipCount = Mathf.Max(0, Mathf.RoundToInt(Time.timeScale) - 1);
+        if (observationSkipCount != lastObservationSkipCount)
+        {
+            fixedStepsUntilObservation = 0;
+            lastObservationSkipCount = observationSkipCount;
+        }
+
+        if (fixedStepsUntilObservation > 0)
+        {
+            fixedStepsUntilObservation--;
+            return;
+        }
+
+        fixedStepsUntilObservation = observationSkipCount;
 
         CollectObservations();
-
-        // Debug.Log($"Collect: {sw.Elapsed.TotalMilliseconds:F2}");
-        sw.Restart();
-
-        nextObsTime = Time.unscaledTime + .05f; // 20 Hz
 
         if (!connected)
         {
@@ -1784,23 +1880,10 @@ public static class PPOBridge
         }
         else
         {
-            // sw = Stopwatch.StartNew();
-            // string json = JsonConvert.SerializeObject(obs);
-            // Debug.Log($"Serialize: {sw.Elapsed.TotalMilliseconds:F2}");
-            // sw.Restart();
-            // writer.WriteLine(json);
-            // writer.Flush();
-            // Debug.Log($"Pipe: {sw.Elapsed.TotalMilliseconds:F2}"); not yet!
-
-            // BinaryObservationWriter counter = new();
-            // WriteObservation(counter, obs);
-            // Debug.Log($"Observation Size: {counter.BytesWritten} bytes"); // Byte size check
-
-            sw = Stopwatch.StartNew();
-
             bufferWriter.Reset();
 
-            WriteObservation(bufferWriter, obs);
+            ulong observationId = ++nextObservationId;
+            WriteObservation(bufferWriter, obs, observationId);
 
             if (bufferWriter.BytesWritten != BinaryObservationWriter.ExpectedSize)
             {
@@ -1810,15 +1893,7 @@ public static class PPOBridge
                 );
             }
 
-            double serialize = sw.Elapsed.TotalMilliseconds;
-
-            sw.Restart();
-
             obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten);
-
-            double pipe = sw.Elapsed.TotalMilliseconds;
-
-            // Debug.Log($"Serialize: {serialize:F2}  Pipe: {pipe:F2}");
         }
         if (!actionConnected)
         {
@@ -2022,7 +2097,7 @@ public static class PPOBridge
 
     public static void ApplyPPOActions(PlayerCamera playerCamera)
     {
-        if (HandlePPOPause())
+        if (HandlePPOPause(playerCamera))
             return;
 
         if (!resetComplete || resetRequested)
@@ -2304,7 +2379,7 @@ public static class PPOBridge
         }
     }
 
-    static bool HandlePPOPause()
+    static bool HandlePPOPause(PlayerCamera playerCamera)
     {
         if (ppoPauseRequested)
         {
@@ -2327,7 +2402,24 @@ public static class PPOBridge
             if (!ppoResumeActionReceived)
                 return true;
 
-            Time.timeScale = prePPOPauseTimeScale;
+            float resumeTimeScale = prePPOPauseTimeScale;
+
+            // The game's unconscious/death fast-forward can reset itself to
+            // Normal while PPO is paused. Do not replay a stale automatic
+            // fast-forward value after that reset. Manual 5x/20x speeds are
+            // deliberately left alone.
+            bool automaticFastForward =
+                Mathf.Approximately(prePPOPauseTimeScale, 25f) ||
+                Mathf.Approximately(prePPOPauseTimeScale, 3.5f);
+            bool gameReturnedToNormal =
+                playerCamera != null &&
+                (playerCamera.curTimeScale == PlayerCamera.SpeedType.Normal ||
+                 playerCamera.body == null ||
+                 playerCamera.body.consciousness >= 20f);
+            if (automaticFastForward && gameReturnedToNormal)
+                resumeTimeScale = 1f;
+
+            Time.timeScale = resumeTimeScale;
             ppoPaused = false;
             SendActionAcknowledgement("RESUMED");
         }
@@ -2495,6 +2587,9 @@ public static class PPOBridge
     public static IEnumerator Reset()
 	{
         resetComplete = false;
+		hasObservationFixedTime = false;
+		fixedStepsUntilObservation = 0;
+		lastObservationSkipCount = 0;
 		ppoPauseRequested = false;
 		ppoResumeActionReceived = false;
 		ppoPaused = false;
