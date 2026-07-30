@@ -7,10 +7,12 @@ from EpisodeTrace import EpisodeTraceWriter
 
 _server = None
 _flatten_plan = None
+_observation_lock = None
 
 def Start(server):
-    global _server, _listener
+    global _server, _listener, _observation_lock
     _server = server
+    _observation_lock = server.observation_lock
 
 def Preprocess(obs):
     global _flatten_plan
@@ -84,6 +86,8 @@ class Env(gym.Env):
         self.observation_space = gym.spaces.Box(low=-np.inf,high=np.inf,shape=(452933,),dtype=np.float32)
 
         self.latest_obs = None
+        self.latest_observation_id = None
+        self.last_consumed_observation_id = None
         self.obs_ready = threading.Event()
         self.previous_progress = None
         self.previous_risk = None
@@ -101,25 +105,52 @@ class Env(gym.Env):
         self.episode_trace.begin_episode(self.episode_number)
         self.episode_steps = 0
 
-        self.obs_ready.clear()
+        with _observation_lock:
+            reset_after_id = self.latest_observation_id
+            self.obs_ready.clear()
         SendReset()
-        self.obs_ready.wait()
+        obs, observation_id, _ = self._wait_for_new_observation(reset_after_id)
 
         _server.reset_requested.clear()
 
-        obs = self.latest_obs
+        self.last_consumed_observation_id = observation_id
         Reward.Reset(self, obs)
         return Preprocess(obs), {}
+
+    def _wait_for_new_observation(self, previous_id):
+        """Return the newest observation whose ID follows previous_id.
+
+        The receiver and this check share observation_lock.  That makes the
+        ID check and event clear atomic with respect to receiver publication,
+        avoiding a lost wakeup when an observation arrives at the boundary.
+        """
+        waited = False
+        while True:
+            with _observation_lock:
+                current_id = self.latest_observation_id
+                if (
+                    current_id is not None
+                    and (previous_id is None or current_id > previous_id)
+                ):
+                    obs = self.latest_obs
+                    self.obs_ready.clear()
+                    return obs, current_id, not waited
+
+                self.obs_ready.clear()
+
+            waited = True
+            self.obs_ready.wait()
 
     def step(self, action):
         Decode(action)
 
-        self.obs_ready.clear()
-        self.obs_ready.wait()
+        obs, observation_id, _ = self._wait_for_new_observation(
+            self.last_consumed_observation_id
+        )
 
         self.episode_steps += 1
 
-        obs = self.latest_obs
+        self.last_consumed_observation_id = observation_id
         reward = Reward.Reward(obs, action, self)
         terminated = bool(obs["PlayerDead"]) or obs["LayerProgress"] >= 1.0
         truncated = self.episode_steps >= self.max_episode_steps
@@ -128,6 +159,7 @@ class Env(gym.Env):
             self.episode_steps,
             action,
             obs,
+            observation_id,
             reward,
             info,
             terminated,
@@ -136,7 +168,9 @@ class Env(gym.Env):
         if terminated or truncated:
             self.episode_trace.finish_episode()
 
-        return Preprocess(obs), reward, terminated, truncated, info
+        processed_obs = Preprocess(obs)
+
+        return processed_obs, reward, terminated, truncated, info
 
     def close(self):
         self.episode_trace.finish_episode(complete=False)

@@ -3,6 +3,7 @@ checkpoints/
 tensorboard/
 inference_debug.log
 PPO_Python/episode_traces/
+PPO_Python/profiles/
 __pycache__/
 *.pyc
 bin/

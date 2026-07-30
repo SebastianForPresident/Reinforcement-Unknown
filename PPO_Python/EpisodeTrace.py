@@ -43,6 +43,7 @@ ACTION_NAMES = (
 BASE_COLUMNS = (
     "episode",
     "step",
+    "observation_id",
     "reward",
     "terminated",
     "truncated",
@@ -111,7 +112,17 @@ class EpisodeTraceWriter:
         self._episode = int(episode)
         self._rows = []
 
-    def record(self, step, action, obs, reward, info, terminated, truncated):
+    def record(
+        self,
+        step,
+        action,
+        obs,
+        observation_id,
+        reward,
+        info,
+        terminated,
+        truncated,
+    ):
         if not self.episode_open:
             raise RuntimeError("Cannot record a step without an active episode")
 
@@ -119,6 +130,7 @@ class EpisodeTraceWriter:
         row = {
             "episode": self._episode,
             "step": int(step),
+            "observation_id": _scalar(observation_id),
             "reward": _scalar(reward),
             "terminated": bool(terminated),
             "truncated": bool(truncated),

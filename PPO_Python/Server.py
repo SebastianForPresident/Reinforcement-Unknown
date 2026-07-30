@@ -18,6 +18,7 @@ ACTION_PORT = 45702
 running = True
 reset_requested = threading.Event()
 action_write_lock = threading.Lock()
+observation_lock = threading.Lock()
 shutdown_lock = threading.Lock()
 shutdown_started = False
 simulation_paused = threading.Event()
@@ -488,13 +489,22 @@ OBSERVATION_DTYPE = np.dtype([
     ("SoundsHeard", SOUND_DTYPE, (MAX_SOUNDS_HEARD,)),
 ], align=False)
 
-OBSERVATION_SIZE = OBSERVATION_DTYPE.itemsize
-EXPECTED_OBSERVATION_SIZE = 1056511
+OBSERVATION_DATA_SIZE = OBSERVATION_DTYPE.itemsize
+OBSERVATION_ID_SIZE = 8
+OBSERVATION_MESSAGE_SIZE = OBSERVATION_DATA_SIZE + OBSERVATION_ID_SIZE
+EXPECTED_OBSERVATION_DATA_SIZE = 1056511
+EXPECTED_OBSERVATION_MESSAGE_SIZE = 1056519
 
-if OBSERVATION_SIZE != EXPECTED_OBSERVATION_SIZE:
+if OBSERVATION_DATA_SIZE != EXPECTED_OBSERVATION_DATA_SIZE:
     raise RuntimeError(
-        f"Observation dtype is {OBSERVATION_SIZE} bytes; "
-        f"Unity writes {EXPECTED_OBSERVATION_SIZE} bytes"
+        f"Observation dtype is {OBSERVATION_DATA_SIZE} bytes; "
+        f"expected {EXPECTED_OBSERVATION_DATA_SIZE} bytes before metadata"
+    )
+
+if OBSERVATION_MESSAGE_SIZE != EXPECTED_OBSERVATION_MESSAGE_SIZE:
+    raise RuntimeError(
+        f"Observation message is {OBSERVATION_MESSAGE_SIZE} bytes; "
+        f"expected {EXPECTED_OBSERVATION_MESSAGE_SIZE} bytes"
     )
 
 env = CasualtiesEnv.Env()
@@ -514,20 +524,27 @@ elif sys.argv[1] == "inference":
 
 while running:
     try:
-        data = RecvExact(obs_pipe, OBSERVATION_SIZE)
+        data = RecvExact(obs_pipe, OBSERVATION_MESSAGE_SIZE)
 
-        if len(data) != OBSERVATION_SIZE:
+        if len(data) != OBSERVATION_MESSAGE_SIZE:
             raise RuntimeError(
-                f"Observation message was {len(data)} bytes; expected {OBSERVATION_SIZE}"
+                f"Observation message was {len(data)} bytes; "
+                f"expected {OBSERVATION_MESSAGE_SIZE}"
             )
 
-        t0 = time.perf_counter()
-        obs = np.frombuffer(data, dtype=OBSERVATION_DTYPE, count=1)[0]
-        t1 = time.perf_counter()
+        observation_id = int.from_bytes(
+            data[OBSERVATION_DATA_SIZE:], byteorder="little", signed=False
+        )
+        obs = np.frombuffer(
+            data[:OBSERVATION_DATA_SIZE], dtype=OBSERVATION_DTYPE, count=1
+        )[0]
+        # If the event is already set, the previous observation has not yet
+        # been consumed by Env.step(); this arrival will replace latest_obs.
+        with observation_lock:
+            env.latest_obs = obs
+            env.latest_observation_id = observation_id
+            env.obs_ready.set()
 
-        env.latest_obs = obs
-        env.obs_ready.set()
-        
         # Update Auxiliary
         aux["Mode"] = mode
         aux["SelectedSlot"] = selectedSlotIndex
