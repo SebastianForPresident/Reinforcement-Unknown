@@ -32,3 +32,4 @@ The stretch goal is to complete multiple.
 | Checkpoint 2 | V2 | Thrashing for mobility and terrain destruction |
 | Checkpoint 3 | V3 | Lighter, non-destructive seizures |
 | Checkpoint 4 | V4 | Wiggle to fall |
+| Checkpoint 5 | V4 | Leave pod to try to descend |
