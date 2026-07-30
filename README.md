@@ -31,3 +31,4 @@ The stretch goal is to complete multiple.
 | Checkpoint 1 | V1 | Holds right, attacks upward, avoids ragdolling |
 | Checkpoint 2 | V2 | Thrashing for mobility and terrain destruction |
 | Checkpoint 3 | V3 | Lighter, non-destructive seizures |
+| Checkpoint 4 | V4 | Wiggle to fall |
