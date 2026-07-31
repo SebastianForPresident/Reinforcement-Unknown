@@ -35,7 +35,7 @@ class BinaryObservationWriter
     // The observation payload is the original fixed schema plus one trailing
     // little-endian uint64 observation ID.  Keep the ID at the end so all
     // existing field offsets remain unchanged.
-    public const int ExpectedSize = 1056519;
+    public const int ExpectedSize = 1031523;
 
     public int BytesWritten { get; private set; }
     public byte[] Buffer { get; } = new byte[ExpectedSize];
@@ -142,13 +142,6 @@ public class BlockObservation
     public float Health;
     public float Toxicity;
     public Body.SleepQuality SleepQuality;
-
-    public short[] ItemPool;
-
-    public BlockObservation()
-    {
-        ItemPool = [-1, -1, -1];
-    }
 }
 
 public class FluidTileObservation
@@ -738,8 +731,6 @@ public static class PPOBridge
 
     static List<string> SoundNameList = new();
 
-    static Dictionary<ushort, short[]> BlockDropPools;
-
     static RecipeObservation[] RecipeDatabase;
 
     static bool StartRan = false;
@@ -843,34 +834,19 @@ public static class PPOBridge
         dst.PullLiquidFromWorld = src.PullLiquidFromWorld;
     }
 
-    static void CollectBlockObservation(BlockObservation obs, BlockInfo block, ushort index)
+    static void CollectBlockObservation(BlockObservation obs, BlockInfo block)
     {
         if (block == null)
         {
             obs.Health = 0;
             obs.SleepQuality = 0;
             obs.Toxicity = 0;
-
-            obs.ItemPool[0] = -1;
-            obs.ItemPool[1] = -1;
-            obs.ItemPool[2] = -1;
             return;
         }
 
         obs.Health = block.health;
         obs.SleepQuality = block.sleep;
         obs.Toxicity = block.toxicity;
-
-        if (BlockDropPools.TryGetValue(index, out short[] pool))
-        {
-            Array.Copy(pool, obs.ItemPool, obs.ItemPool.Length);
-        }
-        else
-        {
-            obs.ItemPool[0] = -1;
-            obs.ItemPool[1] = -1;
-            obs.ItemPool[2] = -1;
-        }
     }
 
     static void CollectFluidTileObservation(FluidTileObservation obs, Vector2Int pos)
@@ -891,7 +867,7 @@ public static class PPOBridge
 
                 ushort blockId = WorldGeneration.world.GetBlock(worldPos);
 
-                CollectBlockObservation(map[x, y], WorldGeneration.world.GetBlockInfo(blockId), blockId);
+                CollectBlockObservation(map[x, y], WorldGeneration.world.GetBlockInfo(blockId));
             }
         }
     }
@@ -1259,7 +1235,7 @@ public static class PPOBridge
         obs.JumpCooldown = jc(body);
         obs.Grounded = body.grounded;
         obs.TimeSinceGrounded = tsg(body);
-        CollectBlockObservation(obs.StandingOn, so(body), ushort.MaxValue);
+        CollectBlockObservation(obs.StandingOn, so(body));
 
         // Ragdolling
         obs.TimeRagdolled = tr(body);
@@ -1465,9 +1441,6 @@ public static class PPOBridge
         writer.Write(block.Health);
         writer.Write(block.Toxicity);
         writer.Write(NarrowSByte((int)block.SleepQuality, "block sleep quality"));
-
-        foreach (short item in block.ItemPool)
-            writer.Write(item);
     }
 
     static void WriteFluidTile(BinaryObservationWriter writer, FluidTileObservation tile)
@@ -1976,20 +1949,6 @@ public static class PPOBridge
             throw new InvalidOperationException($"Quality registry has {QualityNameList.Count} entries; quality IDs use signed bytes");
         if (SoundNameList.Count > short.MaxValue + 1)
             throw new InvalidOperationException($"Sound registry has {SoundNameList.Count} entries; sound IDs use signed shorts");
-
-        BlockDropPools = new()
-        {
-            { 7,  new short[] { EncodeItemID(ItemNameList.IndexOf("glassshards")), -1, -1 } },
-            { 3,  new short[] { EncodeItemID(ItemNameList.IndexOf("scrapmetal")), -1, -1 } },
-            { 6,  new short[] { EncodeItemID(ItemNameList.IndexOf("scrapmetal")), -1, -1 } },
-            { 10, new short[] { EncodeItemID(ItemNameList.IndexOf("scrapmetal")), -1, -1 } },
-            { 8,  new short[] { EncodeItemID(ItemNameList.IndexOf("plasticchunk")), -1, -1 } },
-            { 9,  new short[] { EncodeItemID(ItemNameList.IndexOf("plasticchunk")), -1, -1 } },
-            { 11, new short[] { EncodeItemID(ItemNameList.IndexOf("woodscraps")), EncodeItemID(ItemNameList.IndexOf("stick")), EncodeItemID(ItemNameList.IndexOf("woodpanel")) } },
-            { 24, new short[] { EncodeItemID(ItemNameList.IndexOf("woodscraps")), EncodeItemID(ItemNameList.IndexOf("stick")), EncodeItemID(ItemNameList.IndexOf("woodpanel")) } },
-            { 34, new short[] { EncodeItemID(ItemNameList.IndexOf("rawcopper")), -1, -1 } },
-            { 35, new short[] { EncodeItemID(ItemNameList.IndexOf("ilmenitechunk")), -1, -1 } },
-        };
 
         RecipeDatabase = new RecipeObservation[Recipes.recipes.Count];
         for (int i = 0; i < Recipes.recipes.Count; i++)
