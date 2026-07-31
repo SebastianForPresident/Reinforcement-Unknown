@@ -8,6 +8,10 @@ from pathlib import Path
 import zipfile
 import ObservationEncoding
 
+
+TARGET_TOTAL_TIMESTEPS = 1_000_000
+
+
 class PausingPPO(PPO):
     """Freeze Unity while PPO performs an optimizer update."""
 
@@ -85,6 +89,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
             )
             final_model = run_dir / "casu_ppo_final"
             reset_num_timesteps = True
+            total_timesteps = TARGET_TOTAL_TIMESTEPS
         else:
             print(f"Resuming model: {resume_model}")
             model = PausingPPO.load(
@@ -99,9 +104,18 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
             model._pause_simulation = pause_simulation
             final_model = run_dir / "casu_ppo_resumed_final"
             reset_num_timesteps = False
+            total_timesteps = max(
+                0,
+                TARGET_TOTAL_TIMESTEPS - model.num_timesteps,
+            )
+            print(
+                f"Resuming from {model.num_timesteps} steps; "
+                f"training {total_timesteps} additional steps "
+                f"toward {TARGET_TOTAL_TIMESTEPS}."
+            )
 
         model.learn(
-            1000000,
+            total_timesteps,
             callback=checkpoint_callback,
             reset_num_timesteps=reset_num_timesteps,
             tb_log_name="PPO",
