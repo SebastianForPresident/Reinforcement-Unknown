@@ -1,27 +1,169 @@
 import gymnasium as gym
 import numpy as np
 import threading
-from ObservationFlattener import build_plan, flatten
 import Reward
 from EpisodeTrace import EpisodeTraceWriter
+from ObservationFlattener import flatten, build_plan
+import Types
 
 _server = None
-_flatten_plan = None
+_general_flatten_plans = {}
+_general_input_dim = None
 _observation_lock = None
+
+# These are world/player values rather than spatial grids or repeated entity
+# collections. Keep the order explicit so GeneralEncoder.input_dim is stable.
+GENERAL_FIELD_NAMES = (
+    "Velocity",
+    "IsRight",
+    "MaxSpeed",
+    "RelativeLookPos",
+    "JumpCooldown",
+    "Grounded",
+    "TimeSinceGrounded",
+    "StandingOn",
+    "TimeRagdolled",
+    "CrawlTime",
+    "InWater",
+    "LiquidSlipTime",
+    "LiquidRagdollBar",
+    "LiquidDrinkTime",
+    "CanWalljumpLeft",
+    "CanWalljumpRight",
+    "AttackCooldown",
+    "CrouchAmount",
+    "Crouching",
+    "IsClimbing",
+    "ClimbableProgress",
+    "ClimbVelocity",
+    "HeartRate",
+    "FibrillationProgress",
+    "FibrillationForced",
+    "FibrillationRising",
+    "HasPulmonaryEmbolism",
+    "BloodOxygen",
+    "BloodVolume",
+    "BloodPressure",
+    "BloodVesselSize",
+    "BloodViscosity",
+    "TotalBleedSpeed",
+    "InternalBleeding",
+    "Hemothorax",
+    "VenomTotal",
+    "VenomCurrent",
+    "RespiratoryRate",
+    "Breathing",
+    "Adrenaline",
+    "CurAdrenaline",
+    "StimulantMultiplier",
+    "OnHardStimulants",
+    "OpiateHappiness",
+    "AntidepressantHappiness",
+    "BrainGrowSickness",
+    "UsedNeuralBooster",
+    "MindWiped",
+    "Caffeinated",
+    "OverdoseIndex",
+    "WeightOffset",
+    "Hunger",
+    "Thirst",
+    "Stamina",
+    "Energy",
+    "Immunity",
+    "TotalHappiness",
+    "Dirtyness",
+    "ClawHealth",
+    "BrainHealth",
+    "Consciousness",
+    "Shock",
+    "ReversedControls",
+    "BrainDying",
+    "PlayerDead",
+    "StrokeAmount",
+    "Temperature",
+    "ClothingTemperature",
+    "AveragePain",
+    "PainShock",
+    "HearingLoss",
+    "BothHandsUnusable",
+    "SicknessAmount",
+    "SepticShock",
+    "RadiationSickness",
+    "CorpsesSeen",
+    "TraumaAmount",
+    "HorrifiedLevel",
+    "FocusedLevel",
+    "Disfigured",
+    "EyeGone",
+    "BothEyesGone",
+    "TotalEncumberance",
+    "OverEncumberance",
+    "MaxEncumberance",
+    "Sleeping",
+    "CurSleep",
+    "BadSleepAmount",
+    "GoodSleepTime",
+    "ForcedSleepQuality",
+    "UsingSleepingBag",
+    "CanTakeNap",
+    "TriedRollingLastStand",
+    "LastStandTime",
+    "STR",
+    "RES",
+    "INT",
+    "STRProgress",
+    "RESProgress",
+    "INTProgress",
+    "LayerProgress",
+    "CurrentLayer",
+    "BestLayerDepth",
+    "LayerTimeRemaining",
+    "RadLineDisplacement",
+)
+
+def GetGeneralValues(obs):
+    """Return selected non-spatial, non-entity values as one float32 vector."""
+    values = []
+
+    for field_name in GENERAL_FIELD_NAMES:
+        values.append(flatten(obs[field_name], _general_flatten_plans[field_name]))
+
+    return np.concatenate(values).astype(np.float32, copy=False)
+
+def EncodeGrid(grid):
+    channels = []
+
+    for field in grid.dtype.names:
+        channels.append(grid[field].astype(np.float32))
+
+    return np.ascontiguousarray(np.stack(channels, axis=0))
+
+def Init_General():
+    global _general_input_dim
+    general_input_dim = 0
+
+    for field_name in GENERAL_FIELD_NAMES:
+        field_dtype = Types.OBSERVATION_DTYPE[field_name]
+
+        plan = build_plan(field_dtype)
+        _general_flatten_plans[field_name] = plan
+
+        dummy = np.zeros((), dtype=field_dtype)
+        general_input_dim += flatten(dummy, plan).size
+
+    _general_input_dim = general_input_dim
+
+def PreprocessObservation(obs):
+    return {
+        "general": GetGeneralValues(obs),
+        "blocks": EncodeGrid(obs["RelativeBlockMap"]),
+        "fluids": EncodeGrid(obs["RelativeFluidMap"])
+    }
 
 def Start(server):
     global _server, _listener, _observation_lock
     _server = server
     _observation_lock = server.observation_lock
-
-def Preprocess(obs):
-    global _flatten_plan
-
-    if _flatten_plan is None:
-        _flatten_plan = build_plan(obs.dtype)
-
-    flat = flatten(obs, _flatten_plan)
-    return flat
 
 def Decode(action):
     _server.move = action[0] - 1
@@ -82,8 +224,36 @@ def SendReset():
 
 class Env(gym.Env):
     def __init__(self):
+        Init_General()
         self.action_space = gym.spaces.MultiDiscrete([3, 2, 3, 2, 9, 11, 2, 2, 25, 26, 2, 2, 33, 2, 2, 15, 2, 133, 2, 2, 2, 2, 4, 2, 2, 201, 2, 2])
-        self.observation_space = gym.spaces.Box(low=-np.inf,high=np.inf,shape=(452933,),dtype=np.float32)
+        self.observation_space = gym.spaces.Dict({
+            "general": gym.spaces.Box(
+                low=-np.inf,
+                high=np.inf,
+                shape=(_general_input_dim,),
+                dtype=np.float32,
+            ),
+            "blocks": gym.spaces.Box(
+                low=-np.inf,
+                high=np.inf,
+                shape=(
+                    len(Types.BLOCK_DTYPE.names),
+                    Types.SIGHT_RANGE_X * 2 + 1,
+                    Types.SIGHT_RANGE_Y * 2 + 1,
+                ),
+                dtype=np.float32,
+            ),
+            "fluids": gym.spaces.Box(
+                low=-np.inf,
+                high=np.inf,
+                shape=(
+                    len(Types.FLUID_TILE_DTYPE.names),
+                    Types.SIGHT_RANGE_X * 2 + 1,
+                    Types.SIGHT_RANGE_Y * 2 + 1,
+                ),
+                dtype=np.float32,
+            ),
+        })
 
         self.latest_obs = None
         self.latest_observation_id = None
@@ -93,7 +263,7 @@ class Env(gym.Env):
         self.previous_risk = None
         self.last_reward_terms = {}
 
-        self.max_episode_steps = 5000
+        self.max_episode_steps = 25000
         self.episode_steps = 0
         self.episode_number = 0
         self.episode_trace = EpisodeTraceWriter()
@@ -115,7 +285,7 @@ class Env(gym.Env):
 
         self.last_consumed_observation_id = observation_id
         Reward.Reset(self, obs)
-        return Preprocess(obs), {}
+        return PreprocessObservation(obs), {}
 
     def _wait_for_new_observation(self, previous_id):
         """Return the newest observation whose ID follows previous_id.
@@ -168,9 +338,7 @@ class Env(gym.Env):
         if terminated or truncated:
             self.episode_trace.finish_episode()
 
-        processed_obs = Preprocess(obs)
-
-        return processed_obs, reward, terminated, truncated, info
+        return PreprocessObservation(obs), reward, terminated, truncated, info
 
     def close(self):
         self.episode_trace.finish_episode(complete=False)

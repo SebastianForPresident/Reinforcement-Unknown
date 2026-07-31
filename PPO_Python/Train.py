@@ -6,7 +6,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 import zipfile
-
+import ObservationEncoding
 
 class PausingPPO(PPO):
     """Freeze Unity while PPO performs an optimizer update."""
@@ -33,7 +33,6 @@ class PausingPPO(PPO):
             self._pause_simulation()
         return super().train()
 
-
 def FindResumeModel(run_dir):
     """Select the newest completed PPO model in an existing run directory."""
     candidates = sorted(
@@ -53,7 +52,6 @@ def FindResumeModel(run_dir):
         "valid casu_ppo*.zip file."
     )
 
-
 def Begin_Training(env, pause_simulation=None, resume_dir=None):
     if resume_dir is None:
         run_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -67,7 +65,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
     run_dir.mkdir(parents=True, exist_ok=True)
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=15_000,
+        save_freq=50_000,
         save_path=str(run_dir),
         name_prefix="casu_ppo",
     )
@@ -76,8 +74,11 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
         print(f"Training run directory: {run_dir}")
         if resume_model is None:
             model = PausingPPO(
-                "MlpPolicy",
+                "MultiInputPolicy",
                 env,
+                policy_kwargs={
+                    "features_extractor_class": ObservationEncoding.CasualtiesFeatureExtractor,
+                },
                 device="auto",
                 tensorboard_log=str(run_dir / "tensorboard"),
                 pause_simulation=pause_simulation,
@@ -89,6 +90,9 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
             model = PausingPPO.load(
                 str(resume_model),
                 env=env,
+                policy_kwargs={
+                    "features_extractor_class": ObservationEncoding.CasualtiesFeatureExtractor,
+                },
                 device="auto",
                 tensorboard_log=str(run_dir / "tensorboard"),
             )
@@ -97,7 +101,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
             reset_num_timesteps = False
 
         model.learn(
-            250000,
+            1000000,
             callback=checkpoint_callback,
             reset_num_timesteps=reset_num_timesteps,
             tb_log_name="PPO",
