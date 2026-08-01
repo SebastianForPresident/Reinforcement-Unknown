@@ -33,3 +33,4 @@ The stretch goal is to complete multiple.
 | Checkpoint 3 | V3 | Lighter, non-destructive seizures |
 | Checkpoint 4 | V4 | Wiggle to fall |
 | Checkpoint 5 | V5 | Leave pod to try to descend |
+| Checkpoint 6 | V5 | Exercise and avoid ledges + overall descent |

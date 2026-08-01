@@ -12,7 +12,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 import ObservationEncoding
 
 
-TARGET_TOTAL_TIMESTEPS = 1_000_000
+TARGET_TOTAL_TIMESTEPS = 3_000_000
 
 
 class PausingPPO(PPO):
@@ -163,7 +163,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 tensorboard_log=str(run_dir / "tensorboard"),
             )
             model._pause_simulation = pause_simulation
-            final_model = run_dir / "casu_ppo_resumed_final"
+            final_model = run_dir / "casu_ppo_c6_3m_final"
             reset_num_timesteps = False
             total_timesteps = max(
                 0,
