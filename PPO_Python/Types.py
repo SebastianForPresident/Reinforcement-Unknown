@@ -148,10 +148,17 @@ SOUND_DTYPE = np.dtype([
     ("Volume", FLOAT_DTYPE),
 ], align=False)
 
+# TEMPORARY PROTOCOL EXPERIMENT: keep the unused observation definitions
+# below, but omit them from the live wire dtype while the current policy does
+# not consume them. This must match PPOBridge.IncludeUnusedObservations.
+INCLUDE_UNUSED_OBSERVATIONS = False
+
 OBSERVATION_DTYPE = np.dtype([
     ("RelativeBlockMap", BLOCK_DTYPE, (SIGHT_RANGE_X * 2 + 1, SIGHT_RANGE_Y * 2 + 1)),
-    ("VisibleBuildings", BUILDING_DTYPE, (MAX_NEARBY_BUILDINGS,)),
-    ("VisibleItems", WORLD_ITEM_DTYPE, (MAX_NEARBY_ITEMS,)),
+    *([
+        ("VisibleBuildings", BUILDING_DTYPE, (MAX_NEARBY_BUILDINGS,)),
+        ("VisibleItems", WORLD_ITEM_DTYPE, (MAX_NEARBY_ITEMS,)),
+    ] if INCLUDE_UNUSED_OBSERVATIONS else []),
     ("RelativeFluidMap", FLUID_TILE_DTYPE, (SIGHT_RANGE_X * 2 + 1, SIGHT_RANGE_Y * 2 + 1)),
     ("Velocity", VECTOR2_DTYPE),
     ("IsRight", BOOL_DTYPE),
@@ -253,14 +260,17 @@ OBSERVATION_DTYPE = np.dtype([
     ("STRProgress", FLOAT_DTYPE),
     ("RESProgress", FLOAT_DTYPE),
     ("INTProgress", FLOAT_DTYPE),
-    ("Inventory", ITEM_DTYPE, (25,)),
-    ("Recipes", RECIPE_DTYPE, (132,)),
-    ("Limbs", LIMB_DTYPE, (15,)),
+    *([
+        ("Inventory", ITEM_DTYPE, (25,)),
+        ("Recipes", RECIPE_DTYPE, (132,)),
+        ("Limbs", LIMB_DTYPE, (15,)),
+    ] if INCLUDE_UNUSED_OBSERVATIONS else []),
     ("LayerProgress", FLOAT_DTYPE),
     ("CurrentLayer", BYTE_DTYPE),
     ("BestLayerDepth", SHORT_DTYPE),
     ("LayerTimeRemaining", INT_DTYPE),
     ("RadLineDisplacement", SHORT_DTYPE),
-    ("SoundsHeard", SOUND_DTYPE, (MAX_SOUNDS_HEARD,)),
+    *([
+        ("SoundsHeard", SOUND_DTYPE, (MAX_SOUNDS_HEARD,)),
+    ] if INCLUDE_UNUSED_OBSERVATIONS else []),
 ], align=False)
-

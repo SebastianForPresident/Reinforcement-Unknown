@@ -12,7 +12,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 import ObservationEncoding
 
 
-TARGET_TOTAL_TIMESTEPS = 3_000_000
+TARGET_TOTAL_TIMESTEPS = 250_000
 
 
 class PausingPPO(PPO):

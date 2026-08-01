@@ -32,13 +32,16 @@ public class PPO_Harness : BaseUnityPlugin
 
 class BinaryObservationWriter
 {
-    // The observation payload is the original fixed schema plus one trailing
-    // little-endian uint64 observation ID.  Keep the ID at the end so all
-    // existing field offsets remain unchanged.
-    public const int ExpectedSize = 1031523;
+    // The full observation payload and the temporary reduced payload both
+    // keep the little-endian uint64 observation ID at the end.
+    public const int FullExpectedSize = 1031523;
+    public const int ReducedExpectedSize = 41985;
+    public static int ExpectedSize => PPOBridge.IncludeUnusedObservations
+        ? FullExpectedSize
+        : ReducedExpectedSize;
 
     public int BytesWritten { get; private set; }
-    public byte[] Buffer { get; } = new byte[ExpectedSize];
+    public byte[] Buffer { get; } = new byte[FullExpectedSize];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Reset()
@@ -594,6 +597,11 @@ public class Action
 
 public static class PPOBridge
 {
+    // Temporary protocol experiment: keep the full observation model and
+    // serializers intact, but omit fields that the current policy does not
+    // consume. Set this to true to restore the full observation packet.
+    public static bool IncludeUnusedObservations = false;
+
     const string TcpHost = "127.0.0.1";
     const int ObservationPort = 45701;
     const int ActionPort = 45702;
@@ -1056,7 +1064,7 @@ public static class PPOBridge
 
                 obs.Liquids[count].ID = EncodeSByteID(LiquidNameList.IndexOf(liquid.liquidId), "liquid ID");
                 obs.Liquids[count].Amount = NarrowUShort(Mathf.RoundToInt(liquid.amount), "liquid amount");
-                
+
                 int qualityCount = 0;
                 var liqQualities = Liquids.Registry[liquid.liquidId].GetScaledQualities(liquid.amount);
                 for (int i = 0; i < Observation.MAX_QUALITIES && i < liqQualities.Count; i++)
@@ -1215,9 +1223,11 @@ public static class PPOBridge
         // Surroundings
         FetchRelTileMap(obs.RelativeBlockMap, playerTile, new Vector2Int(Observation.SIGHT_RANGE_X, Observation.SIGHT_RANGE_Y));
 
-        FetchVisibleBuildings(obs.VisibleBuildings, body.transform.position);
-
-        FetchVisibleItems(obs.VisibleItems, body.transform.position);
+        if (IncludeUnusedObservations)
+        {
+            FetchVisibleBuildings(obs.VisibleBuildings, body.transform.position);
+            FetchVisibleItems(obs.VisibleItems, body.transform.position);
+        }
 
         FetchRelFluidMap(obs.RelativeFluidMap, playerTile, new Vector2Int(Observation.SIGHT_RANGE_X, Observation.SIGHT_RANGE_Y));
 
@@ -1373,14 +1383,17 @@ public static class PPOBridge
         obs.RESProgress = body.skills.expRES / body.skills.maxRES;
         obs.INTProgress = body.skills.expINT / body.skills.maxINT;
 
-        // Inventory
-        GetInventory(obs.Inventory, body);
+        if (IncludeUnusedObservations)
+        {
+            // Inventory
+            GetInventory(obs.Inventory, body);
 
-        // Crafting
-        UpdateCraftableRecipes(body);
+            // Crafting
+            UpdateCraftableRecipes(body);
 
-        // Limbs
-        GetLimbs(obs.Limbs, body);
+            // Limbs
+            GetLimbs(obs.Limbs, body);
+        }
 
         float layerHeightMeters = ((float)world.height - 3.1f) * 0.3f;
 
@@ -1396,21 +1409,24 @@ public static class PPOBridge
         else obs.RadLineDisplacement = 10000; // Basically not a problem
 
         // Sound
-        int max = Mathf.Min(SoundEvents.Count, obs.SoundsHeard.Length);
-
-        for (int i = 0; i < max; i++)
+        if (IncludeUnusedObservations)
         {
-            obs.SoundsHeard[i].ID = EncodeSoundID(SoundNameList.IndexOf(SoundEvents[i].Clip.name));
+            int max = Mathf.Min(SoundEvents.Count, obs.SoundsHeard.Length);
 
-            Vector2Int relPos = WorldGeneration.world.WorldToBlockPos(SoundEvents[i].Position) - playerTile;
-            
-            obs.SoundsHeard[i].RelativeTilePosition.X = NarrowShort(relPos.x, "sound relative X");
-            obs.SoundsHeard[i].RelativeTilePosition.Y = NarrowShort(relPos.y, "sound relative Y");
+            for (int i = 0; i < max; i++)
+            {
+                obs.SoundsHeard[i].ID = EncodeSoundID(SoundNameList.IndexOf(SoundEvents[i].Clip.name));
 
-            obs.SoundsHeard[i].Volume = SoundEvents[i].Volume;
+                Vector2Int relPos = WorldGeneration.world.WorldToBlockPos(SoundEvents[i].Position) - playerTile;
+
+                obs.SoundsHeard[i].RelativeTilePosition.X = NarrowShort(relPos.x, "sound relative X");
+                obs.SoundsHeard[i].RelativeTilePosition.Y = NarrowShort(relPos.y, "sound relative Y");
+
+                obs.SoundsHeard[i].Volume = SoundEvents[i].Volume;
+            }
+
+            for (int i = max; i < Observation.MAX_SOUNDS_HEARD; i++) ClearSoundObservation(obs.SoundsHeard[i]);
         }
-
-        for (int i = max; i < Observation.MAX_SOUNDS_HEARD; i++) ClearSoundObservation(obs.SoundsHeard[i]);
 
         SoundEvents.Clear(); // Flush sound candidates after using them for tick
 
@@ -1571,11 +1587,14 @@ public static class PPOBridge
             for (int y = 0; y < Observation.SIGHT_RANGE_Y * 2 + 1; y++)
                 WriteBlock(writer, obs.RelativeBlockMap[x, y]);
 
-        foreach (BuildingObservation building in obs.VisibleBuildings)
-            WriteBuilding(writer, building);
+        if (IncludeUnusedObservations)
+        {
+            foreach (BuildingObservation building in obs.VisibleBuildings)
+                WriteBuilding(writer, building);
 
-        foreach (WorldItemObservation item in obs.VisibleItems)
-            WriteWorldItem(writer, item);
+            foreach (WorldItemObservation item in obs.VisibleItems)
+                WriteWorldItem(writer, item);
+        }
 
         for (int x = 0; x < Observation.SIGHT_RANGE_X * 2 + 1; x++)
             for (int y = 0; y < Observation.SIGHT_RANGE_Y * 2 + 1; y++)
@@ -1731,17 +1750,20 @@ public static class PPOBridge
         writer.Write(obs.RESProgress);
         writer.Write(obs.INTProgress);
 
-        // Inventory
-        foreach (ItemObservation item in obs.Inventory)
-            WriteItem(writer, item, true);
+        if (IncludeUnusedObservations)
+        {
+            // Inventory
+            foreach (ItemObservation item in obs.Inventory)
+                WriteItem(writer, item, true);
 
-        // Crafting
-        foreach (RecipeObservation recipe in obs.Recipes)
-            WriteRecipe(writer, recipe);
+            // Crafting
+            foreach (RecipeObservation recipe in obs.Recipes)
+                WriteRecipe(writer, recipe);
 
-        // Limbs
-        foreach (LimbObservation limb in obs.Limbs)
-            WriteLimb(writer, limb);
+            // Limbs
+            foreach (LimbObservation limb in obs.Limbs)
+                WriteLimb(writer, limb);
+        }
 
         // Progress
         writer.Write(obs.LayerProgress);
@@ -1752,9 +1774,12 @@ public static class PPOBridge
         writer.Write(obs.LayerTimeRemaining);
         writer.Write(obs.RadLineDisplacement);
 
-        // Sounds
-        foreach (SoundObservation sound in obs.SoundsHeard)
-            WriteSound(writer, sound);
+        if (IncludeUnusedObservations)
+        {
+            // Sounds
+            foreach (SoundObservation sound in obs.SoundsHeard)
+                WriteSound(writer, sound);
+        }
 
         // Metadata is appended after the existing schema so the Python
         // observation dtype and policy input layout remain unchanged.
