@@ -36,9 +36,12 @@ class BinaryObservationWriter
     // keep the little-endian uint64 observation ID at the end.
     public const int FullExpectedSize = 1031523;
     public const int ReducedExpectedSize = 41985;
+    public const int LimbsExpectedSize = 42645;
     public static int ExpectedSize => PPOBridge.IncludeUnusedObservations
         ? FullExpectedSize
-        : ReducedExpectedSize;
+        : PPOBridge.IncludeLimbObservations
+            ? LimbsExpectedSize
+            : ReducedExpectedSize;
 
     public int BytesWritten { get; private set; }
     public byte[] Buffer { get; } = new byte[FullExpectedSize];
@@ -601,6 +604,7 @@ public static class PPOBridge
     // serializers intact, but omit fields that the current policy does not
     // consume. Set this to true to restore the full observation packet.
     public static bool IncludeUnusedObservations = false;
+    public static bool IncludeLimbObservations = true;
 
     const string TcpHost = "127.0.0.1";
     const int ObservationPort = 45701;
@@ -744,6 +748,8 @@ public static class PPOBridge
     static bool StartRan = false;
 
     static int BestLayerDepth = 0;
+    const float C7LayerTimeLimitSeconds = 300f;
+    static int configuredLayerWorldInstanceId;
 
     public static List<PendingSound> SoundEvents = new List<PendingSound>();
 
@@ -1391,9 +1397,12 @@ public static class PPOBridge
             // Crafting
             UpdateCraftableRecipes(body);
 
-            // Limbs
-            GetLimbs(obs.Limbs, body);
         }
+
+        // Limbs remain enabled because the reward model consumes them; the
+        // other unused observation groups stay disabled.
+        if (IncludeLimbObservations)
+            GetLimbs(obs.Limbs, body);
 
         float layerHeightMeters = ((float)world.height - 3.1f) * 0.3f;
 
@@ -1760,7 +1769,10 @@ public static class PPOBridge
             foreach (RecipeObservation recipe in obs.Recipes)
                 WriteRecipe(writer, recipe);
 
-            // Limbs
+        }
+
+        if (IncludeLimbObservations)
+        {
             foreach (LimbObservation limb in obs.Limbs)
                 WriteLimb(writer, limb);
         }
@@ -1825,6 +1837,8 @@ public static class PPOBridge
             return;
         
         if (!StartRan) Start();
+
+        EnsureC7LayerTimeLimit();
 
         // Body.FixedUpdate is patched once per Body. Publish at most one
         // observation for each distinct physics step. During the game's
@@ -1920,6 +1934,21 @@ public static class PPOBridge
                 );
             }
         }
+    }
+
+    static void EnsureC7LayerTimeLimit()
+    {
+        WorldGeneration world = WorldGeneration.world;
+        if (world == null || !world.worldExists || world.generatingWorld)
+            return;
+
+        int worldInstanceId = world.GetInstanceID();
+        if (worldInstanceId == configuredLayerWorldInstanceId)
+            return;
+
+        world.maxTimePerLayer = C7LayerTimeLimitSeconds;
+        configuredLayerWorldInstanceId = worldInstanceId;
+        Debug.Log($"PPO C7 layer time limit set to {C7LayerTimeLimitSeconds:0} seconds.");
     }
 
     public static void Start()
@@ -2574,6 +2603,7 @@ public static class PPOBridge
 		hasObservationFixedTime = false;
 		fixedStepsUntilObservation = 0;
 		lastObservationSkipCount = 0;
+		configuredLayerWorldInstanceId = 0;
 		ppoPauseRequested = false;
 		ppoResumeActionReceived = false;
 		ppoPaused = false;

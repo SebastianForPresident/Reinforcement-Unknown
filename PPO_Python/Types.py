@@ -152,6 +152,9 @@ SOUND_DTYPE = np.dtype([
 # below, but omit them from the live wire dtype while the current policy does
 # not consume them. This must match PPOBridge.IncludeUnusedObservations.
 INCLUDE_UNUSED_OBSERVATIONS = False
+# Limbs are a deliberate exception because Reward.py consumes their damage and
+# infection fields. This must match PPOBridge.IncludeLimbObservations.
+INCLUDE_LIMB_OBSERVATIONS = True
 
 OBSERVATION_DTYPE = np.dtype([
     ("RelativeBlockMap", BLOCK_DTYPE, (SIGHT_RANGE_X * 2 + 1, SIGHT_RANGE_Y * 2 + 1)),
@@ -263,8 +266,10 @@ OBSERVATION_DTYPE = np.dtype([
     *([
         ("Inventory", ITEM_DTYPE, (25,)),
         ("Recipes", RECIPE_DTYPE, (132,)),
-        ("Limbs", LIMB_DTYPE, (15,)),
     ] if INCLUDE_UNUSED_OBSERVATIONS else []),
+    *([
+        ("Limbs", LIMB_DTYPE, (15,)),
+    ] if INCLUDE_LIMB_OBSERVATIONS else []),
     ("LayerProgress", FLOAT_DTYPE),
     ("CurrentLayer", BYTE_DTYPE),
     ("BestLayerDepth", SHORT_DTYPE),

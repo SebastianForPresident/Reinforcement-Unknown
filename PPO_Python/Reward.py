@@ -1,4 +1,4 @@
-"""Reward V5: descend while preserving the capacity to keep descending.
+"""Reward V6: descend while preserving the capacity to keep descending.
 
 This reward deliberately operates on continuous observation fields rather than
 the UI moodle levels.  Moodle thresholds inform the caution/critical ranges
@@ -11,6 +11,8 @@ ragdoll impacts, and environmental exposure.  It also discourages the
 non-progressing ragdoll exploit: cumulative ragdoll time becomes costly only
 after thirty seconds without reaching another 10 m depth milestone, and now
 only if the policy explicitly chooses to ragdoll in that same step.
+
+All identical to V5 except the explicit radline penalty's removed
 """
 
 import numpy as np
@@ -22,8 +24,6 @@ PROGRESS_REWARD_SCALE = 12.0
 SAFETY_DELTA_REWARD_SCALE = 1.25
 RISK_OCCUPANCY_COST = 0.006
 STEP_COST = 0.0005
-RADLINE_COST_SCALE = 0.001
-RADLINE_COST_CAP = 0.05
 DEATH_PENALTY = 20.0
 LAYER_COMPLETE_BONUS = 20.0
 
@@ -235,14 +235,6 @@ def Reward(obs, act, env):
         - STEP_COST
     )
 
-    radline_penalty = 0.0
-    if obs["LayerTimeRemaining"] <= 0 and obs["RadLineDisplacement"] < 0:
-        radline_penalty = min(
-            -float(obs["RadLineDisplacement"]) * RADLINE_COST_SCALE,
-            RADLINE_COST_CAP,
-        )
-        reward -= radline_penalty
-
     death_penalty = 0.0
     completion_bonus = 0.0
     if bool(obs["PlayerDead"]):
@@ -265,7 +257,6 @@ def Reward(obs, act, env):
         "ragdoll_seconds_since_depth_milestone": env.ragdoll_seconds_since_depth_milestone,
         "ragdoll_depth_milestone": env.ragdoll_depth_milestone,
         "ragdoll_stall_penalty": ragdoll_stall_penalty,
-        "radline_penalty": radline_penalty,
         "death": death_penalty,
         "completion": completion_bonus,
         "reward": float(reward),
