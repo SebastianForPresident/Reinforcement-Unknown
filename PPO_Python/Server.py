@@ -1,5 +1,6 @@
 import socket
 import os
+import csv
 import Human_Input
 import Visualization
 import json
@@ -12,6 +13,8 @@ import gymnasium as gym
 import Train
 import Inference
 import Types
+from pathlib import Path
+from datetime import datetime
 
 TCP_HOST = "127.0.0.1"
 OBS_PORT = 45701
@@ -25,6 +28,53 @@ shutdown_started = False
 simulation_paused = threading.Event()
 pause_applied = threading.Event()
 resume_applied = threading.Event()
+
+PIPELINE_PROFILE_ENABLED = os.environ.get("PPO_PIPELINE_PROFILE", "").lower() in (
+    "1", "true", "yes", "on"
+)
+PIPELINE_PROFILE_DIR = Path(
+    os.environ.get("PPO_PIPELINE_PROFILE_DIR", "profiles")
+)
+pipeline_profile_lock = threading.Lock()
+pipeline_profile_file = None
+pipeline_profile_writer = None
+pipeline_profile_rows = 0
+
+
+def ProfileEvent(phase, duration_ms=0.0, size_bytes=0, observation_id=0, interval_ticks=0):
+    global pipeline_profile_rows
+    if not PIPELINE_PROFILE_ENABLED or pipeline_profile_writer is None:
+        return
+    with pipeline_profile_lock:
+        pipeline_profile_writer.writerow((
+            time.time_ns(),
+            time.perf_counter_ns(),
+            threading.current_thread().name,
+            phase,
+            f"{duration_ms:.6f}",
+            size_bytes,
+            observation_id,
+            interval_ticks,
+        ))
+        pipeline_profile_rows += 1
+        if pipeline_profile_rows >= 100:
+            pipeline_profile_file.flush()
+            pipeline_profile_rows = 0
+
+
+if PIPELINE_PROFILE_ENABLED:
+    PIPELINE_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    profile_path = PIPELINE_PROFILE_DIR / (
+        f"pipeline_python_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+    )
+    pipeline_profile_file = profile_path.open("w", newline="", encoding="utf-8")
+    pipeline_profile_writer = csv.writer(pipeline_profile_file)
+    pipeline_profile_writer.writerow((
+        "wall_time_ns", "monotonic_ns", "thread", "phase", "duration_ms",
+        "size_bytes", "observation_id", "interval_ticks",
+    ))
+    pipeline_profile_file.flush()
+    print(f"Pipeline Python profile: {profile_path}")
 
 def CreateTcpListener(port):
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,6 +95,7 @@ action_pipe = None
 
 
 def RecvExact(connection, size):
+    started = time.perf_counter_ns()
     chunks = []
     remaining = size
 
@@ -55,11 +106,32 @@ def RecvExact(connection, size):
         chunks.append(chunk)
         remaining -= len(chunk)
 
-    return b"".join(chunks)
+    result = b"".join(chunks)
+    ProfileEvent(
+        "observation_socket_recv",
+        (time.perf_counter_ns() - started) / 1_000_000,
+        len(result),
+    )
+    return result
 
 
 def BuildActionMessage():
-    return f"{move},{jump},{vertMove},{crouch},{lookdX},{lookdY},{attack},{interact},{targetSlotIndex},{selectedSlotIndex},{dropItem},{moveItem},{selectedBagIndex},{useItem},{useItemWorld},{selectedLimb},{useItemMedical},{selectedRecipe},{favoriteItem},{switchMainHand},{trySleep},{ragdoll},{exercise},{bark},{throw},{liquidAmount},{drainLiquid},{pullLiquidFromWorld}\n".encode("utf-8")
+    started = time.perf_counter_ns()
+    message = f"{move},{jump},{vertMove},{crouch},{lookdX},{lookdY},{attack},{interact},{targetSlotIndex},{selectedSlotIndex},{dropItem},{moveItem},{selectedBagIndex},{useItem},{useItemWorld},{selectedLimb},{useItemMedical},{selectedRecipe},{favoriteItem},{switchMainHand},{trySleep},{ragdoll},{exercise},{bark},{throw},{liquidAmount},{drainLiquid},{pullLiquidFromWorld}\n".encode("utf-8")
+    ProfileEvent("action_build", (time.perf_counter_ns() - started) / 1_000_000, len(message))
+    return message
+
+
+def ConfigureTimeScaleMultiplier(multiplier):
+    started = time.perf_counter_ns()
+    commands = []
+    if PIPELINE_PROFILE_ENABLED:
+        commands.append("PPO_PROFILE 1\n")
+    commands.append(f"PPO_SCALE {multiplier:g}\n")
+    message = "".join(commands).encode("ascii")
+    with action_write_lock:
+        action_pipe.sendall(message)
+    ProfileEvent("scale_send", (time.perf_counter_ns() - started) / 1_000_000, len(message))
 
 
 def ControlAckLoop():
@@ -122,7 +194,9 @@ def ActionLoop():
 
             with action_write_lock:
                 if not reset_requested.is_set():
+                    send_started = time.perf_counter_ns()
                     action_pipe.sendall(msg)
+                    ProfileEvent("action_socket_send", (time.perf_counter_ns() - send_started) / 1_000_000, len(msg))
             time.sleep(0.005)
         except OSError as e:
             print(f"Action TCP connection closed: {e}")
@@ -222,16 +296,20 @@ aux = {
 
 CasualtiesEnv.Start(sys.modules[__name__])
 
+ConfigureTimeScaleMultiplier(4.0 if sys.argv[1] == "train" else 1.0)
+
 threading.Thread(target=ActionLoop, daemon=True).start()
 threading.Thread(target=ControlAckLoop, daemon=True).start()
 
 OBSERVATION_DATA_SIZE = Types.OBSERVATION_DTYPE.itemsize
 OBSERVATION_ID_SIZE = 8
-OBSERVATION_MESSAGE_SIZE = OBSERVATION_DATA_SIZE + OBSERVATION_ID_SIZE
+OBSERVATION_INTERVAL_SIZE = 2
+OBSERVATION_METADATA_SIZE = OBSERVATION_ID_SIZE + OBSERVATION_INTERVAL_SIZE
+OBSERVATION_MESSAGE_SIZE = OBSERVATION_DATA_SIZE + OBSERVATION_METADATA_SIZE
 EXPECTED_OBSERVATION_DATA_SIZE = (
-    1031515 if Types.INCLUDE_UNUSED_OBSERVATIONS else 41977
+    1031515 if Types.INCLUDE_UNUSED_OBSERVATIONS else 42637
 )
-EXPECTED_OBSERVATION_MESSAGE_SIZE = EXPECTED_OBSERVATION_DATA_SIZE + OBSERVATION_ID_SIZE
+EXPECTED_OBSERVATION_MESSAGE_SIZE = EXPECTED_OBSERVATION_DATA_SIZE + OBSERVATION_METADATA_SIZE
 
 if OBSERVATION_DATA_SIZE != EXPECTED_OBSERVATION_DATA_SIZE:
     raise RuntimeError(
@@ -270,18 +348,41 @@ while running:
                 f"expected {OBSERVATION_MESSAGE_SIZE}"
             )
 
+        parse_started = time.perf_counter_ns()
+        observation_id_start = OBSERVATION_DATA_SIZE
+        observation_id_end = observation_id_start + OBSERVATION_ID_SIZE
         observation_id = int.from_bytes(
-            data[OBSERVATION_DATA_SIZE:], byteorder="little", signed=False
+            data[observation_id_start:observation_id_end],
+            byteorder="little",
+            signed=False,
+        )
+        decision_interval_ticks = int.from_bytes(
+            data[observation_id_end:observation_id_end + OBSERVATION_INTERVAL_SIZE],
+            byteorder="little",
+            signed=False,
         )
         obs = np.frombuffer(
             data[:OBSERVATION_DATA_SIZE], dtype=Types.OBSERVATION_DTYPE, count=1
         )[0]
+        ProfileEvent(
+            "observation_parse",
+            (time.perf_counter_ns() - parse_started) / 1_000_000,
+            len(data),
+            observation_id,
+            decision_interval_ticks,
+        )
         # If the event is already set, the previous observation has not yet
         # been consumed by Env.step(); this arrival will replace latest_obs.
         with observation_lock:
             env.latest_obs = obs
             env.latest_observation_id = observation_id
+            env.latest_decision_interval_ticks = decision_interval_ticks
             env.obs_ready.set()
+        ProfileEvent(
+            "observation_publish",
+            observation_id=observation_id,
+            interval_ticks=decision_interval_ticks,
+        )
 
         # Update Auxiliary
         aux["Mode"] = mode

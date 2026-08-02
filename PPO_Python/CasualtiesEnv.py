@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
 import threading
+import time
 import Reward
 from EpisodeTrace import EpisodeTraceWriter
 from ObservationFlattener import flatten, build_plan
@@ -257,13 +258,17 @@ class Env(gym.Env):
 
         self.latest_obs = None
         self.latest_observation_id = None
+        self.latest_decision_interval_ticks = 0
         self.last_consumed_observation_id = None
+        self.last_decision_interval_ticks = 10
         self.obs_ready = threading.Event()
         self.previous_progress = None
         self.previous_risk = None
         self.last_reward_terms = {}
 
-        self.max_episode_steps = 25000
+        # Match C6's roughly 8m20s wall-clock episode cap at the C6.5
+        # conscious collection rate of about 20 decisions per second.
+        self.max_episode_steps = 10000
         self.episode_steps = 0
         self.episode_number = 0
         self.episode_trace = EpisodeTraceWriter()
@@ -279,11 +284,12 @@ class Env(gym.Env):
             reset_after_id = self.latest_observation_id
             self.obs_ready.clear()
         SendReset()
-        obs, observation_id, _ = self._wait_for_new_observation(reset_after_id)
+        obs, observation_id, _, decision_interval_ticks = self._wait_for_new_observation(reset_after_id)
 
         _server.reset_requested.clear()
 
         self.last_consumed_observation_id = observation_id
+        self.last_decision_interval_ticks = decision_interval_ticks
         Reward.Reset(self, obs)
         return PreprocessObservation(obs), {}
 
@@ -294,6 +300,7 @@ class Env(gym.Env):
         ID check and event clear atomic with respect to receiver publication,
         avoiding a lost wakeup when an observation arrives at the boundary.
         """
+        wait_started = time.perf_counter_ns()
         waited = False
         while True:
             with _observation_lock:
@@ -303,8 +310,15 @@ class Env(gym.Env):
                     and (previous_id is None or current_id > previous_id)
                 ):
                     obs = self.latest_obs
+                    decision_interval_ticks = self.latest_decision_interval_ticks
                     self.obs_ready.clear()
-                    return obs, current_id, not waited
+                    _server.ProfileEvent(
+                        "env_wait_observation",
+                        (time.perf_counter_ns() - wait_started) / 1_000_000,
+                        observation_id=current_id,
+                        interval_ticks=decision_interval_ticks,
+                    )
+                    return obs, current_id, not waited, decision_interval_ticks
 
                 self.obs_ready.clear()
 
@@ -312,16 +326,25 @@ class Env(gym.Env):
             self.obs_ready.wait()
 
     def step(self, action):
+        step_started = time.perf_counter_ns()
         Decode(action)
 
-        obs, observation_id, _ = self._wait_for_new_observation(
+        obs, observation_id, _, decision_interval_ticks = self._wait_for_new_observation(
             self.last_consumed_observation_id
         )
 
         self.episode_steps += 1
 
         self.last_consumed_observation_id = observation_id
+        self.last_decision_interval_ticks = decision_interval_ticks
+        reward_started = time.perf_counter_ns()
         reward = Reward.Reward(obs, action, self)
+        _server.ProfileEvent(
+            "reward",
+            (time.perf_counter_ns() - reward_started) / 1_000_000,
+            observation_id=observation_id,
+            interval_ticks=decision_interval_ticks,
+        )
         terminated = bool(obs["PlayerDead"]) or obs["LayerProgress"] >= 1.0
         truncated = self.episode_steps >= self.max_episode_steps
         info = self.last_reward_terms.copy()
@@ -338,7 +361,21 @@ class Env(gym.Env):
         if terminated or truncated:
             self.episode_trace.finish_episode()
 
-        return PreprocessObservation(obs), reward, terminated, truncated, info
+        preprocess_started = time.perf_counter_ns()
+        processed = PreprocessObservation(obs)
+        _server.ProfileEvent(
+            "observation_preprocess",
+            (time.perf_counter_ns() - preprocess_started) / 1_000_000,
+            observation_id=observation_id,
+            interval_ticks=decision_interval_ticks,
+        )
+        _server.ProfileEvent(
+            "env_step",
+            (time.perf_counter_ns() - step_started) / 1_000_000,
+            observation_id=observation_id,
+            interval_ticks=decision_interval_ticks,
+        )
+        return processed, reward, terminated, truncated, info
 
     def close(self):
         self.episode_trace.finish_episode(complete=False)

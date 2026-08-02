@@ -36,6 +36,13 @@ RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
 RAGDOLL_STALL_PENALTY_BASE = 0.001
 RAGDOLL_STALL_PENALTY_CAP = 0.01
 
+# At normal native speed, the harness emits one PPO transition every 0.2
+# simulated seconds. The actual physics-tick interval is carried in metadata,
+# so continuous costs remain time-scaled during native fast-forward states too.
+PHYSICS_HZ = 50.0
+POLICY_DECISION_HZ = 5.0
+BASE_DECISION_INTERVAL_TICKS = PHYSICS_HZ / POLICY_DECISION_HZ
+
 
 def _clip01(value):
     return float(np.clip(float(value), 0.0, 1.0))
@@ -224,15 +231,21 @@ def Reward(obs, act, env):
     if act[21] == 1: # ragdoll action, only penalize when the policy chooses to ragdoll
         ragdoll_stall_penalty = min(RAGDOLL_STALL_PENALTY_CAP, RAGDOLL_STALL_PENALTY_BASE * (2.0 ** (overdue_ragdoll_seconds / RAGDOLL_STALL_DOUBLING_SECONDS) - 1.0))
 
+    decision_interval_ticks = max(
+        1.0,
+        float(getattr(env, "last_decision_interval_ticks", BASE_DECISION_INTERVAL_TICKS)),
+    )
+    reward_interval_scale = decision_interval_ticks / BASE_DECISION_INTERVAL_TICKS
+
     progress_reward = PROGRESS_REWARD_SCALE * progress_delta
     safety_delta_reward = SAFETY_DELTA_REWARD_SCALE * risk_delta
-    occupancy_penalty = RISK_OCCUPANCY_COST * current_risk
+    occupancy_penalty = RISK_OCCUPANCY_COST * current_risk * reward_interval_scale
     reward = (
         progress_reward
         + safety_delta_reward
         - occupancy_penalty
-        - ragdoll_stall_penalty
-        - STEP_COST
+        - ragdoll_stall_penalty * reward_interval_scale
+        - STEP_COST * reward_interval_scale
     )
 
     radline_penalty = 0.0
@@ -241,7 +254,7 @@ def Reward(obs, act, env):
             -float(obs["RadLineDisplacement"]) * RADLINE_COST_SCALE,
             RADLINE_COST_CAP,
         )
-        reward -= radline_penalty
+        reward -= radline_penalty * reward_interval_scale
 
     death_penalty = 0.0
     completion_bonus = 0.0

@@ -32,10 +32,10 @@ public class PPO_Harness : BaseUnityPlugin
 
 class BinaryObservationWriter
 {
-    // The full observation payload and the temporary reduced payload both
-    // keep the little-endian uint64 observation ID at the end.
-    public const int FullExpectedSize = 1031523;
-    public const int ReducedExpectedSize = 41985;
+    // The observation payload is followed by a little-endian uint64
+    // observation ID and a little-endian uint16 physics-tick interval.
+    public const int FullExpectedSize = 1031525;
+    public const int ReducedExpectedSize = 42647;
     public static int ExpectedSize => PPOBridge.IncludeUnusedObservations
         ? FullExpectedSize
         : ReducedExpectedSize;
@@ -601,6 +601,7 @@ public static class PPOBridge
     // serializers intact, but omit fields that the current policy does not
     // consume. Set this to true to restore the full observation packet.
     public static bool IncludeUnusedObservations = false;
+    const float PPO_DEFAULT_TIME_SCALE_MULTIPLIER = 1f;
 
     const string TcpHost = "127.0.0.1";
     const int ObservationPort = 45701;
@@ -722,6 +723,7 @@ public static class PPOBridge
     public static float AmputationEndTime;
 
     const int NO_ITEM_SLOT = -1;
+    const float PPO_BASE_DECISIONS_PER_SECOND = 5f;
 
     public static float ThrowCharge;
 
@@ -729,7 +731,24 @@ public static class PPOBridge
     static float lastObservationFixedTime;
     static bool hasObservationFixedTime;
     static int fixedStepsUntilObservation;
+    static int fixedStepsSinceObservation;
     static int lastObservationSkipCount;
+    static bool terminalObservationSent;
+    static bool ppoScaleInitialized;
+    static bool ppoMultiplierChanged;
+    static float ppoTimeScaleMultiplier = PPO_DEFAULT_TIME_SCALE_MULTIPLIER;
+    static float ppoNativeTimeScale = 1f;
+    static float ppoLastAppliedTimeScale = 1f;
+    static int cadenceObservationCount;
+    static float cadenceWindowStartRealtime;
+    static double cadenceCollectMilliseconds;
+    static double cadenceSendMilliseconds;
+    static StreamWriter pipelineProfileWriter;
+    static readonly object pipelineProfileLock = new object();
+    static bool pipelineProfileEnabled;
+    static int pipelineProfileRows;
+    static long pipelineFixedUpdateStarted;
+    static long pipelinePpoTickStarted;
     
     static List<string> ItemNameList = new();
 
@@ -764,6 +783,173 @@ public static class PPOBridge
         if ((uint)value > byte.MaxValue)
             throw new OverflowException($"{field} value {value} does not fit in a byte");
         return (byte)value;
+    }
+
+    static bool IsAutomaticFastForwardScale(float timeScale)
+    {
+        return Mathf.Approximately(timeScale, 25f * ppoTimeScaleMultiplier) ||
+            Mathf.Approximately(timeScale, 3.5f * ppoTimeScaleMultiplier);
+    }
+
+    static int TrainingObservationSkipCount()
+    {
+        float fixedDeltaTime = Mathf.Max(Time.fixedDeltaTime, Mathf.Epsilon);
+        float trainingDecisionRate = PPO_BASE_DECISIONS_PER_SECOND * ppoTimeScaleMultiplier;
+        int decisionInterval = Mathf.Max(
+            1,
+            Mathf.RoundToInt(
+                (Time.timeScale / fixedDeltaTime) / trainingDecisionRate
+            )
+        );
+        return decisionInterval - 1;
+    }
+
+    static bool IsTerminalState(Body body)
+    {
+        if (body == null || !body.alive)
+            return true;
+
+        var world = WorldGeneration.world;
+        if (world == null)
+            return false;
+
+        float layerHeightMeters = ((float)world.height - 3.1f) * 0.3f;
+        return layerHeightMeters > 0f &&
+            world.PlayerLayerDepthMeters() >= layerHeightMeters;
+    }
+
+    public static void MaintainPPOTimeScale()
+    {
+        PlayerCamera playerCamera = PlayerCamera.main;
+
+        if (PPOPauseActive || playerCamera == null || playerCamera.body == null)
+            return;
+
+        if (!ppoScaleInitialized)
+        {
+            ppoNativeTimeScale = Mathf.Max(Time.timeScale, 1f);
+            ppoScaleInitialized = true;
+        }
+        else if (!ppoMultiplierChanged && Time.timeScale > 0f &&
+                 !Mathf.Approximately(Time.timeScale, ppoLastAppliedTimeScale))
+        {
+            // A different value means the game's own timescale state changed.
+            // Treat it as the new native scale, then apply the training
+            // multiplier exactly once.
+            ppoNativeTimeScale = Time.timeScale;
+        }
+
+        float desiredTimeScale = ppoNativeTimeScale * ppoTimeScaleMultiplier;
+        if (!Mathf.Approximately(Time.timeScale, desiredTimeScale))
+            Time.timeScale = desiredTimeScale;
+        ppoLastAppliedTimeScale = desiredTimeScale;
+        ppoMultiplierChanged = false;
+    }
+
+    public static void SetPPOTimeScaleMultiplier(float multiplier)
+    {
+        if (multiplier <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(multiplier));
+
+        if (ppoScaleInitialized && ppoTimeScaleMultiplier > 0f)
+        {
+            ppoNativeTimeScale = ppoLastAppliedTimeScale / ppoTimeScaleMultiplier;
+        }
+        else
+        {
+            ppoNativeTimeScale = Mathf.Max(Time.timeScale, 1f);
+        }
+
+        ppoTimeScaleMultiplier = multiplier;
+        ppoScaleInitialized = true;
+        ppoMultiplierChanged = true;
+    }
+
+    static double StopwatchMilliseconds(long started)
+    {
+        return (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000d /
+            System.Diagnostics.Stopwatch.Frequency;
+    }
+
+    static void EnsurePipelineProfile()
+    {
+        if (pipelineProfileWriter != null)
+            return;
+
+        if (!pipelineProfileEnabled)
+        {
+            string enabled = Environment.GetEnvironmentVariable("PPO_PIPELINE_PROFILE");
+            pipelineProfileEnabled = enabled == "1" ||
+                string.Equals(enabled, "true", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(enabled, "yes", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(enabled, "on", StringComparison.OrdinalIgnoreCase);
+        }
+        if (!pipelineProfileEnabled)
+            return;
+
+        string directory = Environment.GetEnvironmentVariable("PPO_PIPELINE_PROFILE_DIR");
+        if (string.IsNullOrEmpty(directory))
+            directory = Path.Combine(Application.persistentDataPath, "ppo_profiles");
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(
+            directory,
+            $"pipeline_unity_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv"
+        );
+        pipelineProfileWriter = new StreamWriter(path, false, Encoding.UTF8);
+        pipelineProfileWriter.WriteLine(
+            "wall_time_ns,monotonic_ticks,phase,duration_ms,observation_id,interval_ticks,time_scale,fixed_delta"
+        );
+        pipelineProfileWriter.Flush();
+        Debug.Log($"Pipeline Unity profile: {path}");
+    }
+
+    public static void EnablePipelineProfile()
+    {
+        pipelineProfileEnabled = true;
+        EnsurePipelineProfile();
+    }
+
+    static void ProfileEvent(
+        string phase,
+        double durationMilliseconds = 0d,
+        ulong observationId = 0,
+        ushort intervalTicks = 0
+    )
+    {
+        EnsurePipelineProfile();
+        if (pipelineProfileWriter == null)
+            return;
+
+        lock (pipelineProfileLock)
+        {
+            pipelineProfileWriter.WriteLine(
+                $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000000L}," +
+                $"{System.Diagnostics.Stopwatch.GetTimestamp()}," +
+                $"{phase},{durationMilliseconds:F6},{observationId},{intervalTicks}," +
+                $"{Time.timeScale:F4},{Time.fixedDeltaTime:F6}"
+            );
+            if (++pipelineProfileRows >= 100)
+            {
+                pipelineProfileWriter.Flush();
+                pipelineProfileRows = 0;
+            }
+        }
+    }
+
+    public static void ProfileFixedUpdateStart()
+    {
+        EnsurePipelineProfile();
+        if (pipelineProfileWriter != null)
+            pipelineFixedUpdateStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+    }
+
+    public static void ProfileFixedUpdateOriginalComplete()
+    {
+        if (pipelineProfileWriter != null && pipelineFixedUpdateStarted != 0)
+        {
+            ProfileEvent("fixed_update_total", StopwatchMilliseconds(pipelineFixedUpdateStarted));
+            pipelineFixedUpdateStarted = 0;
+        }
     }
 
     static sbyte NarrowSByte(int value, string field)
@@ -1383,6 +1569,10 @@ public static class PPOBridge
         obs.RESProgress = body.skills.expRES / body.skills.maxRES;
         obs.INTProgress = body.skills.expINT / body.skills.maxINT;
 
+        // Limbs are not part of the policy input, but V5's reward function
+        // uses them for physical and systemic risk calculations.
+        GetLimbs(obs.Limbs, body);
+
         if (IncludeUnusedObservations)
         {
             // Inventory
@@ -1391,8 +1581,6 @@ public static class PPOBridge
             // Crafting
             UpdateCraftableRecipes(body);
 
-            // Limbs
-            GetLimbs(obs.Limbs, body);
         }
 
         float layerHeightMeters = ((float)world.height - 3.1f) * 0.3f;
@@ -1579,7 +1767,8 @@ public static class PPOBridge
     static void WriteObservation(
         BinaryObservationWriter writer,
         Observation obs,
-        ulong observationId
+        ulong observationId,
+        ushort decisionIntervalTicks
     )
     {
         // Surroundings
@@ -1760,10 +1949,12 @@ public static class PPOBridge
             foreach (RecipeObservation recipe in obs.Recipes)
                 WriteRecipe(writer, recipe);
 
-            // Limbs
-            foreach (LimbObservation limb in obs.Limbs)
-                WriteLimb(writer, limb);
         }
+
+        // Limbs are required by the active reward function even though the
+        // policy feature extractor does not consume them.
+        foreach (LimbObservation limb in obs.Limbs)
+            WriteLimb(writer, limb);
 
         // Progress
         writer.Write(obs.LayerProgress);
@@ -1784,9 +1975,31 @@ public static class PPOBridge
         // Metadata is appended after the existing schema so the Python
         // observation dtype and policy input layout remain unchanged.
         writer.Write(observationId);
+        writer.Write(decisionIntervalTicks);
     }
 
     public static void Tick(Body body)
+    {
+        EnsurePipelineProfile();
+        if (pipelineProfileWriter == null)
+        {
+            TickCore(body);
+            return;
+        }
+
+        pipelinePpoTickStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
+            TickCore(body);
+        }
+        finally
+        {
+            ProfileEvent("ppo_tick", StopwatchMilliseconds(pipelinePpoTickStarted));
+            pipelinePpoTickStarted = 0;
+        }
+    }
+
+    static void TickCore(Body body)
     {
         if (shutdownRequested)
         {
@@ -1826,32 +2039,52 @@ public static class PPOBridge
         
         if (!StartRan) Start();
 
+        MaintainPPOTimeScale();
+
+        bool terminalState = IsTerminalState(body);
+        if (terminalState && terminalObservationSent)
+            return;
+
         // Body.FixedUpdate is patched once per Body. Publish at most one
-        // observation for each distinct physics step. During the game's
-        // intentional unconscious fast-forward, sample one step and skip
-        // round(Time.timeScale) - 1 subsequent fixed steps.
+        // observation for each distinct physics step. The game runs at ten
+        // times its native timescale, and the policy runs at ten times its
+        // native five-decisions-per-second cadence. This keeps policy cadence
+        // transferable to normal-speed inference without tying it to a
+        // particular native timescale state such as unconscious fast-forward.
         if (hasObservationFixedTime && Time.fixedTime == lastObservationFixedTime)
             return;
 
         hasObservationFixedTime = true;
         lastObservationFixedTime = Time.fixedTime;
+        fixedStepsSinceObservation = Mathf.Min(
+            fixedStepsSinceObservation + 1,
+            ushort.MaxValue
+        );
 
-        int observationSkipCount = Mathf.Max(0, Mathf.RoundToInt(Time.timeScale) - 1);
+        int observationSkipCount = terminalState ? 0 : TrainingObservationSkipCount();
         if (observationSkipCount != lastObservationSkipCount)
         {
             fixedStepsUntilObservation = 0;
             lastObservationSkipCount = observationSkipCount;
         }
 
-        if (fixedStepsUntilObservation > 0)
+        if (!terminalState && fixedStepsUntilObservation > 0)
         {
             fixedStepsUntilObservation--;
             return;
         }
 
-        fixedStepsUntilObservation = observationSkipCount;
+        fixedStepsUntilObservation = terminalState ? 0 : observationSkipCount;
 
+        bool wasConnected = connected;
+        long collectStarted = System.Diagnostics.Stopwatch.GetTimestamp();
         CollectObservations();
+        double collectMilliseconds = StopwatchMilliseconds(collectStarted);
+        if (wasConnected)
+        {
+            cadenceCollectMilliseconds += collectMilliseconds;
+            ProfileEvent("observation_collect", collectMilliseconds);
+        }
 
         if (!connected)
         {
@@ -1878,10 +2111,12 @@ public static class PPOBridge
         }
         else
         {
+            long serializeStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             bufferWriter.Reset();
 
             ulong observationId = ++nextObservationId;
-            WriteObservation(bufferWriter, obs, observationId);
+            ushort decisionIntervalTicks = (ushort)Mathf.Max(1, fixedStepsSinceObservation);
+            WriteObservation(bufferWriter, obs, observationId, decisionIntervalTicks);
 
             if (bufferWriter.BytesWritten != BinaryObservationWriter.ExpectedSize)
             {
@@ -1890,8 +2125,53 @@ public static class PPOBridge
                     $"expected {BinaryObservationWriter.ExpectedSize}"
                 );
             }
+            double serializeMilliseconds = StopwatchMilliseconds(serializeStarted);
+            ProfileEvent(
+                "observation_serialize",
+                serializeMilliseconds,
+                observationId,
+                decisionIntervalTicks
+            );
 
+            long sendStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten);
+            double sendMilliseconds = StopwatchMilliseconds(sendStarted);
+            cadenceSendMilliseconds += sendMilliseconds;
+            ProfileEvent(
+                "observation_socket_send",
+                sendMilliseconds,
+                observationId,
+                decisionIntervalTicks
+            );
+            fixedStepsSinceObservation = 0;
+
+            if (cadenceObservationCount == 0)
+                cadenceWindowStartRealtime = Time.realtimeSinceStartup;
+            cadenceObservationCount++;
+            if (cadenceObservationCount >= 1000)
+            {
+                float elapsedRealtime = Mathf.Max(
+                    Time.realtimeSinceStartup - cadenceWindowStartRealtime,
+                    Mathf.Epsilon
+                );
+                Debug.Log(
+                    $"PPO cadence: observations={cadenceObservationCount} " +
+                    $"rate={cadenceObservationCount / elapsedRealtime:F1}Hz " +
+                    $"timeScale={Time.timeScale:F2} " +
+                    $"nativeScale={ppoNativeTimeScale:F2} " +
+                    $"multiplier={ppoTimeScaleMultiplier:F1} " +
+                    $"fixedDelta={Time.fixedDeltaTime:F4}s " +
+                    $"intervalTicks={decisionIntervalTicks} " +
+                    $"collectAvg={cadenceCollectMilliseconds / cadenceObservationCount:F3}ms " +
+                    $"sendAvg={cadenceSendMilliseconds / cadenceObservationCount:F3}ms"
+                );
+                cadenceObservationCount = 0;
+                cadenceCollectMilliseconds = 0d;
+                cadenceSendMilliseconds = 0d;
+            }
+
+            if (terminalState)
+                terminalObservationSent = true;
         }
         if (!actionConnected)
         {
@@ -2031,6 +2311,24 @@ public static class PPOBridge
                         {
                             ppoPauseRequested = false;
                             ppoResumeActionReceived = false;
+                            continue;
+                        }
+                        if (line == "PPO_PROFILE 1")
+                        {
+                            PPOBridge.EnablePipelineProfile();
+                            continue;
+                        }
+                        if (line.StartsWith("PPO_SCALE ", StringComparison.Ordinal))
+                        {
+                            if (float.TryParse(
+                                line.Substring("PPO_SCALE ".Length),
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out float multiplier
+                            ))
+                            {
+                                PPOBridge.SetPPOTimeScaleMultiplier(multiplier);
+                            }
                             continue;
                         }
                         string[] parts = line.Split(',');
@@ -2388,22 +2686,25 @@ public static class PPOBridge
 
             float resumeTimeScale = prePPOPauseTimeScale;
 
-            // The game's unconscious/death fast-forward can reset itself to
-            // Normal while PPO is paused. Do not replay a stale automatic
-            // fast-forward value after that reset. Manual 5x/20x speeds are
-            // deliberately left alone.
+            // The game's automatic fast-forward can reset itself to Normal
+            // while PPO is paused. Do not replay a stale multiplied value
+            // after that reset. Other native speed states are preserved.
             bool automaticFastForward =
-                Mathf.Approximately(prePPOPauseTimeScale, 25f) ||
-                Mathf.Approximately(prePPOPauseTimeScale, 3.5f);
+                IsAutomaticFastForwardScale(prePPOPauseTimeScale);
             bool gameReturnedToNormal =
                 playerCamera != null &&
                 (playerCamera.curTimeScale == PlayerCamera.SpeedType.Normal ||
                  playerCamera.body == null ||
                  playerCamera.body.consciousness >= 20f);
             if (automaticFastForward && gameReturnedToNormal)
-                resumeTimeScale = 1f;
+            {
+                resumeTimeScale = ppoTimeScaleMultiplier;
+                ppoNativeTimeScale = 1f;
+            }
 
             Time.timeScale = resumeTimeScale;
+            ppoScaleInitialized = true;
+            ppoLastAppliedTimeScale = resumeTimeScale;
             ppoPaused = false;
             SendActionAcknowledgement("RESUMED");
         }
@@ -2573,10 +2874,22 @@ public static class PPOBridge
         resetComplete = false;
 		hasObservationFixedTime = false;
 		fixedStepsUntilObservation = 0;
+		fixedStepsSinceObservation = 0;
+		cadenceObservationCount = 0;
+		cadenceWindowStartRealtime = 0f;
 		lastObservationSkipCount = 0;
+		terminalObservationSent = false;
+		cadenceObservationCount = 0;
+		cadenceWindowStartRealtime = 0f;
+		cadenceCollectMilliseconds = 0d;
+		cadenceSendMilliseconds = 0d;
 		ppoPauseRequested = false;
 		ppoResumeActionReceived = false;
 		ppoPaused = false;
+		ppoScaleInitialized = false;
+		ppoMultiplierChanged = false;
+		ppoNativeTimeScale = 1f;
+		ppoLastAppliedTimeScale = 1f;
 		BestLayerDepth = 0;
         yield return WorldGeneration.world.Clear();
 		Time.timeScale = 1f;
@@ -2609,14 +2922,27 @@ public static class PPoPausePatch
     {
         return !PPOBridge.PPOPauseActive;
     }
+
+    // PauseHandler restores the game's normal time scale in Update. Reassert
+    // the PPO conscious-training scale after that update has completed.
+    static void Postfix()
+    {
+        PPOBridge.MaintainPPOTimeScale();
+    }
 }
 
 [HarmonyPatch(typeof(Body))]
 [HarmonyPatch("FixedUpdate")]
 public static class BodyFixedUpdatePatch
 {   
+    static void Prefix()
+    {
+        PPOBridge.ProfileFixedUpdateStart();
+    }
+
     static void Postfix(Body __instance)
     {
+        PPOBridge.ProfileFixedUpdateOriginalComplete();
         PPOBridge.Tick(__instance);
     }
 }
