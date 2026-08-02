@@ -263,10 +263,8 @@ OBSERVATION_DTYPE = np.dtype([
     *([
         ("Inventory", ITEM_DTYPE, (25,)),
         ("Recipes", RECIPE_DTYPE, (132,)),
+        ("Limbs", LIMB_DTYPE, (15,)),
     ] if INCLUDE_UNUSED_OBSERVATIONS else []),
-    # Limbs are required by Reward.py even though the policy does not encode
-    # them as an input feature.
-    ("Limbs", LIMB_DTYPE, (15,)),
     ("LayerProgress", FLOAT_DTYPE),
     ("CurrentLayer", BYTE_DTYPE),
     ("BestLayerDepth", SHORT_DTYPE),

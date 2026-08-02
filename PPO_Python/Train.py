@@ -8,43 +8,11 @@ from pathlib import Path
 import zipfile
 import sys
 import time
-import csv
-import os
-import threading
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
-
-
-_profile_enabled = os.environ.get("PPO_PIPELINE_PROFILE", "").lower() in (
-    "1", "true", "yes", "on"
-)
-_profile_lock = threading.Lock()
-_profile_file = None
-_profile_writer = None
-_profile_rows = 0
-
-
-def _profile_event(phase, duration_ms):
-    if not _profile_enabled:
-        return
-    global _profile_file, _profile_writer, _profile_rows
-    if _profile_writer is None:
-        profile_dir = Path(os.environ.get("PPO_PIPELINE_PROFILE_DIR", "profiles"))
-        profile_dir.mkdir(parents=True, exist_ok=True)
-        path = profile_dir / f"pipeline_python_model_{datetime.now():%Y-%m-%d_%H-%M-%S}.csv"
-        _profile_file = path.open("w", newline="", encoding="utf-8")
-        _profile_writer = csv.writer(_profile_file)
-        _profile_writer.writerow(("wall_time_ns", "phase", "duration_ms"))
-        print(f"Pipeline Python model profile: {path}")
-    with _profile_lock:
-        _profile_writer.writerow((time.time_ns(), phase, f"{duration_ms:.6f}"))
-        _profile_rows += 1
-        if _profile_rows >= 100:
-            _profile_file.flush()
-            _profile_rows = 0
 import ObservationEncoding
 
 
-TARGET_TOTAL_TIMESTEPS = 500_000
+TARGET_TOTAL_TIMESTEPS = 250_000
 
 
 class PausingPPO(PPO):
@@ -70,38 +38,7 @@ class PausingPPO(PPO):
     def train(self):
         if self._pause_simulation is not None:
             self._pause_simulation()
-        started = time.perf_counter_ns()
-        try:
-            return super().train()
-        finally:
-            _profile_event("ppo_optimize", (time.perf_counter_ns() - started) / 1_000_000)
-
-
-def InstallTrainingProfile(model):
-    if not _profile_enabled:
-        return
-
-    original_forward = model.policy.forward
-
-    def timed_forward(*args, **kwargs):
-        started = time.perf_counter_ns()
-        try:
-            return original_forward(*args, **kwargs)
-        finally:
-            _profile_event("policy_forward", (time.perf_counter_ns() - started) / 1_000_000)
-
-    model.policy.forward = timed_forward
-
-    original_evaluate_actions = model.policy.evaluate_actions
-
-    def timed_evaluate_actions(*args, **kwargs):
-        started = time.perf_counter_ns()
-        try:
-            return original_evaluate_actions(*args, **kwargs)
-        finally:
-            _profile_event("policy_evaluate_actions", (time.perf_counter_ns() - started) / 1_000_000)
-
-    model.policy.evaluate_actions = timed_evaluate_actions
+        return super().train()
 
 
 class TrainingProgressCallback(BaseCallback):
@@ -193,7 +130,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
     run_dir.mkdir(parents=True, exist_ok=True)
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=5_000,
+        save_freq=50_000,
         save_path=str(run_dir),
         name_prefix="casu_ppo",
     )
@@ -237,8 +174,6 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 f"training {total_timesteps} additional steps "
                 f"toward {TARGET_TOTAL_TIMESTEPS}."
             )
-
-        InstallTrainingProfile(model)
 
         callback = CallbackList([
             checkpoint_callback,
