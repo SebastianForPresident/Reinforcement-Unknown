@@ -37,3 +37,4 @@ The stretch goal is to complete multiple.
 | Checkpoint 6.5 | V5 | Descend as much as possible |
 | Checkpoint 7 | V6 | Unsafe, brute-force descent |
 | Checkpoint 8 | V7 | Unproductive self-damage |
+| Checkpoint 9 | V7 | Unproductive self-damage |
