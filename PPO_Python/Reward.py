@@ -1,354 +1,225 @@
-"""Reward V6: descend while preserving the capacity to keep descending.
+"""V7 reward: safety first, then pursue deeper progress.
 
-This reward deliberately operates on continuous observation fields rather than
-the UI moodle levels.  Moodle thresholds inform the caution/critical ranges
-below, but scoring the underlying state avoids threshold flicker and exposes
-the immediate cost of harmful actions.
+Objective:
+    Preserve the agent's ability to continue while pursuing the best
+    LayerProgress available.  New best progress earns ``10 * delta``;
+    physiological deterioration is continuously penalized.  LayerTimeRemaining
+    and RadLineDisplacement remain observations rather than hand-shaped
+    rewards.
 
-Inventory and crafting are intentionally out of scope.  This version rewards
-layer progress and penalizes the physiological costs of locomotion, combat,
-ragdoll impacts, and environmental exposure.  It also discourages the
-non-progressing ragdoll exploit: cumulative ragdoll time becomes costly only
-after thirty seconds without reaching another 10 m depth milestone, and now
-only if the policy explicitly chooses to ragdoll in that same step.
+Capability and systemic state:
+    Stamina, Shock, AveragePain, PainShock, BrainHealth, RadiationSickness,
+    SicknessAmount, and TotalHappiness use continuous quadratic penalties.
 
-All identical to V5 except the explicit radline penalty's removed
+Cardiovascular, respiration, and blood:
+    BloodPressure, HeartRate, FibrillationProgress, PulmonaryEmbolism,
+    StrokeAmount, BloodOxygen, RespiratoryRate, BloodVolume, TotalBleedSpeed,
+    InternalBleeding, and Hemothorax are scored against game-informed
+    thresholds or critical values.
+
+Terminal events:
+    Death applies a one-time ``-10`` penalty.  Completion applies a one-time
+    ``+10`` bonus, with death taking precedence if both are reported.
+
+The named scales below are deliberately small relative to progress and are
+also retained in ``env.last_reward_terms`` for trace diagnostics.
 """
 
 import numpy as np
 
 
-# A whole layer contributes about +12 through progress, with a completion
-# bonus large enough to make finishing preferable to simply staying safe.
-PROGRESS_REWARD_SCALE = 12.0
-SAFETY_DELTA_REWARD_SCALE = 1.25
-RISK_OCCUPANCY_COST = 0.006
-STEP_COST = 0.0005
-DEATH_PENALTY = 20.0
-LAYER_COMPLETE_BONUS = 20.0
-
-# Ragdolling is a useful traversal state in tight structures.  It becomes an
-# exploit only when the body spends a long cumulative time ragdolled without
-# reaching meaningfully deeper terrain.  These are game-time seconds/meters.
-RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
-RAGDOLL_STALL_GRACE_SECONDS = 30.0
-RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
-RAGDOLL_STALL_PENALTY_BASE = 0.001
-RAGDOLL_STALL_PENALTY_CAP = 0.01
-
-
-def _clip01(value):
-    return float(np.clip(float(value), 0.0, 1.0))
-
-
-def _rising_risk(value, caution, critical):
-    """Risk for a value that becomes dangerous as it rises."""
-    return _clip01((float(value) - caution) / (critical - caution))
-
-
-def _falling_risk(value, caution, critical):
-    """Risk for a value that becomes dangerous as it falls."""
-    return _clip01((caution - float(value)) / (caution - critical))
-
-
-def _outside_risk(value, low_caution, high_caution, low_critical, high_critical):
-    """Risk outside a healthy range, with separate low/high critical bounds."""
-    return max(
-        _falling_risk(value, low_caution, low_critical),
-        _rising_risk(value, high_caution, high_critical),
-    )
-
-
-def _weighted_mean(*weighted_values):
-    total_weight = sum(weight for weight, _ in weighted_values)
-    if total_weight <= 0.0:
-        return 0.0
-    return _clip01(sum(weight * value for weight, value in weighted_values) / total_weight)
-
-
-def _limb_risk(obs):
-    """Capture impact damage before it has time to become a vital-sign failure."""
-    limbs = obs["Limbs"]
-
-    skin_damage = 1.0 - float(np.mean(np.clip(limbs["SkinHealth"], 0.0, 100.0))) / 100.0
-    muscle_damage = 1.0 - float(np.mean(np.clip(limbs["MuscleHealth"], 0.0, 100.0))) / 100.0
-    structural_damage = float(
-        np.mean(limbs["Broken"] | limbs["Dislocated"] | limbs["Dismembered"])
-    )
-
-    vital_limbs = limbs[limbs["IsVital"]]
-    if len(vital_limbs):
-        vital_integrity = min(
-            float(np.min(np.clip(vital_limbs["SkinHealth"], 0.0, 100.0))) / 100.0,
-            float(np.min(np.clip(vital_limbs["MuscleHealth"], 0.0, 100.0))) / 100.0,
-        )
-        vital_damage = 1.0 - vital_integrity
-    else:
-        vital_damage = 0.0
-
-    # Ragdoll impacts damage blocks and limbs together.  TimeRagdolled is not
-    # a moral penalty; it is a small immediate proxy for that loss of control.
-    ragdoll_risk = _rising_risk(obs["TimeRagdolled"], 0.10, 1.00)
-
-    return _weighted_mean(
-        (0.20, skin_damage),
-        (0.25, muscle_damage),
-        (0.20, structural_damage),
-        (0.25, vital_damage),
-        (0.10, ragdoll_risk),
-    )
-
-
-def _limb_risk_breakdown(obs):
-    """Return limb damage and ragdoll risk separately for diagnostics."""
-    limbs = obs["Limbs"]
-    skin_damage = 1.0 - float(np.mean(np.clip(limbs["SkinHealth"], 0.0, 100.0))) / 100.0
-    muscle_damage = 1.0 - float(np.mean(np.clip(limbs["MuscleHealth"], 0.0, 100.0))) / 100.0
-    structural_damage = float(
-        np.mean(limbs["Broken"] | limbs["Dislocated"] | limbs["Dismembered"])
-    )
-    vital_limbs = limbs[limbs["IsVital"]]
-    if len(vital_limbs):
-        vital_integrity = min(
-            float(np.min(np.clip(vital_limbs["SkinHealth"], 0.0, 100.0))) / 100.0,
-            float(np.min(np.clip(vital_limbs["MuscleHealth"], 0.0, 100.0))) / 100.0,
-        )
-        vital_damage = 1.0 - vital_integrity
-    else:
-        vital_damage = 0.0
-    ragdoll_risk = _rising_risk(obs["TimeRagdolled"], 0.10, 1.00)
-    limb_damage = _weighted_mean(
-        (0.20, skin_damage),
-        (0.25, muscle_damage),
-        (0.20, structural_damage),
-        (0.25, vital_damage),
-    )
-    return limb_damage, ragdoll_risk
-
-
-def _physical_risk(obs):
-    """Pain, exhaustion, shock, and limb integrity: immediate action costs."""
-    limb_damage, ragdoll_risk = _limb_risk_breakdown(obs)
-    return _weighted_mean(
-        (0.25, _rising_risk(obs["AveragePain"], 10.0, 80.0)),
-        (0.15, _rising_risk(obs["PainShock"], 0.10, 0.66)),
-        (0.15, _rising_risk(obs["Shock"], 10.0, 60.0)),
-        # Stamina starts costing reward immediately when it is spent.  At 15,
-        # the game's exertion moodle is critical; at <1 it forces shock.
-        (0.20, _falling_risk(obs["Stamina"], 100.0, 15.0)),
-        (0.10, _falling_risk(obs["Energy"], 35.0, 7.0)),
-        (0.15, _weighted_mean((0.90, limb_damage), (0.10, ragdoll_risk))),
-    )
-
-
-def _physical_risk_breakdown(obs):
-    limb_damage, ragdoll_risk = _limb_risk_breakdown(obs)
-    return {
-        "physical_pain": _rising_risk(obs["AveragePain"], 10.0, 80.0),
-        "physical_pain_shock": _rising_risk(obs["PainShock"], 0.10, 0.66),
-        "physical_shock": _rising_risk(obs["Shock"], 10.0, 60.0),
-        "physical_stamina": _falling_risk(obs["Stamina"], 100.0, 15.0),
-        "physical_energy": _falling_risk(obs["Energy"], 35.0, 7.0),
-        "physical_limb_damage": limb_damage,
-        "physical_ragdoll": ragdoll_risk,
-    }
-
-
-def _acute_risk(obs):
-    """Vital-system risk that can turn a productive run into a short episode."""
-    oxygen_risk = max(
-        _falling_risk(obs["BloodOxygen"], 90.0, 45.0),
-        _falling_risk(obs["RespiratoryRate"], 90.0, 10.0),
-        1.0 if not bool(obs["Breathing"]) else 0.0,
-    )
-    circulation_risk = max(
-        _outside_risk(obs["BloodPressure"], 96.0, 145.0, 60.0, 180.0),
-        _outside_risk(obs["HeartRate"], 60.0, 110.0, 40.0, 200.0),
-        _rising_risk(obs["FibrillationProgress"], 15.0, 75.0),
-        _rising_risk(obs["StrokeAmount"], 0.0, 50.0),
-        1.0 if bool(obs["HasPulmonaryEmbolism"]) else 0.0,
-    )
-    blood_loss_risk = max(
-        _falling_risk(obs["BloodVolume"], 80.0, 30.0),
-        _rising_risk(obs["TotalBleedSpeed"], 0.02, 0.134),
-        _rising_risk(obs["InternalBleeding"], 5.0, 50.0),
-        _rising_risk(obs["Hemothorax"], 40.0, 70.0),
-    )
-
-    return _weighted_mean(
-        (0.18, _falling_risk(obs["BrainHealth"], 95.0, 30.0)),
-        (0.20, _falling_risk(obs["Consciousness"], 90.0, 20.0)),
-        (0.21, oxygen_risk),
-        (0.23, circulation_risk),
-        (0.18, blood_loss_risk),
-    )
-
-
-def _acute_risk_breakdown(obs):
-    oxygen = {
-        "acute_blood_oxygen": _falling_risk(obs["BloodOxygen"], 90.0, 45.0),
-        "acute_respiratory_rate": _falling_risk(obs["RespiratoryRate"], 90.0, 10.0),
-        "acute_not_breathing": 1.0 if not bool(obs["Breathing"]) else 0.0,
-    }
-    circulation = {
-        "acute_blood_pressure": _outside_risk(obs["BloodPressure"], 96.0, 145.0, 60.0, 180.0),
-        "acute_heart_rate": _outside_risk(obs["HeartRate"], 60.0, 110.0, 40.0, 200.0),
-        "acute_fibrillation": _rising_risk(obs["FibrillationProgress"], 15.0, 75.0),
-        "acute_stroke": _rising_risk(obs["StrokeAmount"], 0.0, 50.0),
-        "acute_pulmonary_embolism": 1.0 if bool(obs["HasPulmonaryEmbolism"]) else 0.0,
-    }
-    blood_loss = {
-        "acute_blood_volume": _falling_risk(obs["BloodVolume"], 80.0, 30.0),
-        "acute_total_bleed_speed": _rising_risk(obs["TotalBleedSpeed"], 0.02, 0.134),
-        "acute_internal_bleeding": _rising_risk(obs["InternalBleeding"], 5.0, 50.0),
-        "acute_hemothorax": _rising_risk(obs["Hemothorax"], 40.0, 70.0),
-    }
-    return {
-        **oxygen,
-        **circulation,
-        **blood_loss,
-        "acute_oxygen": max(oxygen.values()),
-        "acute_circulation": max(circulation.values()),
-        "acute_blood_loss": max(blood_loss.values()),
-    }
-
-
-def _systemic_risk(obs):
-    """Slower threats which nevertheless determine whether the run can continue."""
-    limb_infection = float(np.max(obs["Limbs"]["InfectionAmount"]))
-    hydration_risk = _outside_risk(obs["Thirst"], 75.0, 125.0, 0.0, 175.0)
-    nutrition_risk = _outside_risk(obs["Hunger"], 75.0, 100.0, 0.0, 125.0)
-
-    return _weighted_mean(
-        (0.15, _outside_risk(obs["Temperature"], 35.5, 38.0, 28.0, 41.5)),
-        (0.12, nutrition_risk),
-        (0.12, hydration_risk),
-        (0.10, _rising_risk(obs["SicknessAmount"], 10.0, 75.0)),
-        (0.12, _rising_risk(obs["RadiationSickness"], 10.0, 80.0)),
-        (0.10, _rising_risk(obs["VenomCurrent"], 2.0, 90.0)),
-        (0.13, max(
-            _rising_risk(limb_infection, 25.0, 80.0),
-            _rising_risk(obs["SepticShock"], 10.0, 80.0),
-        )),
-        (0.08, _rising_risk(obs["OverEncumberance"], 0.05, 0.85)),
-        (0.08, _rising_risk(obs["TraumaAmount"], 25.0, 80.0)),
-    )
-
-
-def RiskBreakdown(obs):
-    """Return named continuous risks for logging and reward diagnostics."""
-    physical_leaves = _physical_risk_breakdown(obs)
-    acute_leaves = _acute_risk_breakdown(obs)
-    physical = _weighted_mean(
-        (0.25, physical_leaves["physical_pain"]),
-        (0.15, physical_leaves["physical_pain_shock"]),
-        (0.15, physical_leaves["physical_shock"]),
-        (0.20, physical_leaves["physical_stamina"]),
-        (0.10, physical_leaves["physical_energy"]),
-        (0.15, _weighted_mean(
-            (0.90, physical_leaves["physical_limb_damage"]),
-            (0.10, physical_leaves["physical_ragdoll"]),
-        )),
-    )
-    acute = _weighted_mean(
-        (0.18, _falling_risk(obs["BrainHealth"], 95.0, 30.0)),
-        (0.20, _falling_risk(obs["Consciousness"], 90.0, 20.0)),
-        (0.21, acute_leaves["acute_oxygen"]),
-        (0.23, acute_leaves["acute_circulation"]),
-        (0.18, acute_leaves["acute_blood_loss"]),
-    )
-    systemic = _systemic_risk(obs)
-    total = _weighted_mean(
-        (0.34, physical),
-        (0.46, acute),
-        (0.20, systemic),
-    )
-    return {
-        "physical_risk": physical,
-        "acute_risk": acute,
-        "systemic_risk": systemic,
-        "risk": total,
-        **physical_leaves,
-        **acute_leaves,
-    }
+PROGRESS_REWARD_SCALE = 10.0
+EXHAUSTION_REWARD_SCALE = 0.001
+SHOCK_REWARD_SCALE = 0.000001
+PAIN_REWARD_SCALE = 0.001
+PAIN_SHOCK_REWARD_SCALE = 0.001
+BRAIN_HEALTH_REWARD_SCALE = 0.001
+BLOOD_PRESSURE_REWARD_SCALE = 0.0025
+HEART_RATE_REWARD_SCALE = 0.0015
+FIBRILLATION_REWARD_SCALE = 0.003
+PULMONARY_EMBOLISM_REWARD_SCALE = 0.003
+STROKE_REWARD_SCALE = 0.004
+BLOOD_OXYGEN_REWARD_SCALE = 0.004
+RESPIRATORY_RATE_REWARD_SCALE = 0.0025
+BLOOD_VOLUME_REWARD_SCALE = 0.003
+TOTAL_BLEED_SPEED_REWARD_SCALE = 0.003
+INTERNAL_BLEEDING_REWARD_SCALE = 0.003
+HEMOTHORAX_REWARD_SCALE = 0.0015
+RADIATION_SICKNESS_REWARD_SCALE = 0.002
+SICKNESS_REWARD_SCALE = 0.0015
+TEMPERATURE_REWARD_SCALE = 0.003
+TOTAL_HAPPINESS_REWARD_SCALE = 0.003
+DEATH_PENALTY = 10.0
+COMPLETION_BONUS = 10.0
 
 
 def Reset(env, obs):
-    """Synchronize potential-based reward state with a freshly reset world."""
-    env.previous_progress = float(obs["LayerProgress"])
-    env.previous_risk = RiskBreakdown(obs)["risk"]
-    env.ragdoll_depth_milestone = float(obs["BestLayerDepth"])
-    env.ragdoll_seconds_since_depth_milestone = 0.0
-    env.previous_time_ragdolled = float(obs["TimeRagdolled"])
+    """Reset reward state for a new episode."""
+    env.best_progress = 0.0
+    env.death_penalty_applied = False
+    env.completion_bonus_applied = False
     env.last_reward_terms = {}
 
 
 def Reward(obs, act, env):
-    """Return the scalar reward and preserve a named breakdown on the env."""
     current_progress = float(obs["LayerProgress"])
-    risks = RiskBreakdown(obs)
-    current_risk = risks["risk"]
-
-    if env.previous_progress is None or env.previous_risk is None:
-        Reset(env, obs)
-
-    progress_delta = current_progress - env.previous_progress
-    risk_delta = env.previous_risk - current_risk  # positive when the body becomes safer
-
-    # Count only actual time spent ragdolled.  Standing pauses the accumulator
-    # instead of clearing it, so periodically standing up cannot erase a long
-    # unproductive ragdoll history.  The game's forced stand at 60 seconds is
-    # likewise not an escape hatch.
-    current_best_depth = float(obs["BestLayerDepth"])
-    current_time_ragdolled = float(obs["TimeRagdolled"])
-    ragdoll_seconds_delta = max(0.0, current_time_ragdolled - env.previous_time_ragdolled)
-
-    if current_best_depth >= (env.ragdoll_depth_milestone + RAGDOLL_DEPTH_MILESTONE_METERS):
-        env.ragdoll_depth_milestone = current_best_depth
-        env.ragdoll_seconds_since_depth_milestone = 0.0
-    else:
-        env.ragdoll_seconds_since_depth_milestone += ragdoll_seconds_delta
-
-    overdue_ragdoll_seconds = max(0.0, env.ragdoll_seconds_since_depth_milestone - RAGDOLL_STALL_GRACE_SECONDS)
-    ragdoll_stall_penalty = 0.0
-    if act[21] == 1: # ragdoll action, only penalize when the policy chooses to ragdoll
-        ragdoll_stall_penalty = min(RAGDOLL_STALL_PENALTY_CAP, RAGDOLL_STALL_PENALTY_BASE * (2.0 ** (overdue_ragdoll_seconds / RAGDOLL_STALL_DOUBLING_SECONDS) - 1.0))
-
+    previous_best_progress = env.best_progress
+    best_progress = max(current_progress, previous_best_progress)
+    progress_delta = best_progress - previous_best_progress
     progress_reward = PROGRESS_REWARD_SCALE * progress_delta
-    safety_delta_reward = SAFETY_DELTA_REWARD_SCALE * risk_delta
-    occupancy_penalty = RISK_OCCUPANCY_COST * current_risk
-    reward = (
-        progress_reward
-        + safety_delta_reward
-        - occupancy_penalty
-        - ragdoll_stall_penalty
-        - STEP_COST
+
+    stamina = float(obs["Stamina"])
+    exhaustion = np.clip((100.0 - stamina) / 100.0, 0.0, 1.0)
+    exhaustion_penalty = -EXHAUSTION_REWARD_SCALE * exhaustion ** 4
+
+    shock = float(obs["Shock"])
+    shock_excess = max(0.0, shock - 10.0)
+    shock_penalty = -SHOCK_REWARD_SCALE * 0.05 * shock_excess ** 2
+
+    average_pain = float(obs["AveragePain"])
+    pain_excess = max(0.0, (average_pain - 10.0) / 90.0)
+    pain_penalty = -PAIN_REWARD_SCALE * pain_excess ** 2
+
+    pain_shock = float(obs["PainShock"])
+    pain_shock_excess = max(0.0, (pain_shock - 0.3) / 0.7)
+    pain_shock_penalty = -PAIN_SHOCK_REWARD_SCALE * pain_shock_excess ** 2
+
+    brain_health = np.clip(float(obs["BrainHealth"]), 0.0, 100.0)
+    brain_damage = (100.0 - brain_health) / 100.0
+    brain_health_penalty = -BRAIN_HEALTH_REWARD_SCALE * brain_damage ** 2
+
+    blood_pressure = float(obs["BloodPressure"])
+    low_pressure_risk = np.clip((110.0 - blood_pressure) / 50.0, 0.0, 1.0)
+    high_pressure_risk = np.clip((blood_pressure - 130.0) / 50.0, 0.0, 1.0)
+    blood_pressure_risk = max(low_pressure_risk, high_pressure_risk)
+    blood_pressure_penalty = -BLOOD_PRESSURE_REWARD_SCALE * blood_pressure_risk ** 2
+
+    heart_rate = float(obs["HeartRate"])
+    low_heart_rate_risk = np.clip((60.0 - heart_rate) / 40.0, 0.0, 1.0)
+    high_heart_rate_risk = np.clip((heart_rate - 110.0) / 90.0, 0.0, 1.0)
+    heart_rate_risk = max(low_heart_rate_risk, high_heart_rate_risk)
+    heart_rate_penalty = -HEART_RATE_REWARD_SCALE * heart_rate_risk ** 2
+
+    fibrillation_progress = np.clip(float(obs["FibrillationProgress"]), 0.0, 100.0)
+    fibrillation_excess = max(0.0, (fibrillation_progress - 15.0) / 85.0)
+    fibrillation_penalty = -FIBRILLATION_REWARD_SCALE * fibrillation_excess ** 2
+
+    pulmonary_embolism_penalty = (
+        -PULMONARY_EMBOLISM_REWARD_SCALE
+        if bool(obs["HasPulmonaryEmbolism"])
+        else 0.0
     )
+
+    stroke_amount = np.clip(float(obs["StrokeAmount"]), 0.0, 100.0)
+    stroke_penalty = -STROKE_REWARD_SCALE * (stroke_amount / 100.0) ** 2
+
+    blood_oxygen = np.clip(float(obs["BloodOxygen"]), 0.0, 100.0)
+    oxygen_deficit = max(0.0, (90.0 - blood_oxygen) / 90.0)
+    blood_oxygen_penalty = -BLOOD_OXYGEN_REWARD_SCALE * oxygen_deficit ** 2
+
+    respiratory_rate = np.clip(float(obs["RespiratoryRate"]), 0.0, 100.0)
+    respiratory_deficit = np.clip((90.0 - respiratory_rate) / 80.0, 0.0, 1.0)
+    respiratory_penalty = -RESPIRATORY_RATE_REWARD_SCALE * respiratory_deficit ** 2
+
+    blood_volume = float(obs["BloodVolume"])
+    blood_loss = np.clip((100.0 - blood_volume) / 200.0, 0.0, 1.0)
+    blood_volume_penalty = -BLOOD_VOLUME_REWARD_SCALE * blood_loss ** 2
+
+    total_bleed_speed = max(0.0, float(obs["TotalBleedSpeed"]))
+    bleed_risk = np.clip(total_bleed_speed / 0.30, 0.0, 1.0)
+    bleed_penalty = -TOTAL_BLEED_SPEED_REWARD_SCALE * bleed_risk ** 2
+
+    internal_bleeding = max(0.0, float(obs["InternalBleeding"]))
+    internal_bleeding_risk = np.clip(internal_bleeding / 50.0, 0.0, 1.0)
+    internal_bleeding_penalty = (
+        -INTERNAL_BLEEDING_REWARD_SCALE * internal_bleeding_risk ** 2
+    )
+
+    hemothorax = max(0.0, float(obs["Hemothorax"]))
+    hemothorax_risk = np.clip(hemothorax / 70.0, 0.0, 1.0)
+    hemothorax_penalty = -HEMOTHORAX_REWARD_SCALE * hemothorax_risk ** 2
+
+    radiation_sickness = max(0.0, float(obs["RadiationSickness"]))
+    radiation_risk = np.clip((radiation_sickness - 10.0) / 70.0, 0.0, 1.0)
+    radiation_penalty = -RADIATION_SICKNESS_REWARD_SCALE * radiation_risk ** 2
+
+    sickness_amount = max(0.0, float(obs["SicknessAmount"]))
+    sickness_risk = np.clip((sickness_amount - 10.0) / 85.0, 0.0, 1.0)
+    sickness_penalty = -SICKNESS_REWARD_SCALE * sickness_risk ** 2
+
+    temperature = float(obs["Temperature"])
+    low_temperature_risk = np.clip((35.5 - temperature) / 7.5, 0.0, 1.0)
+    high_temperature_risk = np.clip((temperature - 38.0) / 3.5, 0.0, 1.0)
+    temperature_risk = max(low_temperature_risk, high_temperature_risk)
+    temperature_penalty = -TEMPERATURE_REWARD_SCALE * temperature_risk ** 2
+
+    total_happiness = float(obs["TotalHappiness"])
+    mental_risk = np.clip((-total_happiness - 30.0) / 70.0, 0.0, 1.0)
+    total_happiness_penalty = -TOTAL_HAPPINESS_REWARD_SCALE * mental_risk ** 2
 
     death_penalty = 0.0
     completion_bonus = 0.0
     if bool(obs["PlayerDead"]):
-        death_penalty = DEATH_PENALTY
-        reward -= death_penalty
-    elif current_progress >= 1.0:
-        completion_bonus = LAYER_COMPLETE_BONUS
-        reward += completion_bonus
+        if not env.death_penalty_applied:
+            death_penalty = -DEATH_PENALTY
+            env.death_penalty_applied = True
+    elif best_progress >= 1.0 and not env.completion_bonus_applied:
+        completion_bonus = COMPLETION_BONUS
+        env.completion_bonus_applied = True
 
-    env.previous_progress = current_progress
-    env.previous_risk = current_risk
-    env.previous_time_ragdolled = current_time_ragdolled
+    reward = (
+        progress_reward
+        + exhaustion_penalty
+        + shock_penalty
+        + pain_penalty
+        + pain_shock_penalty
+        + brain_health_penalty
+        + blood_pressure_penalty
+        + heart_rate_penalty
+        + fibrillation_penalty
+        + pulmonary_embolism_penalty
+        + stroke_penalty
+        + blood_oxygen_penalty
+        + respiratory_penalty
+        + blood_volume_penalty
+        + bleed_penalty
+        + internal_bleeding_penalty
+        + hemothorax_penalty
+        + radiation_penalty
+        + sickness_penalty
+        + temperature_penalty
+        + total_happiness_penalty
+        + death_penalty
+        + completion_bonus
+    )
+
+    env.best_progress = best_progress
     env.last_reward_terms = {
-        **risks,
-        "progress": progress_reward,
+        "best_progress": best_progress,
         "progress_delta": progress_delta,
-        "safety_delta": safety_delta_reward,
-        "risk_delta": risk_delta,
-        "occupancy_penalty": occupancy_penalty,
-        "ragdoll_seconds_since_depth_milestone": env.ragdoll_seconds_since_depth_milestone,
-        "ragdoll_depth_milestone": env.ragdoll_depth_milestone,
-        "ragdoll_stall_penalty": ragdoll_stall_penalty,
+        "progress": progress_reward,
+        "exhaustion": exhaustion_penalty,
+        "shock": shock_penalty,
+        "pain": pain_penalty,
+        "pain_shock": pain_shock_penalty,
+        "brain_health": brain_health_penalty,
+        "blood_pressure": blood_pressure_penalty,
+        "heart_rate": heart_rate_penalty,
+        "fibrillation": fibrillation_penalty,
+        "pulmonary_embolism": pulmonary_embolism_penalty,
+        "stroke": stroke_penalty,
+        "blood_oxygen": blood_oxygen_penalty,
+        "respiratory_rate": respiratory_penalty,
+        "blood_volume": blood_volume_penalty,
+        "total_bleed_speed": bleed_penalty,
+        "internal_bleeding": internal_bleeding_penalty,
+        "hemothorax": hemothorax_penalty,
+        "radiation_sickness": radiation_penalty,
+        "sickness": sickness_penalty,
+        "temperature": temperature_penalty,
+        "total_happiness": total_happiness_penalty,
         "death": death_penalty,
         "completion": completion_bonus,
-        "reward": float(reward),
+        "reward": reward,
     }
     return float(reward)

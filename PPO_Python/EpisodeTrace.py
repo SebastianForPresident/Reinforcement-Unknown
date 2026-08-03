@@ -117,6 +117,23 @@ def _json_default(value):
     return str(value)
 
 
+def _record_scalar_observations(row, obs, prefix=""):
+    """Record scalar observation leaves while skipping large fixed arrays."""
+    dtype = getattr(obs, "dtype", None)
+    if dtype is not None and dtype.names:
+        for field_name in dtype.names:
+            field_dtype = dtype.fields[field_name][0]
+            if field_dtype.subdtype is not None:
+                continue
+            field_prefix = f"{prefix}_{field_name}" if prefix else field_name
+            _record_scalar_observations(row, obs[field_name], field_prefix)
+        return
+
+    value = np.asarray(obs)
+    if value.ndim == 0:
+        row[f"obs_{prefix.lower()}"] = _scalar(obs)
+
+
 class EpisodeTraceWriter:
     """Buffer one episode, then append its complete rows to a CSV file."""
 
@@ -194,6 +211,8 @@ class EpisodeTraceWriter:
 
         for field_name in HEALTH_TRACE_FIELDS:
             row[f"obs_{field_name.lower()}"] = _scalar(obs[field_name])
+
+        _record_scalar_observations(row, obs)
 
         extra_info = {}
         for key, value in info.items():
