@@ -68,6 +68,36 @@ BASE_COLUMNS = (
     "extra_info_json",
 )
 
+# Keep the trace useful for postmortems without serializing the large spatial
+# and entity observation groups. These scalar health/vital fields are part of
+# the live observation and are cheap to record compared with the full packet.
+HEALTH_TRACE_FIELDS = (
+    "HeartRate",
+    "FibrillationProgress",
+    "FibrillationForced",
+    "FibrillationRising",
+    "HasPulmonaryEmbolism",
+    "BloodOxygen",
+    "BloodVolume",
+    "BloodPressure",
+    "BloodVesselSize",
+    "BloodViscosity",
+    "TotalBleedSpeed",
+    "InternalBleeding",
+    "Hemothorax",
+    "VenomTotal",
+    "VenomCurrent",
+    "RespiratoryRate",
+    "Breathing",
+    "BrainHealth",
+    "StrokeAmount",
+    "Temperature",
+    "SicknessAmount",
+    "SepticShock",
+    "RadiationSickness",
+    "TraumaAmount",
+)
+
 
 def _scalar(value):
     """Convert numpy scalar values to CSV-friendly Python values."""
@@ -161,6 +191,9 @@ class EpisodeTraceWriter:
                 "obs_player_dead": _scalar(obs["PlayerDead"]),
             }
         )
+
+        for field_name in HEALTH_TRACE_FIELDS:
+            row[f"obs_{field_name.lower()}"] = _scalar(obs[field_name])
 
         extra_info = {}
         for key, value in info.items():

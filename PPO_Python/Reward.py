@@ -99,8 +99,36 @@ def _limb_risk(obs):
     )
 
 
+def _limb_risk_breakdown(obs):
+    """Return limb damage and ragdoll risk separately for diagnostics."""
+    limbs = obs["Limbs"]
+    skin_damage = 1.0 - float(np.mean(np.clip(limbs["SkinHealth"], 0.0, 100.0))) / 100.0
+    muscle_damage = 1.0 - float(np.mean(np.clip(limbs["MuscleHealth"], 0.0, 100.0))) / 100.0
+    structural_damage = float(
+        np.mean(limbs["Broken"] | limbs["Dislocated"] | limbs["Dismembered"])
+    )
+    vital_limbs = limbs[limbs["IsVital"]]
+    if len(vital_limbs):
+        vital_integrity = min(
+            float(np.min(np.clip(vital_limbs["SkinHealth"], 0.0, 100.0))) / 100.0,
+            float(np.min(np.clip(vital_limbs["MuscleHealth"], 0.0, 100.0))) / 100.0,
+        )
+        vital_damage = 1.0 - vital_integrity
+    else:
+        vital_damage = 0.0
+    ragdoll_risk = _rising_risk(obs["TimeRagdolled"], 0.10, 1.00)
+    limb_damage = _weighted_mean(
+        (0.20, skin_damage),
+        (0.25, muscle_damage),
+        (0.20, structural_damage),
+        (0.25, vital_damage),
+    )
+    return limb_damage, ragdoll_risk
+
+
 def _physical_risk(obs):
     """Pain, exhaustion, shock, and limb integrity: immediate action costs."""
+    limb_damage, ragdoll_risk = _limb_risk_breakdown(obs)
     return _weighted_mean(
         (0.25, _rising_risk(obs["AveragePain"], 10.0, 80.0)),
         (0.15, _rising_risk(obs["PainShock"], 0.10, 0.66)),
@@ -109,8 +137,21 @@ def _physical_risk(obs):
         # the game's exertion moodle is critical; at <1 it forces shock.
         (0.20, _falling_risk(obs["Stamina"], 100.0, 15.0)),
         (0.10, _falling_risk(obs["Energy"], 35.0, 7.0)),
-        (0.15, _limb_risk(obs)),
+        (0.15, _weighted_mean((0.90, limb_damage), (0.10, ragdoll_risk))),
     )
+
+
+def _physical_risk_breakdown(obs):
+    limb_damage, ragdoll_risk = _limb_risk_breakdown(obs)
+    return {
+        "physical_pain": _rising_risk(obs["AveragePain"], 10.0, 80.0),
+        "physical_pain_shock": _rising_risk(obs["PainShock"], 0.10, 0.66),
+        "physical_shock": _rising_risk(obs["Shock"], 10.0, 60.0),
+        "physical_stamina": _falling_risk(obs["Stamina"], 100.0, 15.0),
+        "physical_energy": _falling_risk(obs["Energy"], 35.0, 7.0),
+        "physical_limb_damage": limb_damage,
+        "physical_ragdoll": ragdoll_risk,
+    }
 
 
 def _acute_risk(obs):
@@ -143,6 +184,35 @@ def _acute_risk(obs):
     )
 
 
+def _acute_risk_breakdown(obs):
+    oxygen = {
+        "acute_blood_oxygen": _falling_risk(obs["BloodOxygen"], 90.0, 45.0),
+        "acute_respiratory_rate": _falling_risk(obs["RespiratoryRate"], 90.0, 10.0),
+        "acute_not_breathing": 1.0 if not bool(obs["Breathing"]) else 0.0,
+    }
+    circulation = {
+        "acute_blood_pressure": _outside_risk(obs["BloodPressure"], 96.0, 145.0, 60.0, 180.0),
+        "acute_heart_rate": _outside_risk(obs["HeartRate"], 60.0, 110.0, 40.0, 200.0),
+        "acute_fibrillation": _rising_risk(obs["FibrillationProgress"], 15.0, 75.0),
+        "acute_stroke": _rising_risk(obs["StrokeAmount"], 0.0, 50.0),
+        "acute_pulmonary_embolism": 1.0 if bool(obs["HasPulmonaryEmbolism"]) else 0.0,
+    }
+    blood_loss = {
+        "acute_blood_volume": _falling_risk(obs["BloodVolume"], 80.0, 30.0),
+        "acute_total_bleed_speed": _rising_risk(obs["TotalBleedSpeed"], 0.02, 0.134),
+        "acute_internal_bleeding": _rising_risk(obs["InternalBleeding"], 5.0, 50.0),
+        "acute_hemothorax": _rising_risk(obs["Hemothorax"], 40.0, 70.0),
+    }
+    return {
+        **oxygen,
+        **circulation,
+        **blood_loss,
+        "acute_oxygen": max(oxygen.values()),
+        "acute_circulation": max(circulation.values()),
+        "acute_blood_loss": max(blood_loss.values()),
+    }
+
+
 def _systemic_risk(obs):
     """Slower threats which nevertheless determine whether the run can continue."""
     limb_infection = float(np.max(obs["Limbs"]["InfectionAmount"]))
@@ -167,8 +237,26 @@ def _systemic_risk(obs):
 
 def RiskBreakdown(obs):
     """Return named continuous risks for logging and reward diagnostics."""
-    physical = _physical_risk(obs)
-    acute = _acute_risk(obs)
+    physical_leaves = _physical_risk_breakdown(obs)
+    acute_leaves = _acute_risk_breakdown(obs)
+    physical = _weighted_mean(
+        (0.25, physical_leaves["physical_pain"]),
+        (0.15, physical_leaves["physical_pain_shock"]),
+        (0.15, physical_leaves["physical_shock"]),
+        (0.20, physical_leaves["physical_stamina"]),
+        (0.10, physical_leaves["physical_energy"]),
+        (0.15, _weighted_mean(
+            (0.90, physical_leaves["physical_limb_damage"]),
+            (0.10, physical_leaves["physical_ragdoll"]),
+        )),
+    )
+    acute = _weighted_mean(
+        (0.18, _falling_risk(obs["BrainHealth"], 95.0, 30.0)),
+        (0.20, _falling_risk(obs["Consciousness"], 90.0, 20.0)),
+        (0.21, acute_leaves["acute_oxygen"]),
+        (0.23, acute_leaves["acute_circulation"]),
+        (0.18, acute_leaves["acute_blood_loss"]),
+    )
     systemic = _systemic_risk(obs)
     total = _weighted_mean(
         (0.34, physical),
@@ -180,6 +268,8 @@ def RiskBreakdown(obs):
         "acute_risk": acute,
         "systemic_risk": systemic,
         "risk": total,
+        **physical_leaves,
+        **acute_leaves,
     }
 
 

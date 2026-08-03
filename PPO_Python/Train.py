@@ -91,7 +91,7 @@ class TrainingProgressCallback(BaseCallback):
             return f"{minutes}m {seconds:02d}s"
 
         message = (
-            f"\rC6 [{bar}] {fraction:6.2%} | "
+            f"\rC8 [{bar}] {fraction:6.2%} | "
             f"{current:,}/{target:,} steps | "
             f"{rate:5.1f} FPS | ETA {format_duration(eta_seconds)}"
         )
@@ -163,7 +163,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 tensorboard_log=str(run_dir / "tensorboard"),
             )
             model._pause_simulation = pause_simulation
-            final_model = run_dir / "casu_ppo_c6_3m_final"
+            final_model = run_dir / "casu_ppo_c8_2m_final"
             reset_num_timesteps = False
             total_timesteps = max(
                 0,
