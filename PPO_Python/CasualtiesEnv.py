@@ -10,6 +10,7 @@ _server = None
 _general_flatten_plans = {}
 _general_input_dim = None
 _observation_lock = None
+MAX_RESET_ATTEMPTS = 3
 
 # These are world/player values rather than spatial grids or repeated entity
 # collections. Keep the order explicit so GeneralEncoder.input_dim is stable.
@@ -278,8 +279,22 @@ class Env(gym.Env):
         with _observation_lock:
             reset_after_id = self.latest_observation_id
             self.obs_ready.clear()
-        SendReset()
-        obs, observation_id, _ = self._wait_for_new_observation(reset_after_id)
+
+        for reset_attempt in range(MAX_RESET_ATTEMPTS):
+            SendReset()
+            obs, observation_id, _ = self._wait_for_new_observation(reset_after_id)
+            if not bool(obs["PlayerDead"]):
+                break
+
+            # Unity may publish one final dead-body observation while the
+            # scene reload is completing. Do not expose that as a one-step
+            # episode; wait for a live post-reset observation instead.
+            reset_after_id = observation_id
+        else:
+            raise RuntimeError(
+                "Unity reset did not produce a live observation after "
+                f"{MAX_RESET_ATTEMPTS} attempts"
+            )
 
         _server.reset_requested.clear()
 
