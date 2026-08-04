@@ -2259,7 +2259,13 @@ public static class PPOBridge
                 else
                 {
                     UsableObject usable = hit?.GetComponent<UsableObject>();
-                    usable?.gameObject.SendMessage("OnUse");
+                    // Survivor Notes pause the game while their text is open. Keep the
+                    // PPO interaction path from entering that UI until it is explicitly
+                    // supported by the harness.
+                    if (usable && !usable.GetComponent<SurvivorNote>())
+                    {
+                        usable.gameObject.SendMessage("OnUse");
+                    }
                 }
             }
         }
