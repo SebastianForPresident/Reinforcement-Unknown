@@ -34,9 +34,9 @@ class BinaryObservationWriter
 {
     // The full observation payload and the temporary reduced payload both
     // keep the little-endian uint64 observation ID at the end.
-    public const int FullExpectedSize = 1031523;
-    public const int ReducedExpectedSize = 41985;
-    public const int LimbsExpectedSize = 42645;
+    public const int FullExpectedSize = 1031527;
+    public const int ReducedExpectedSize = 41989;
+    public const int LimbsExpectedSize = 42649;
     public static int ExpectedSize => PPOBridge.IncludeUnusedObservations
         ? FullExpectedSize
         : PPOBridge.IncludeLimbObservations
