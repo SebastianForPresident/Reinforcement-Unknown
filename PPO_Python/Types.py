@@ -275,6 +275,7 @@ OBSERVATION_DTYPE = np.dtype([
     ("BestLayerDepth", SHORT_DTYPE),
     ("LayerTimeRemaining", INT_DTYPE),
     ("RadLineDisplacement", SHORT_DTYPE),
+    ("SimulationDeltaTime", FLOAT_DTYPE),
     *([
         ("SoundsHeard", SOUND_DTYPE, (MAX_SOUNDS_HEARD,)),
     ] if INCLUDE_UNUSED_OBSERVATIONS else []),

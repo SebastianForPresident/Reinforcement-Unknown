@@ -506,6 +506,7 @@ public class Observation
     // Radline
     public int LayerTimeRemaining; // seconds
     public short RadLineDisplacement; // negative values mean you're behind the radline (bad)
+    public float SimulationDeltaTime; // scaled Unity seconds represented by this observation
 
     // Sounds
     public SoundObservation[] SoundsHeard;
@@ -1416,6 +1417,7 @@ public static class PPOBridge
         obs.LayerTimeRemaining = Mathf.RoundToInt(world.maxTimePerLayer - world.layerTimeSpent); // seconds
         if (obs.LayerTimeRemaining <= 0) obs.RadLineDisplacement = NarrowShort(Mathf.RoundToInt(world.PlayerLayerDepthMeters() - world.RadlineLayerDepthMeters()), "radline displacement"); // negative values mean you're behind the radline (bad)
         else obs.RadLineDisplacement = 10000; // Basically not a problem
+        obs.SimulationDeltaTime = Time.deltaTime;
 
         // Sound
         if (IncludeUnusedObservations)
@@ -1785,6 +1787,7 @@ public static class PPOBridge
         // Radline
         writer.Write(obs.LayerTimeRemaining);
         writer.Write(obs.RadLineDisplacement);
+        writer.Write(obs.SimulationDeltaTime);
 
         if (IncludeUnusedObservations)
         {

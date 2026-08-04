@@ -1,4 +1,4 @@
-"""V9 reward: safety first, then pursue deeper progress.
+"""V10 reward: safety first, then pursue deeper progress.
 
 Objective:
     Preserve the agent's ability to continue while pursuing the best
@@ -14,6 +14,9 @@ Capability and systemic state:
     their step-to-step deltas. TotalHappiness remains an observation only.
     Ragdolling retains the V5/V6 action-gated stall guard: it is penalized
     only after prolonged ragdoll time without another depth milestone.
+    Exhaustion uses the same paused, action-gated stall logic while the
+    stamina remains critical, with movement, jumping, and attacking sharing
+    one capped penalty rather than stacking.
 
 Cardiovascular, respiration, and blood:
     BloodOxygen, TotalBleedSpeed, InternalBleeding, and Temperature are scored
@@ -45,6 +48,11 @@ RAGDOLL_STALL_GRACE_SECONDS = 30.0
 RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
 RAGDOLL_STALL_PENALTY_BASE = 0.001
 RAGDOLL_STALL_PENALTY_CAP = 0.01
+EXHAUSTION_STAMINA_THRESHOLD = 10.0
+EXHAUSTION_STALL_GRACE_SECONDS = 30.0
+EXHAUSTION_STALL_DOUBLING_SECONDS = 10.0
+EXHAUSTION_STALL_PENALTY_BASE = 0.001
+EXHAUSTION_STALL_PENALTY_CAP = 0.01
 DEATH_PENALTY = 10.0
 COMPLETION_BONUS = 10.0
 
@@ -64,6 +72,7 @@ def Reset(env, obs):
     env.ragdoll_depth_milestone = float(obs["BestLayerDepth"])
     env.ragdoll_seconds_since_depth_milestone = 0.0
     env.previous_time_ragdolled = float(obs["TimeRagdolled"])
+    env.exhaustion_seconds_since_depth_milestone = 0.0
     env.death_penalty_applied = False
     env.completion_bonus_applied = False
     env.last_reward_terms = {}
@@ -81,11 +90,13 @@ def Reward(obs, act, env):
     ragdoll_seconds_delta = max(
         0.0, current_time_ragdolled - env.previous_time_ragdolled
     )
-    if current_best_depth >= (
+    depth_milestone_reached = current_best_depth >= (
         env.ragdoll_depth_milestone + RAGDOLL_DEPTH_MILESTONE_METERS
-    ):
+    )
+    if depth_milestone_reached:
         env.ragdoll_depth_milestone = current_best_depth
         env.ragdoll_seconds_since_depth_milestone = 0.0
+        env.exhaustion_seconds_since_depth_milestone = 0.0
     else:
         env.ragdoll_seconds_since_depth_milestone += ragdoll_seconds_delta
 
@@ -107,6 +118,54 @@ def Reward(obs, act, env):
         )
 
     stamina = float(obs["Stamina"])
+    if not depth_milestone_reached and stamina < EXHAUSTION_STAMINA_THRESHOLD:
+        env.exhaustion_seconds_since_depth_milestone += max(
+            0.0, float(obs["SimulationDeltaTime"])
+        )
+
+    overdue_exhaustion_seconds = max(
+        0.0,
+        env.exhaustion_seconds_since_depth_milestone
+        - EXHAUSTION_STALL_GRACE_SECONDS,
+    )
+    exhaustion_move_stall_penalty = 0.0
+    exhaustion_jump_stall_penalty = 0.0
+    exhaustion_attack_stall_penalty = 0.0
+    exhaustion_stall_penalty = 0.0
+    if overdue_exhaustion_seconds > 0.0:
+        exhaustion_stall_penalty = min(
+            EXHAUSTION_STALL_PENALTY_CAP,
+            EXHAUSTION_STALL_PENALTY_BASE
+            * (
+                2.0
+                ** (
+                    overdue_exhaustion_seconds
+                    / EXHAUSTION_STALL_DOUBLING_SECONDS
+                )
+                - 1.0
+            ),
+        )
+        exhaustion_move_stall_penalty = exhaustion_stall_penalty * (
+            float(act[0]) != 1
+        )
+        exhaustion_jump_stall_penalty = exhaustion_stall_penalty * (
+            act[1] == 1
+        )
+        exhaustion_attack_stall_penalty = exhaustion_stall_penalty * (
+            act[6] == 1
+        )
+    exhaustion_stall_action_selected = (
+        float(act[0]) != 1 or act[1] == 1 or act[6] == 1
+    )
+    if exhaustion_stall_action_selected:
+        exhaustion_stall_penalty = max(
+            exhaustion_move_stall_penalty,
+            exhaustion_jump_stall_penalty,
+            exhaustion_attack_stall_penalty,
+        )
+    else:
+        exhaustion_stall_penalty = 0.0
+
     stamina_delta = stamina - env.previous_stamina
     stamina_delta_reward = STAMINA_DELTA_REWARD_SCALE * stamina_delta
 
@@ -186,6 +245,7 @@ def Reward(obs, act, env):
         + sickness_amount_delta_reward
         + temperature_delta_reward
         - ragdoll_stall_penalty
+        - exhaustion_stall_penalty
         + death_penalty
         + completion_bonus
     )
@@ -228,6 +288,14 @@ def Reward(obs, act, env):
             env.ragdoll_seconds_since_depth_milestone
         ),
         "ragdoll_depth_milestone": env.ragdoll_depth_milestone,
+        "exhaustion_stall_penalty": exhaustion_stall_penalty,
+        "exhaustion_move_stall": exhaustion_move_stall_penalty,
+        "exhaustion_jump_stall": exhaustion_jump_stall_penalty,
+        "exhaustion_attack_stall": exhaustion_attack_stall_penalty,
+        "exhaustion_stall_action_selected": exhaustion_stall_action_selected,
+        "exhaustion_seconds_since_depth_milestone": (
+            env.exhaustion_seconds_since_depth_milestone
+        ),
         "death": death_penalty,
         "completion": completion_bonus,
         "reward": reward,
