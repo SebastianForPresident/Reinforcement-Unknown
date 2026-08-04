@@ -12,7 +12,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 import ObservationEncoding
 
 
-TARGET_TOTAL_TIMESTEPS = 2_000_000
+TARGET_TOTAL_TIMESTEPS = 1_000_000
 
 
 class PausingPPO(PPO):
@@ -91,7 +91,7 @@ class TrainingProgressCallback(BaseCallback):
             return f"{minutes}m {seconds:02d}s"
 
         message = (
-            f"\rC9 [{bar}] {fraction:6.2%} | "
+            f"\rC10 [{bar}] {fraction:6.2%} | "
             f"{current:,}/{target:,} steps | "
             f"{rate:5.1f} FPS | ETA {format_duration(eta_seconds)}"
         )
@@ -130,7 +130,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
     run_dir.mkdir(parents=True, exist_ok=True)
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=50_000,
+        save_freq=25_000,
         save_path=str(run_dir),
         name_prefix="casu_ppo",
     )
@@ -148,7 +148,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 tensorboard_log=str(run_dir / "tensorboard"),
                 pause_simulation=pause_simulation,
             )
-            final_model = run_dir / "casu_ppo_c9_2m_final"
+            final_model = run_dir / "casu_ppo_c10_1m_final"
             reset_num_timesteps = True
             total_timesteps = TARGET_TOTAL_TIMESTEPS
         else:
@@ -163,7 +163,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 tensorboard_log=str(run_dir / "tensorboard"),
             )
             model._pause_simulation = pause_simulation
-            final_model = run_dir / "casu_ppo_c9_2m_final"
+            final_model = run_dir / "casu_ppo_c10_1m_final"
             reset_num_timesteps = False
             total_timesteps = max(
                 0,

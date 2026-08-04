@@ -1,4 +1,4 @@
-"""V8 reward: safety first, then pursue deeper progress.
+"""V9 reward: safety first, then pursue deeper progress.
 
 Objective:
     Preserve the agent's ability to continue while pursuing the best
@@ -12,6 +12,8 @@ Capability and systemic state:
     deltas. BrainHealth, BloodOxygen, TotalBleedSpeed, InternalBleeding,
     RadiationSickness, SicknessAmount, and Temperature are also scored by
     their step-to-step deltas. TotalHappiness remains an observation only.
+    Ragdolling retains the V5/V6 action-gated stall guard: it is penalized
+    only after prolonged ragdoll time without another depth milestone.
 
 Cardiovascular, respiration, and blood:
     BloodOxygen, TotalBleedSpeed, InternalBleeding, and Temperature are scored
@@ -38,6 +40,11 @@ INTERNAL_BLEEDING_DELTA_REWARD_SCALE = 0.003
 RADIATION_SICKNESS_DELTA_REWARD_SCALE = 0.002
 SICKNESS_DELTA_REWARD_SCALE = 0.0015
 TEMPERATURE_DELTA_REWARD_SCALE = 0.003
+RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
+RAGDOLL_STALL_GRACE_SECONDS = 30.0
+RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
+RAGDOLL_STALL_PENALTY_BASE = 0.001
+RAGDOLL_STALL_PENALTY_CAP = 0.01
 DEATH_PENALTY = 10.0
 COMPLETION_BONUS = 10.0
 
@@ -54,6 +61,9 @@ def Reset(env, obs):
     env.previous_radiation_sickness = float(obs["RadiationSickness"])
     env.previous_sickness_amount = float(obs["SicknessAmount"])
     env.previous_temperature = float(obs["Temperature"])
+    env.ragdoll_depth_milestone = float(obs["BestLayerDepth"])
+    env.ragdoll_seconds_since_depth_milestone = 0.0
+    env.previous_time_ragdolled = float(obs["TimeRagdolled"])
     env.death_penalty_applied = False
     env.completion_bonus_applied = False
     env.last_reward_terms = {}
@@ -65,6 +75,36 @@ def Reward(obs, act, env):
     best_progress = max(current_progress, previous_best_progress)
     progress_delta = best_progress - previous_best_progress
     progress_reward = PROGRESS_REWARD_SCALE * progress_delta
+
+    current_best_depth = float(obs["BestLayerDepth"])
+    current_time_ragdolled = float(obs["TimeRagdolled"])
+    ragdoll_seconds_delta = max(
+        0.0, current_time_ragdolled - env.previous_time_ragdolled
+    )
+    if current_best_depth >= (
+        env.ragdoll_depth_milestone + RAGDOLL_DEPTH_MILESTONE_METERS
+    ):
+        env.ragdoll_depth_milestone = current_best_depth
+        env.ragdoll_seconds_since_depth_milestone = 0.0
+    else:
+        env.ragdoll_seconds_since_depth_milestone += ragdoll_seconds_delta
+
+    overdue_ragdoll_seconds = max(
+        0.0,
+        env.ragdoll_seconds_since_depth_milestone
+        - RAGDOLL_STALL_GRACE_SECONDS,
+    )
+    ragdoll_stall_penalty = 0.0
+    if act[21] == 1:
+        ragdoll_stall_penalty = min(
+            RAGDOLL_STALL_PENALTY_CAP,
+            RAGDOLL_STALL_PENALTY_BASE
+            * (
+                2.0
+                ** (overdue_ragdoll_seconds / RAGDOLL_STALL_DOUBLING_SECONDS)
+                - 1.0
+            ),
+        )
 
     stamina = float(obs["Stamina"])
     stamina_delta = stamina - env.previous_stamina
@@ -145,6 +185,7 @@ def Reward(obs, act, env):
         + radiation_sickness_delta_reward
         + sickness_amount_delta_reward
         + temperature_delta_reward
+        - ragdoll_stall_penalty
         + death_penalty
         + completion_bonus
     )
@@ -159,6 +200,7 @@ def Reward(obs, act, env):
     env.previous_radiation_sickness = radiation_sickness
     env.previous_sickness_amount = sickness_amount
     env.previous_temperature = temperature
+    env.previous_time_ragdolled = current_time_ragdolled
     env.last_reward_terms = {
         "best_progress": best_progress,
         "progress_delta": progress_delta,
@@ -181,6 +223,11 @@ def Reward(obs, act, env):
         "sickness_amount_delta": sickness_amount_delta,
         "temperature": temperature_delta_reward,
         "temperature_deviation_delta": temperature_deviation_delta,
+        "ragdoll_stall_penalty": ragdoll_stall_penalty,
+        "ragdoll_seconds_since_depth_milestone": (
+            env.ragdoll_seconds_since_depth_milestone
+        ),
+        "ragdoll_depth_milestone": env.ragdoll_depth_milestone,
         "death": death_penalty,
         "completion": completion_bonus,
         "reward": reward,
