@@ -38,3 +38,6 @@ The stretch goal is to complete multiple.
 | Checkpoint 7 | V6 | Unsafe, brute-force descent |
 | Checkpoint 8 | V7 | Unproductive self-damage |
 | Checkpoint 9 | V7 | Unproductive self-damage |
+| Checkpoint 10 | V8 & V9 | Unproductive self-damage |
+| Checkpoint 11 | V10 | Preserve health, stay safe, and stay stagnant |
+| Checkpoint 12 | V10 | Minimal movement/exertion while trying to descend |
