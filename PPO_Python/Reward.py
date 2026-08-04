@@ -132,7 +132,10 @@ def Reward(obs, act, env):
     exhaustion_jump_stall_penalty = 0.0
     exhaustion_attack_stall_penalty = 0.0
     exhaustion_stall_penalty = 0.0
-    if overdue_exhaustion_seconds > 0.0:
+    if (
+        stamina < EXHAUSTION_STAMINA_THRESHOLD
+        and overdue_exhaustion_seconds > 0.0
+    ):
         exhaustion_stall_penalty = min(
             EXHAUSTION_STALL_PENALTY_CAP,
             EXHAUSTION_STALL_PENALTY_BASE
