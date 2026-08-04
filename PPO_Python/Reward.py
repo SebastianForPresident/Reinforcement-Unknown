@@ -106,7 +106,9 @@ def Reward(obs, act, env):
         - RAGDOLL_STALL_GRACE_SECONDS,
     )
     ragdoll_stall_penalty = 0.0
-    if act[21] == 1:
+    # C12's legacy ragdoll action remains supported for compatibility, but it
+    # is intentionally absent from C13's seven-action policy.
+    if len(act) > 21 and act[21] == 1:
         ragdoll_stall_penalty = min(
             RAGDOLL_STALL_PENALTY_CAP,
             RAGDOLL_STALL_PENALTY_BASE
