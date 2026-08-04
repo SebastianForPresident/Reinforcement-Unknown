@@ -687,6 +687,8 @@ public static class PPOBridge
     static bool ppoPaused = false;
     static float prePPOPauseTimeScale = 1f;
     static int resetSourceWorldInstanceId;
+    static float resetStartedRealtime;
+    static float resetLastDiagnosticRealtime;
 
     public static bool PPOPauseActive => ppoPauseRequested || ppoPaused;
 
@@ -1815,8 +1817,15 @@ public static class PPOBridge
             resetRequested = false;
             resetComplete = false;
             resetSourceWorldInstanceId = WorldGeneration.world.GetInstanceID();
+            resetStartedRealtime = Time.realtimeSinceStartup;
+            resetLastDiagnosticRealtime = resetStartedRealtime;
 
-            Debug.Log("PPO reset started.");
+            Debug.Log(
+                $"PPO reset started: sourceWorld={resetSourceWorldInstanceId}, " +
+                $"scene={SceneManager.GetActiveScene().name}, " +
+                $"worldExists={WorldGeneration.world.worldExists}, " +
+                $"generating={WorldGeneration.world.generatingWorld}."
+            );
             WorldGeneration.world.StartCoroutine(Reset());
 
             return;
@@ -1824,13 +1833,30 @@ public static class PPOBridge
 
         if (!resetComplete)
         {
-            if (WorldGeneration.world != null &&
-                WorldGeneration.world.GetInstanceID() != resetSourceWorldInstanceId &&
-                WorldGeneration.world.worldExists &&
-                !WorldGeneration.world.generatingWorld)
+            WorldGeneration world = WorldGeneration.world;
+            if (world != null &&
+                world.GetInstanceID() != resetSourceWorldInstanceId &&
+                world.worldExists &&
+                !world.generatingWorld)
             {
                 resetComplete = true;
-                Debug.Log("PPO reset complete.");
+                Debug.Log(
+                    $"PPO reset complete: sourceWorld={resetSourceWorldInstanceId}, " +
+                    $"newWorld={world.GetInstanceID()}, " +
+                    $"elapsed={Time.realtimeSinceStartup - resetStartedRealtime:F2}s, " +
+                    $"worldExists={world.worldExists}, generating={world.generatingWorld}."
+                );
+            }
+            else if (Time.realtimeSinceStartup - resetLastDiagnosticRealtime >= 5f)
+            {
+                resetLastDiagnosticRealtime = Time.realtimeSinceStartup;
+                Debug.LogWarning(
+                    $"PPO reset still waiting: sourceWorld={resetSourceWorldInstanceId}, " +
+                    $"currentWorld={(world == null ? "null" : world.GetInstanceID().ToString())}, " +
+                    $"elapsed={Time.realtimeSinceStartup - resetStartedRealtime:F2}s, " +
+                    $"worldExists={(world != null && world.worldExists)}, " +
+                    $"generating={(world != null && world.generatingWorld)}."
+                );
             }
 
             return;
@@ -2608,6 +2634,16 @@ public static class PPOBridge
     
     public static IEnumerator Reset()
 	{
+        float resetCoroutineStartedRealtime = Time.realtimeSinceStartup;
+        string sceneName = SceneManager.GetActiveScene().name;
+        WorldGeneration sourceWorld = WorldGeneration.world;
+
+        Debug.Log(
+            $"PPO reset coroutine entered: sourceWorld=" +
+            $"{(sourceWorld == null ? "null" : sourceWorld.GetInstanceID().ToString())}, " +
+            $"scene={sceneName}."
+        );
+
         resetComplete = false;
 		hasObservationFixedTime = false;
 		fixedStepsUntilObservation = 0;
@@ -2617,9 +2653,85 @@ public static class PPOBridge
 		ppoResumeActionReceived = false;
 		ppoPaused = false;
 		BestLayerDepth = 0;
-        yield return WorldGeneration.world.Clear();
+
+        if (sourceWorld == null)
+        {
+            Debug.LogError("PPO reset aborted: WorldGeneration.world was null before Clear().");
+            yield break;
+        }
+
+        IEnumerator clearRoutine;
+        try
+        {
+            Debug.Log(
+                $"PPO reset calling WorldGeneration.world.Clear(): " +
+                $"world={sourceWorld.GetInstanceID()}, " +
+                $"worldExists={sourceWorld.worldExists}, " +
+                $"generating={sourceWorld.generatingWorld}."
+            );
+            clearRoutine = sourceWorld.Clear();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"PPO reset failed while creating Clear() routine:\n{ex}");
+            yield break;
+        }
+
+        if (clearRoutine == null)
+        {
+            Debug.LogError("PPO reset failed: WorldGeneration.world.Clear() returned null.");
+            yield break;
+        }
+
+        while (true)
+        {
+            bool hasNext;
+            try
+            {
+                hasNext = clearRoutine.MoveNext();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"PPO reset failed inside Clear() routine:\n{ex}");
+                yield break;
+            }
+
+            if (!hasNext)
+                break;
+
+            if (Time.realtimeSinceStartup - resetLastDiagnosticRealtime >= 5f)
+            {
+                resetLastDiagnosticRealtime = Time.realtimeSinceStartup;
+                Debug.Log(
+                    $"PPO reset Clear() still running: " +
+                    $"elapsed={Time.realtimeSinceStartup - resetCoroutineStartedRealtime:F2}s."
+                );
+            }
+
+            yield return clearRoutine.Current;
+        }
+
+		Debug.Log(
+            $"PPO reset Clear() completed after " +
+            $"{Time.realtimeSinceStartup - resetCoroutineStartedRealtime:F2}s."
+        );
 		Time.timeScale = 1f;
-		SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
+        try
+        {
+            Debug.Log($"PPO reset loading scene: {sceneName}.");
+		    SceneManager.LoadScene(sceneName);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"PPO reset failed while loading scene {sceneName}:\n{ex}");
+            yield break;
+        }
+
+		Debug.Log(
+            $"PPO reset scene load requested after " +
+            $"{Time.realtimeSinceStartup - resetCoroutineStartedRealtime:F2}s."
+        );
 		yield break;
 	}
     
