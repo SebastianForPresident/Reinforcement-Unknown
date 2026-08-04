@@ -264,7 +264,7 @@ class Env(gym.Env):
         self.previous_risk = None
         self.last_reward_terms = {}
 
-        self.max_episode_steps = 25000
+        self.max_episode_steps = 40000
         self.episode_steps = 0
         self.episode_number = 0
         self.episode_trace = EpisodeTraceWriter()

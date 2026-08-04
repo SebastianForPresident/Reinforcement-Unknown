@@ -749,7 +749,7 @@ public static class PPOBridge
     static bool StartRan = false;
 
     static int BestLayerDepth = 0;
-    const float C7LayerTimeLimitSeconds = 300f;
+    const float C12LayerTimeLimitSeconds = 300f;
     static int configuredLayerWorldInstanceId;
 
     public static List<PendingSound> SoundEvents = new List<PendingSound>();
@@ -1841,7 +1841,7 @@ public static class PPOBridge
         
         if (!StartRan) Start();
 
-        EnsureC7LayerTimeLimit();
+        EnsureC12LayerTimeLimit();
 
         // Body.FixedUpdate is patched once per Body. Publish at most one
         // observation for each distinct physics step. During the game's
@@ -1939,7 +1939,7 @@ public static class PPOBridge
         }
     }
 
-    static void EnsureC7LayerTimeLimit()
+    static void EnsureC12LayerTimeLimit()
     {
         WorldGeneration world = WorldGeneration.world;
         if (world == null || !world.worldExists || world.generatingWorld)
@@ -1949,9 +1949,9 @@ public static class PPOBridge
         if (worldInstanceId == configuredLayerWorldInstanceId)
             return;
 
-        world.maxTimePerLayer = C7LayerTimeLimitSeconds;
+        world.maxTimePerLayer = C12LayerTimeLimitSeconds;
         configuredLayerWorldInstanceId = worldInstanceId;
-        Debug.Log($"PPO C7 layer time limit set to {C7LayerTimeLimitSeconds:0} seconds.");
+        Debug.Log($"PPO C12 layer time limit set to {C12LayerTimeLimitSeconds:0} seconds.");
     }
 
     public static void Start()
