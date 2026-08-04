@@ -173,7 +173,16 @@ class EpisodeTraceWriter:
         if not self.episode_open:
             raise RuntimeError("Cannot record a step without an active episode")
 
+        # C13 exposes seven policy actions while retaining the legacy 28-field
+        # trace schema for tooling and comparisons with C11/C12.  The omitted
+        # fields are recorded as zero (their inactive wire-protocol encoding).
         action_values = list(action)
+        if len(action_values) > len(ACTION_NAMES):
+            raise ValueError(
+                f"Trace received {len(action_values)} actions, but the legacy "
+                f"schema only has {len(ACTION_NAMES)} fields"
+            )
+        action_values.extend([0] * (len(ACTION_NAMES) - len(action_values)))
         row = {
             "episode": self._episode,
             "step": int(step),

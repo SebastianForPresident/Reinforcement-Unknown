@@ -167,6 +167,16 @@ def Start(server):
     _observation_lock = server.observation_lock
 
 def Decode(action):
+    """Decode the seven-action C13 policy into the legacy wire protocol.
+
+    The Unity harness and Server keep accepting/sending all 28 protocol
+    fields.  C13 only exposes the seven controls that affect locomotion and
+    direct item use; every other field is explicitly reset to an inactive
+    value on every policy step so no stale C12 action can leak through.
+    """
+    if len(action) != 7:
+        raise ValueError(f"C13 expects 7 actions, received {len(action)}")
+
     _server.move = action[0] - 1
     _server.jump = action[1]
     _server.vertMove = action[2] - 1
@@ -176,39 +186,30 @@ def Decode(action):
     _server.lookdY = action[5] - 5
 
     _server.attack = action[6]
-    _server.interact = action[7]
 
-    _server.targetSlotIndex = action[8]
-    _server.selectedSlotIndex = action[9] - 1
-
-    _server.dropItem = action[10]
-    _server.moveItem = action[11]
-
-    _server.selectedBagIndex = action[12] - 1
-
-    _server.useItem = action[13]
-    _server.useItemWorld = action[14]
-
-    _server.selectedLimb = action[15]
-
-    _server.useItemMedical = action[16]
-
-    _server.selectedRecipe = action[17] - 1
-
-    _server.favoriteItem = action[18]
-    _server.switchMainHand = action[19]
-    _server.trySleep = action[20]
-    _server.ragdoll = action[21]
-
-    _server.exercise = action[22] - 1
-
-    _server.bark = action[23]
-    _server.throw = action[24]
-
-    _server.liquidAmount = action[25] * 5
-
-    _server.drainLiquid = action[26]
-    _server.pullLiquidFromWorld = action[27]
+    # Legacy protocol fields intentionally disabled for C13.  Keep these
+    # assignments explicit so they cannot retain a value from C12.
+    _server.interact = 0
+    _server.targetSlotIndex = 0
+    _server.selectedSlotIndex = -1
+    _server.dropItem = 0
+    _server.moveItem = 0
+    _server.selectedBagIndex = -1
+    _server.useItem = 0
+    _server.useItemWorld = 0
+    _server.selectedLimb = 0
+    _server.useItemMedical = 0
+    _server.selectedRecipe = -1
+    _server.favoriteItem = 0
+    _server.switchMainHand = 0
+    _server.trySleep = 0
+    _server.ragdoll = 0
+    _server.exercise = -1
+    _server.bark = 0
+    _server.throw = 0
+    _server.liquidAmount = 0
+    _server.drainLiquid = 0
+    _server.pullLiquidFromWorld = 0
 
     # PPO optimizer updates leave Unity paused.  Resume only after this fresh
     # policy action has been decoded, so no physics tick can replay the action
@@ -226,7 +227,12 @@ def SendReset():
 class Env(gym.Env):
     def __init__(self):
         Init_General()
-        self.action_space = gym.spaces.MultiDiscrete([3, 2, 3, 2, 9, 11, 2, 2, 25, 26, 2, 2, 33, 2, 2, 15, 2, 133, 2, 2, 2, 2, 4, 2, 2, 201, 2, 2])
+        # C13 policy controls: move, jump, vertical move, crouch, look X,
+        # look Y, and attack.  The legacy 28-field TCP protocol remains
+        # unchanged; Decode() supplies inactive defaults for its other fields.
+        self.action_space = gym.spaces.MultiDiscrete(
+            [3, 2, 3, 2, 9, 11, 2]
+        )
         self.observation_space = gym.spaces.Dict({
             "general": gym.spaces.Box(
                 low=-np.inf,
