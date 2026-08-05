@@ -25,6 +25,8 @@ shutdown_started = False
 simulation_paused = threading.Event()
 pause_applied = threading.Event()
 resume_applied = threading.Event()
+reset_ready_condition = threading.Condition()
+reset_ready_observation_ids = {}
 
 def CreateTcpListener(port):
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -77,8 +79,38 @@ def ControlAckLoop():
                     pause_applied.set()
                 elif line == b"RESUMED":
                     resume_applied.set()
+                elif line.startswith(b"RESET_READY "):
+                    parts = line.split()
+                    if len(parts) == 3:
+                        try:
+                            reset_token = int(parts[1])
+                            first_observation_id = int(parts[2])
+                        except ValueError:
+                            print(f"Malformed Unity reset acknowledgement: {line!r}")
+                        else:
+                            with reset_ready_condition:
+                                reset_ready_observation_ids[reset_token] = (
+                                    first_observation_id
+                                )
+                                reset_ready_condition.notify_all()
         except OSError:
             return
+
+
+def WaitForResetReady(reset_token, timeout=30.0):
+    """Wait for Unity to identify the first observation from this reset."""
+    deadline = time.monotonic() + timeout
+    with reset_ready_condition:
+        while reset_token not in reset_ready_observation_ids:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"Unity did not acknowledge reset token {reset_token} "
+                    f"within {timeout:.1f}s"
+                )
+            reset_ready_condition.wait(timeout=remaining)
+
+        return reset_ready_observation_ids.pop(reset_token)
 
 
 def PauseSimulation():

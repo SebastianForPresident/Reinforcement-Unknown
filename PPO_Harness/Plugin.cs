@@ -684,9 +684,14 @@ public static class PPOBridge
     static volatile bool shutdownRequested = false;
     static volatile bool ppoPauseRequested = false;
     static volatile bool ppoResumeActionReceived = false;
+    static ulong requestedResetToken;
+    static ulong activeResetToken;
+    static bool resetObservationAcknowledgementPending;
     static bool ppoPaused = false;
     static float prePPOPauseTimeScale = 1f;
     static int resetSourceWorldInstanceId;
+    static int resetSourceBodyInstanceId;
+    static int generationFinishedWorldInstanceId;
     static float resetStartedRealtime;
     static float resetLastDiagnosticRealtime;
 
@@ -1816,7 +1821,11 @@ public static class PPOBridge
         {
             resetRequested = false;
             resetComplete = false;
+            activeResetToken = requestedResetToken;
+            resetObservationAcknowledgementPending = true;
             resetSourceWorldInstanceId = WorldGeneration.world.GetInstanceID();
+            resetSourceBodyInstanceId = body == null ? 0 : body.GetInstanceID();
+            generationFinishedWorldInstanceId = 0;
             resetStartedRealtime = Time.realtimeSinceStartup;
             resetLastDiagnosticRealtime = resetStartedRealtime;
 
@@ -1834,17 +1843,45 @@ public static class PPOBridge
         if (!resetComplete)
         {
             WorldGeneration world = WorldGeneration.world;
-            if (world != null &&
+            PlayerCamera playerCamera = PlayerCamera.main;
+            Body currentBody = playerCamera == null ? null : playerCamera.body;
+            bool generationFinished =
+                world != null &&
+                world.GetInstanceID() == generationFinishedWorldInstanceId;
+            bool loadingFinished =
+                world != null &&
+                world.loadingObject != null &&
+                !world.loadingObject.activeSelf;
+            bool freshLiveBody =
+                currentBody != null &&
+                currentBody.GetInstanceID() != resetSourceBodyInstanceId &&
+                currentBody.alive &&
+                currentBody.conscious;
+            bool worldReady =
+                world != null &&
                 world.GetInstanceID() != resetSourceWorldInstanceId &&
                 world.worldExists &&
-                !world.generatingWorld)
+                !world.generatingWorld &&
+                generationFinished &&
+                loadingFinished &&
+                world.layerTimeSpent < 1f &&
+                RadiationLine.line != null &&
+                !RadiationLine.line.active &&
+                freshLiveBody;
+
+            if (worldReady)
             {
                 resetComplete = true;
                 Debug.Log(
                     $"PPO reset complete: sourceWorld={resetSourceWorldInstanceId}, " +
                     $"newWorld={world.GetInstanceID()}, " +
+                    $"sourceBody={resetSourceBodyInstanceId}, " +
+                    $"newBody={currentBody.GetInstanceID()}, " +
                     $"elapsed={Time.realtimeSinceStartup - resetStartedRealtime:F2}s, " +
-                    $"worldExists={world.worldExists}, generating={world.generatingWorld}."
+                    $"worldExists={world.worldExists}, generating={world.generatingWorld}, " +
+                    $"generationFinished={generationFinished}, loadingFinished={loadingFinished}, " +
+                    $"layerTimeSpent={world.layerTimeSpent:F2}, radlineActive={RadiationLine.line.active}, " +
+                    $"alive={currentBody.alive}, conscious={currentBody.conscious}."
                 );
             }
             else if (Time.realtimeSinceStartup - resetLastDiagnosticRealtime >= 5f)
@@ -1855,7 +1892,14 @@ public static class PPOBridge
                     $"currentWorld={(world == null ? "null" : world.GetInstanceID().ToString())}, " +
                     $"elapsed={Time.realtimeSinceStartup - resetStartedRealtime:F2}s, " +
                     $"worldExists={(world != null && world.worldExists)}, " +
-                    $"generating={(world != null && world.generatingWorld)}."
+                    $"generating={(world != null && world.generatingWorld)}, " +
+                    $"generationFinished={generationFinished}, " +
+                    $"loadingFinished={loadingFinished}, " +
+                    $"sourceBody={resetSourceBodyInstanceId}, " +
+                    $"currentBody={(currentBody == null ? "null" : currentBody.GetInstanceID().ToString())}, " +
+                    $"freshLiveBody={freshLiveBody}, " +
+                    $"layerTimeSpent={(world == null ? "n/a" : world.layerTimeSpent.ToString("F2"))}, " +
+                    $"radlineActive={(RadiationLine.line != null && RadiationLine.line.active)}."
                 );
             }
 
@@ -1935,6 +1979,14 @@ public static class PPOBridge
             }
 
             obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten);
+
+            if (resetObservationAcknowledgementPending)
+            {
+                resetObservationAcknowledgementPending = false;
+                SendActionAcknowledgement(
+                    $"RESET_READY {activeResetToken} {observationId}"
+                );
+            }
         }
         if (!actionConnected)
         {
@@ -2069,8 +2121,23 @@ public static class PPOBridge
                     string line = actionReader.ReadLine();
                     if (!string.IsNullOrEmpty(line))
                     {
-                        if (line == "RESET")
+                        if (line == "RESET" || line.StartsWith("RESET ", StringComparison.Ordinal))
                         {
+                            requestedResetToken = 0;
+                            string[] resetParts = line.Split(
+                                new[] { ' ' },
+                                StringSplitOptions.RemoveEmptyEntries
+                            );
+                            if (
+                                resetParts.Length == 2 &&
+                                !ulong.TryParse(resetParts[1], out requestedResetToken)
+                            )
+                            {
+                                Debug.LogWarning(
+                                    $"Ignoring malformed PPO reset token: {line}"
+                                );
+                                continue;
+                            }
                             resetRequested = true;
                             continue;
                         }
@@ -2649,6 +2716,7 @@ public static class PPOBridge
 		fixedStepsUntilObservation = 0;
 		lastObservationSkipCount = 0;
 		configuredLayerWorldInstanceId = 0;
+		generationFinishedWorldInstanceId = 0;
 		ppoPauseRequested = false;
 		ppoResumeActionReceived = false;
 		ppoPaused = false;
@@ -2731,9 +2799,21 @@ public static class PPOBridge
 		Debug.Log(
             $"PPO reset scene load requested after " +
             $"{Time.realtimeSinceStartup - resetCoroutineStartedRealtime:F2}s."
-        );
+		);
 		yield break;
 	}
+
+    public static void MarkGenerationFinished(WorldGeneration world)
+    {
+        generationFinishedWorldInstanceId = world == null ? 0 : world.GetInstanceID();
+        Debug.Log(
+            $"PPO generation finished: world=" +
+            $"{generationFinishedWorldInstanceId}, " +
+            $"body={(PlayerCamera.main == null || PlayerCamera.main.body == null ? "null" : PlayerCamera.main.body.GetInstanceID().ToString())}, " +
+            $"layerTimeSpent={(world == null ? "n/a" : world.layerTimeSpent.ToString("F2"))}, " +
+            $"radlineActive={(RadiationLine.line != null && RadiationLine.line.active)}."
+        );
+    }
     
     public static void Shutdown()
     {
@@ -2747,6 +2827,24 @@ public static class PPOBridge
             actionPipe?.Close();
         }
         catch {}
+    }
+}
+
+[HarmonyPatch(typeof(WorldGeneration), "FinishWorldGeneration")]
+public static class FinishWorldGenerationPatch
+{
+    static void Postfix(ref IEnumerator __result)
+    {
+        if (__result != null)
+            __result = TrackCompletion(__result);
+    }
+
+    static IEnumerator TrackCompletion(IEnumerator original)
+    {
+        while (original.MoveNext())
+            yield return original.Current;
+
+        PPOBridge.MarkGenerationFinished(WorldGeneration.world);
     }
 }
 

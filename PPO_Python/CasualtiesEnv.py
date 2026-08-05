@@ -216,13 +216,13 @@ def Decode(action):
     # that preceded the update.
     _server.ResumeSimulation()
 
-def SendReset():
+def SendReset(reset_token):
     if _server is None:
         raise RuntimeError("PPO server has not been started")
 
     _server.reset_requested.set()
     with _server.action_write_lock:
-        _server.action_pipe.sendall(b"RESET\n")
+        _server.action_pipe.sendall(f"RESET {reset_token}\n".encode("ascii"))
 
 class Env(gym.Env):
     def __init__(self):
@@ -273,6 +273,7 @@ class Env(gym.Env):
         self.max_episode_steps = 40000
         self.episode_steps = 0
         self.episode_number = 0
+        self.reset_token = 0
         self.episode_trace = EpisodeTraceWriter()
 
     def reset(self, seed=None, options=None):
@@ -283,19 +284,27 @@ class Env(gym.Env):
         self.episode_steps = 0
 
         with _observation_lock:
-            reset_after_id = self.latest_observation_id
             self.obs_ready.clear()
 
         for reset_attempt in range(MAX_RESET_ATTEMPTS):
-            SendReset()
-            obs, observation_id, _ = self._wait_for_new_observation(reset_after_id)
+            self.reset_token += 1
+            reset_token = self.reset_token
+            SendReset(reset_token)
+
+            # The acknowledgement carries the ID of the first observation
+            # emitted after Unity has completed this reset. An observation
+            # with a newer ID than the previous episode is not sufficient:
+            # the last old-world packet can arrive after RESET was sent.
+            first_observation_id = _server.WaitForResetReady(reset_token)
+            obs, observation_id, _ = self._wait_for_observation_at_least(
+                first_observation_id
+            )
             if not bool(obs["PlayerDead"]):
                 break
 
-            # Unity may publish one final dead-body observation while the
-            # scene reload is completing. Do not expose that as a one-step
-            # episode; wait for a live post-reset observation instead.
-            reset_after_id = observation_id
+            # A reset acknowledgement is tied to one exact post-reset
+            # observation. If that observation is unusable, issue a new
+            # tokenized reset rather than accepting another ambiguous packet.
         else:
             raise RuntimeError(
                 "Unity reset did not produce a live observation after "
@@ -307,6 +316,22 @@ class Env(gym.Env):
         self.last_consumed_observation_id = observation_id
         Reward.Reset(self, obs)
         return PreprocessObservation(obs), {}
+
+    def _wait_for_observation_at_least(self, minimum_id):
+        """Return the newest observation whose ID is at least minimum_id."""
+        waited = False
+        while True:
+            with _observation_lock:
+                current_id = self.latest_observation_id
+                if current_id is not None and current_id >= minimum_id:
+                    obs = self.latest_obs
+                    self.obs_ready.clear()
+                    return obs, current_id, not waited
+
+                self.obs_ready.clear()
+
+            waited = True
+            self.obs_ready.wait()
 
     def _wait_for_new_observation(self, previous_id):
         """Return the newest observation whose ID follows previous_id.
