@@ -1,4 +1,4 @@
-"""V13 reward: safety first, then pursue deeper progress.
+"""V14 reward: safety first, then pursue deeper progress.
 
 Objective:
     Preserve the agent's ability to continue while pursuing the best
@@ -22,6 +22,9 @@ Capability and systemic state:
     delta cost remains in effect. Claw-hit reward has a depth-progress budget:
     the first 15 full contacts remain fully rewarded, the next 15 fade to
     zero, and another 10-meter depth milestone resets the budget.
+    Horizontal movement receives a narrow, action-gated penalty only when a
+    conscious grounded agent continues selecting left or right without
+    producing horizontal velocity.
 
 Cardiovascular, respiration, and blood:
     BloodOxygen, TotalBleedSpeed, InternalBleeding, and Temperature are scored
@@ -55,6 +58,11 @@ CLAW_HIT_REWARD_SCALE = 0.02
 CLAW_HIT_MAX_HEALTH_LOSS = 0.3
 CLAW_HIT_FULL_REWARD_CONTACTS = 15.0
 CLAW_HIT_FALLOFF_CONTACTS = 15.0
+FAILED_MOVE_VELOCITY_THRESHOLD = 0.1
+FAILED_MOVE_STALL_GRACE_SECONDS = 0.25
+FAILED_MOVE_STALL_DOUBLING_SECONDS = 0.5
+FAILED_MOVE_PENALTY_BASE = 0.001
+FAILED_MOVE_PENALTY_CAP = 0.005
 RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
 RAGDOLL_STALL_GRACE_SECONDS = 30.0
 RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
@@ -84,6 +92,7 @@ def Reset(env, obs):
     env.previous_claw_health = float(obs["ClawHealth"])
     env.ragdoll_depth_milestone = float(obs["BestLayerDepth"])
     env.claw_hit_health_loss_since_depth_milestone = 0.0
+    env.failed_move_seconds = 0.0
     env.ragdoll_seconds_since_depth_milestone = 0.0
     env.previous_time_ragdolled = float(obs["TimeRagdolled"])
     env.exhaustion_seconds_since_depth_milestone = 0.0
@@ -185,6 +194,43 @@ def Reward(obs, act, env):
         )
     else:
         exhaustion_stall_penalty = 0.0
+
+    # PPO's raw MultiDiscrete encoding is 0=left, 1=neutral, 2=right.
+    # CasualtiesEnv.Decode() converts those values to the legacy -1/0/1 wire
+    # encoding; Reward receives the raw PPO action here.
+    failed_move_selected = float(act[0]) != 1
+    failed_move_state = (
+        failed_move_selected
+        and bool(obs["Grounded"])
+        and not bool(obs["IsClimbing"])
+        and float(obs["Consciousness"]) > 0.0
+        and not bool(obs["PlayerDead"])
+        and abs(float(obs["Velocity"]["X"]))
+        < FAILED_MOVE_VELOCITY_THRESHOLD
+    )
+    if failed_move_state:
+        env.failed_move_seconds += max(
+            0.0, float(obs["SimulationDeltaTime"])
+        )
+    else:
+        env.failed_move_seconds = 0.0
+
+    overdue_failed_move_seconds = max(
+        0.0,
+        env.failed_move_seconds - FAILED_MOVE_STALL_GRACE_SECONDS,
+    )
+    failed_move_penalty = min(
+        FAILED_MOVE_PENALTY_CAP,
+        FAILED_MOVE_PENALTY_BASE
+        * (
+            2.0
+            ** (
+                overdue_failed_move_seconds
+                / FAILED_MOVE_STALL_DOUBLING_SECONDS
+            )
+            - 1.0
+        ),
+    )
 
     stamina_delta = stamina - env.previous_stamina
     stamina_delta_reward = STAMINA_DELTA_REWARD_SCALE * stamina_delta
@@ -317,6 +363,7 @@ def Reward(obs, act, env):
         + claw_hit_reward
         - ragdoll_stall_penalty
         - exhaustion_stall_penalty
+        - failed_move_penalty
         + death_penalty
         + completion_bonus
     )
@@ -362,6 +409,9 @@ def Reward(obs, act, env):
         "claw_hit_health_loss_since_depth_milestone": (
             env.claw_hit_health_loss_since_depth_milestone
         ),
+        "failed_move_penalty": failed_move_penalty,
+        "failed_move_seconds": env.failed_move_seconds,
+        "failed_move_selected": failed_move_selected,
         "ragdoll_stall_penalty": ragdoll_stall_penalty,
         "ragdoll_seconds_since_depth_milestone": (
             env.ragdoll_seconds_since_depth_milestone
