@@ -1,48 +1,8 @@
-"""V14 reward: safety first, then pursue deeper progress.
-
-Objective:
-    Preserve the agent's ability to continue while pursuing the best
-    LayerProgress available.  New best progress earns ``10 * delta``;
-    physiological deterioration is scored through first-class state deltas.
-    LayerTimeRemaining and RadLineDisplacement remain observations rather than
-    hand-shaped rewards.
-
-Capability and systemic state:
-    Stamina and AveragePain are scored by their first-class step-to-step
-    deltas. BrainHealth, BloodOxygen, TotalBleedSpeed, InternalBleeding,
-    RadiationSickness, SicknessAmount, and Temperature are also scored by
-    their step-to-step deltas. TotalHappiness remains an observation only.
-    Ragdolling retains the V5/V6 action-gated stall guard: it is penalized
-    only after prolonged ragdoll time without another depth milestone.
-    Exhaustion uses the same paused, action-gated stall logic while the
-    stamina remains critical, with movement, jumping, and attacking sharing
-    one capped penalty rather than stacking.
-    Successful unarmed contacts are rewarded through observed ClawHealth
-    decreases. Missed attacks receive no hit reward; the existing stamina
-    delta cost remains in effect. Claw-hit reward has a depth-progress budget:
-    the first 15 full contacts remain fully rewarded, the next 15 fade to
-    zero, and another 10-meter depth milestone resets the budget.
-    Horizontal movement receives a narrow, action-gated penalty only when a
-    conscious grounded agent continues selecting left or right without
-    producing horizontal velocity.
-
-Cardiovascular, respiration, and blood:
-    BloodOxygen, TotalBleedSpeed, InternalBleeding, and Temperature are scored
-    by first-class changes rather than occupancy.
-
-Terminal events:
-    Death applies a one-time ``-10`` penalty.  Completion applies a one-time
-    ``+10`` bonus, with death taking precedence if both are reported.
-
-The named scales below are deliberately small relative to progress and are
-also retained in ``env.last_reward_terms`` for trace diagnostics.
-"""
-
-import numpy as np
+"""V15 reward: progress, health deltas, and exhaustion stall protection."""
 
 
 PROGRESS_REWARD_SCALE = 10.0
-STAMINA_DELTA_REWARD_SCALE = 0.001
+DEPTH_MILESTONE_METERS = 10.0
 AVERAGE_PAIN_DELTA_REWARD_SCALE = 0.001
 BRAIN_HEALTH_DELTA_REWARD_SCALE = 0.001
 BLOOD_OXYGEN_DELTA_REWARD_SCALE = 0.004
@@ -51,23 +11,6 @@ INTERNAL_BLEEDING_DELTA_REWARD_SCALE = 0.003
 RADIATION_SICKNESS_DELTA_REWARD_SCALE = 0.002
 SICKNESS_DELTA_REWARD_SCALE = 0.0015
 TEMPERATURE_DELTA_REWARD_SCALE = 0.003
-# A full unarmed contact removes up to 0.3 ClawHealth.  At 0.02 this yields
-# about +0.006, comfortably offsetting the roughly 0.001 stamina cost of an
-# attack while keeping missed attacks unrewarded.
-CLAW_HIT_REWARD_SCALE = 0.02
-CLAW_HIT_MAX_HEALTH_LOSS = 0.3
-CLAW_HIT_FULL_REWARD_CONTACTS = 15.0
-CLAW_HIT_FALLOFF_CONTACTS = 15.0
-FAILED_MOVE_VELOCITY_THRESHOLD = 0.1
-FAILED_MOVE_STALL_GRACE_SECONDS = 0.25
-FAILED_MOVE_STALL_DOUBLING_SECONDS = 0.5
-FAILED_MOVE_PENALTY_BASE = 0.001
-FAILED_MOVE_PENALTY_CAP = 0.005
-RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
-RAGDOLL_STALL_GRACE_SECONDS = 30.0
-RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
-RAGDOLL_STALL_PENALTY_BASE = 0.001
-RAGDOLL_STALL_PENALTY_CAP = 0.01
 EXHAUSTION_STAMINA_THRESHOLD = 10.0
 EXHAUSTION_STALL_GRACE_SECONDS = 30.0
 EXHAUSTION_STALL_DOUBLING_SECONDS = 10.0
@@ -89,12 +32,7 @@ def Reset(env, obs):
     env.previous_radiation_sickness = float(obs["RadiationSickness"])
     env.previous_sickness_amount = float(obs["SicknessAmount"])
     env.previous_temperature = float(obs["Temperature"])
-    env.previous_claw_health = float(obs["ClawHealth"])
-    env.ragdoll_depth_milestone = float(obs["BestLayerDepth"])
-    env.claw_hit_health_loss_since_depth_milestone = 0.0
-    env.failed_move_seconds = 0.0
-    env.ragdoll_seconds_since_depth_milestone = 0.0
-    env.previous_time_ragdolled = float(obs["TimeRagdolled"])
+    env.depth_milestone = float(obs["BestLayerDepth"])
     env.exhaustion_seconds_since_depth_milestone = 0.0
     env.death_penalty_applied = False
     env.completion_bonus_applied = False
@@ -109,39 +47,12 @@ def Reward(obs, act, env):
     progress_reward = PROGRESS_REWARD_SCALE * progress_delta
 
     current_best_depth = float(obs["BestLayerDepth"])
-    current_time_ragdolled = float(obs["TimeRagdolled"])
-    ragdoll_seconds_delta = max(
-        0.0, current_time_ragdolled - env.previous_time_ragdolled
-    )
     depth_milestone_reached = current_best_depth >= (
-        env.ragdoll_depth_milestone + RAGDOLL_DEPTH_MILESTONE_METERS
+        env.depth_milestone + DEPTH_MILESTONE_METERS
     )
     if depth_milestone_reached:
-        env.ragdoll_depth_milestone = current_best_depth
-        env.ragdoll_seconds_since_depth_milestone = 0.0
+        env.depth_milestone = current_best_depth
         env.exhaustion_seconds_since_depth_milestone = 0.0
-        env.claw_hit_health_loss_since_depth_milestone = 0.0
-    else:
-        env.ragdoll_seconds_since_depth_milestone += ragdoll_seconds_delta
-
-    overdue_ragdoll_seconds = max(
-        0.0,
-        env.ragdoll_seconds_since_depth_milestone
-        - RAGDOLL_STALL_GRACE_SECONDS,
-    )
-    ragdoll_stall_penalty = 0.0
-    # C12's legacy ragdoll action remains supported for compatibility, but it
-    # is intentionally absent from C13's seven-action policy.
-    if len(act) > 21 and act[21] == 1:
-        ragdoll_stall_penalty = min(
-            RAGDOLL_STALL_PENALTY_CAP,
-            RAGDOLL_STALL_PENALTY_BASE
-            * (
-                2.0
-                ** (overdue_ragdoll_seconds / RAGDOLL_STALL_DOUBLING_SECONDS)
-                - 1.0
-            ),
-        )
 
     stamina = float(obs["Stamina"])
     if not depth_milestone_reached and stamina < EXHAUSTION_STAMINA_THRESHOLD:
@@ -195,95 +106,7 @@ def Reward(obs, act, env):
     else:
         exhaustion_stall_penalty = 0.0
 
-    # PPO's raw MultiDiscrete encoding is 0=left, 1=neutral, 2=right.
-    # CasualtiesEnv.Decode() converts those values to the legacy -1/0/1 wire
-    # encoding; Reward receives the raw PPO action here.
-    failed_move_selected = float(act[0]) != 1
-    failed_move_state = (
-        failed_move_selected
-        and bool(obs["Grounded"])
-        and not bool(obs["IsClimbing"])
-        and float(obs["Consciousness"]) > 0.0
-        and not bool(obs["PlayerDead"])
-        and abs(float(obs["Velocity"]["X"]))
-        < FAILED_MOVE_VELOCITY_THRESHOLD
-    )
-    if failed_move_state:
-        env.failed_move_seconds += max(
-            0.0, float(obs["SimulationDeltaTime"])
-        )
-    else:
-        env.failed_move_seconds = 0.0
-
-    overdue_failed_move_seconds = max(
-        0.0,
-        env.failed_move_seconds - FAILED_MOVE_STALL_GRACE_SECONDS,
-    )
-    failed_move_penalty = min(
-        FAILED_MOVE_PENALTY_CAP,
-        FAILED_MOVE_PENALTY_BASE
-        * (
-            2.0
-            ** (
-                overdue_failed_move_seconds
-                / FAILED_MOVE_STALL_DOUBLING_SECONDS
-            )
-            - 1.0
-        ),
-    )
-
     stamina_delta = stamina - env.previous_stamina
-    stamina_delta_reward = STAMINA_DELTA_REWARD_SCALE * stamina_delta
-
-    claw_health = float(obs["ClawHealth"])
-    claw_health_loss = min(
-        CLAW_HIT_MAX_HEALTH_LOSS,
-        max(0.0, env.previous_claw_health - claw_health),
-    )
-    full_reward_loss_budget = (
-        CLAW_HIT_FULL_REWARD_CONTACTS * CLAW_HIT_MAX_HEALTH_LOSS
-    )
-    falloff_loss_budget = (
-        CLAW_HIT_FALLOFF_CONTACTS * CLAW_HIT_MAX_HEALTH_LOSS
-    )
-    hit_loss_start = env.claw_hit_health_loss_since_depth_milestone
-    hit_loss_end = hit_loss_start + claw_health_loss
-
-    full_rewarded_loss = max(
-        0.0,
-        min(hit_loss_end, full_reward_loss_budget)
-        - min(hit_loss_start, full_reward_loss_budget),
-    )
-    falloff_start = max(hit_loss_start, full_reward_loss_budget)
-    falloff_end = min(
-        hit_loss_end,
-        full_reward_loss_budget + falloff_loss_budget,
-    )
-    falloff_loss = max(0.0, falloff_end - falloff_start)
-    falloff_rewarded_loss = falloff_loss * max(
-        0.0,
-        1.0
-        - (
-            (falloff_start - full_reward_loss_budget)
-            + (falloff_end - full_reward_loss_budget)
-        )
-        / (2.0 * falloff_loss_budget),
-    )
-    claw_hit_rewardable_loss = full_rewarded_loss + falloff_rewarded_loss
-    claw_hit_reward = CLAW_HIT_REWARD_SCALE * claw_hit_rewardable_loss
-    claw_hit_reward_multiplier = (
-        claw_hit_rewardable_loss / claw_health_loss
-        if claw_health_loss > 0.0
-        else max(
-            0.0,
-            min(
-                1.0,
-                (full_reward_loss_budget + falloff_loss_budget - hit_loss_start)
-                / falloff_loss_budget,
-            ),
-        )
-    )
-    env.claw_hit_health_loss_since_depth_milestone = hit_loss_end
 
     average_pain = float(obs["AveragePain"])
     average_pain_delta = average_pain - env.previous_average_pain
@@ -351,7 +174,6 @@ def Reward(obs, act, env):
 
     reward = (
         progress_reward
-        + stamina_delta_reward
         + average_pain_delta_reward
         + brain_health_delta_reward
         + blood_oxygen_delta_reward
@@ -360,10 +182,7 @@ def Reward(obs, act, env):
         + radiation_sickness_delta_reward
         + sickness_amount_delta_reward
         + temperature_delta_reward
-        + claw_hit_reward
-        - ragdoll_stall_penalty
         - exhaustion_stall_penalty
-        - failed_move_penalty
         + death_penalty
         + completion_bonus
     )
@@ -378,13 +197,10 @@ def Reward(obs, act, env):
     env.previous_radiation_sickness = radiation_sickness
     env.previous_sickness_amount = sickness_amount
     env.previous_temperature = temperature
-    env.previous_claw_health = claw_health
-    env.previous_time_ragdolled = current_time_ragdolled
     env.last_reward_terms = {
         "best_progress": best_progress,
         "progress_delta": progress_delta,
         "progress": progress_reward,
-        "stamina": stamina_delta_reward,
         "stamina_delta": stamina_delta,
         "average_pain": average_pain_delta_reward,
         "average_pain_delta": average_pain_delta,
@@ -402,21 +218,7 @@ def Reward(obs, act, env):
         "sickness_amount_delta": sickness_amount_delta,
         "temperature": temperature_delta_reward,
         "temperature_deviation_delta": temperature_deviation_delta,
-        "claw_hit_reward": claw_hit_reward,
-        "claw_health_loss": claw_health_loss,
-        "claw_hit_rewardable_loss": claw_hit_rewardable_loss,
-        "claw_hit_reward_multiplier": claw_hit_reward_multiplier,
-        "claw_hit_health_loss_since_depth_milestone": (
-            env.claw_hit_health_loss_since_depth_milestone
-        ),
-        "failed_move_penalty": failed_move_penalty,
-        "failed_move_seconds": env.failed_move_seconds,
-        "failed_move_selected": failed_move_selected,
-        "ragdoll_stall_penalty": ragdoll_stall_penalty,
-        "ragdoll_seconds_since_depth_milestone": (
-            env.ragdoll_seconds_since_depth_milestone
-        ),
-        "ragdoll_depth_milestone": env.ragdoll_depth_milestone,
+        "depth_milestone": env.depth_milestone,
         "exhaustion_stall_penalty": exhaustion_stall_penalty,
         "exhaustion_move_stall": exhaustion_move_stall_penalty,
         "exhaustion_jump_stall": exhaustion_jump_stall_penalty,
