@@ -1,4 +1,4 @@
-"""V12 reward: safety first, then pursue deeper progress.
+"""V13 reward: safety first, then pursue deeper progress.
 
 Objective:
     Preserve the agent's ability to continue while pursuing the best
@@ -19,7 +19,9 @@ Capability and systemic state:
     one capped penalty rather than stacking.
     Successful unarmed contacts are rewarded through observed ClawHealth
     decreases. Missed attacks receive no hit reward; the existing stamina
-    delta cost remains in effect.
+    delta cost remains in effect. Claw-hit reward has a depth-progress budget:
+    the first 15 full contacts remain fully rewarded, the next 15 fade to
+    zero, and another 10-meter depth milestone resets the budget.
 
 Cardiovascular, respiration, and blood:
     BloodOxygen, TotalBleedSpeed, InternalBleeding, and Temperature are scored
@@ -51,6 +53,8 @@ TEMPERATURE_DELTA_REWARD_SCALE = 0.003
 # attack while keeping missed attacks unrewarded.
 CLAW_HIT_REWARD_SCALE = 0.02
 CLAW_HIT_MAX_HEALTH_LOSS = 0.3
+CLAW_HIT_FULL_REWARD_CONTACTS = 15.0
+CLAW_HIT_FALLOFF_CONTACTS = 15.0
 RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
 RAGDOLL_STALL_GRACE_SECONDS = 30.0
 RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
@@ -79,6 +83,7 @@ def Reset(env, obs):
     env.previous_temperature = float(obs["Temperature"])
     env.previous_claw_health = float(obs["ClawHealth"])
     env.ragdoll_depth_milestone = float(obs["BestLayerDepth"])
+    env.claw_hit_health_loss_since_depth_milestone = 0.0
     env.ragdoll_seconds_since_depth_milestone = 0.0
     env.previous_time_ragdolled = float(obs["TimeRagdolled"])
     env.exhaustion_seconds_since_depth_milestone = 0.0
@@ -106,6 +111,7 @@ def Reward(obs, act, env):
         env.ragdoll_depth_milestone = current_best_depth
         env.ragdoll_seconds_since_depth_milestone = 0.0
         env.exhaustion_seconds_since_depth_milestone = 0.0
+        env.claw_hit_health_loss_since_depth_milestone = 0.0
     else:
         env.ragdoll_seconds_since_depth_milestone += ragdoll_seconds_delta
 
@@ -188,7 +194,50 @@ def Reward(obs, act, env):
         CLAW_HIT_MAX_HEALTH_LOSS,
         max(0.0, env.previous_claw_health - claw_health),
     )
-    claw_hit_reward = CLAW_HIT_REWARD_SCALE * claw_health_loss
+    full_reward_loss_budget = (
+        CLAW_HIT_FULL_REWARD_CONTACTS * CLAW_HIT_MAX_HEALTH_LOSS
+    )
+    falloff_loss_budget = (
+        CLAW_HIT_FALLOFF_CONTACTS * CLAW_HIT_MAX_HEALTH_LOSS
+    )
+    hit_loss_start = env.claw_hit_health_loss_since_depth_milestone
+    hit_loss_end = hit_loss_start + claw_health_loss
+
+    full_rewarded_loss = max(
+        0.0,
+        min(hit_loss_end, full_reward_loss_budget)
+        - min(hit_loss_start, full_reward_loss_budget),
+    )
+    falloff_start = max(hit_loss_start, full_reward_loss_budget)
+    falloff_end = min(
+        hit_loss_end,
+        full_reward_loss_budget + falloff_loss_budget,
+    )
+    falloff_loss = max(0.0, falloff_end - falloff_start)
+    falloff_rewarded_loss = falloff_loss * max(
+        0.0,
+        1.0
+        - (
+            (falloff_start - full_reward_loss_budget)
+            + (falloff_end - full_reward_loss_budget)
+        )
+        / (2.0 * falloff_loss_budget),
+    )
+    claw_hit_rewardable_loss = full_rewarded_loss + falloff_rewarded_loss
+    claw_hit_reward = CLAW_HIT_REWARD_SCALE * claw_hit_rewardable_loss
+    claw_hit_reward_multiplier = (
+        claw_hit_rewardable_loss / claw_health_loss
+        if claw_health_loss > 0.0
+        else max(
+            0.0,
+            min(
+                1.0,
+                (full_reward_loss_budget + falloff_loss_budget - hit_loss_start)
+                / falloff_loss_budget,
+            ),
+        )
+    )
+    env.claw_hit_health_loss_since_depth_milestone = hit_loss_end
 
     average_pain = float(obs["AveragePain"])
     average_pain_delta = average_pain - env.previous_average_pain
@@ -308,6 +357,11 @@ def Reward(obs, act, env):
         "temperature_deviation_delta": temperature_deviation_delta,
         "claw_hit_reward": claw_hit_reward,
         "claw_health_loss": claw_health_loss,
+        "claw_hit_rewardable_loss": claw_hit_rewardable_loss,
+        "claw_hit_reward_multiplier": claw_hit_reward_multiplier,
+        "claw_hit_health_loss_since_depth_milestone": (
+            env.claw_hit_health_loss_since_depth_milestone
+        ),
         "ragdoll_stall_penalty": ragdoll_stall_penalty,
         "ragdoll_seconds_since_depth_milestone": (
             env.ragdoll_seconds_since_depth_milestone
