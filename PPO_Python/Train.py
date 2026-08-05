@@ -91,7 +91,7 @@ class TrainingProgressCallback(BaseCallback):
             return f"{minutes}m {seconds:02d}s"
 
         message = (
-            f"\rC12 [{bar}] {fraction:6.2%} | "
+            f"\rC13 [{bar}] {fraction:6.2%} | "
             f"{current:,}/{target:,} steps | "
             f"{rate:5.1f} FPS | ETA {format_duration(eta_seconds)}"
         )

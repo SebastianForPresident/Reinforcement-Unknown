@@ -1,4 +1,4 @@
-"""V11 reward: safety first, then pursue deeper progress.
+"""V12 reward: safety first, then pursue deeper progress.
 
 Objective:
     Preserve the agent's ability to continue while pursuing the best
@@ -46,7 +46,10 @@ INTERNAL_BLEEDING_DELTA_REWARD_SCALE = 0.003
 RADIATION_SICKNESS_DELTA_REWARD_SCALE = 0.002
 SICKNESS_DELTA_REWARD_SCALE = 0.0015
 TEMPERATURE_DELTA_REWARD_SCALE = 0.003
-CLAW_HIT_REWARD_SCALE = 0.004
+# A full unarmed contact removes up to 0.3 ClawHealth.  At 0.02 this yields
+# about +0.006, comfortably offsetting the roughly 0.001 stamina cost of an
+# attack while keeping missed attacks unrewarded.
+CLAW_HIT_REWARD_SCALE = 0.02
 CLAW_HIT_MAX_HEALTH_LOSS = 0.3
 RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
 RAGDOLL_STALL_GRACE_SECONDS = 30.0
