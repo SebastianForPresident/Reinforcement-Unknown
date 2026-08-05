@@ -28,13 +28,16 @@ class GridEncoder(nn.Module):
 
             nn.ReLU(),
 
-            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+
+            nn.ReLU(),
+
+            nn.AdaptiveAvgPool2d((7, 5)),
             nn.Flatten(),
 
-            nn.Linear(out_channels, embedding_dim),
+            nn.Linear(out_channels * 7 * 5, embedding_dim),
             nn.ReLU()
         )
 
     def forward(self, input):
         return self.net(input)
-
