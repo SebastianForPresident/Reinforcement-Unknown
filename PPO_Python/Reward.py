@@ -1,4 +1,4 @@
-"""V10 reward: safety first, then pursue deeper progress.
+"""V11 reward: safety first, then pursue deeper progress.
 
 Objective:
     Preserve the agent's ability to continue while pursuing the best
@@ -17,6 +17,9 @@ Capability and systemic state:
     Exhaustion uses the same paused, action-gated stall logic while the
     stamina remains critical, with movement, jumping, and attacking sharing
     one capped penalty rather than stacking.
+    Successful unarmed contacts are rewarded through observed ClawHealth
+    decreases. Missed attacks receive no hit reward; the existing stamina
+    delta cost remains in effect.
 
 Cardiovascular, respiration, and blood:
     BloodOxygen, TotalBleedSpeed, InternalBleeding, and Temperature are scored
@@ -43,6 +46,8 @@ INTERNAL_BLEEDING_DELTA_REWARD_SCALE = 0.003
 RADIATION_SICKNESS_DELTA_REWARD_SCALE = 0.002
 SICKNESS_DELTA_REWARD_SCALE = 0.0015
 TEMPERATURE_DELTA_REWARD_SCALE = 0.003
+CLAW_HIT_REWARD_SCALE = 0.004
+CLAW_HIT_MAX_HEALTH_LOSS = 0.3
 RAGDOLL_DEPTH_MILESTONE_METERS = 10.0
 RAGDOLL_STALL_GRACE_SECONDS = 30.0
 RAGDOLL_STALL_DOUBLING_SECONDS = 10.0
@@ -69,6 +74,7 @@ def Reset(env, obs):
     env.previous_radiation_sickness = float(obs["RadiationSickness"])
     env.previous_sickness_amount = float(obs["SicknessAmount"])
     env.previous_temperature = float(obs["Temperature"])
+    env.previous_claw_health = float(obs["ClawHealth"])
     env.ragdoll_depth_milestone = float(obs["BestLayerDepth"])
     env.ragdoll_seconds_since_depth_milestone = 0.0
     env.previous_time_ragdolled = float(obs["TimeRagdolled"])
@@ -174,6 +180,13 @@ def Reward(obs, act, env):
     stamina_delta = stamina - env.previous_stamina
     stamina_delta_reward = STAMINA_DELTA_REWARD_SCALE * stamina_delta
 
+    claw_health = float(obs["ClawHealth"])
+    claw_health_loss = min(
+        CLAW_HIT_MAX_HEALTH_LOSS,
+        max(0.0, env.previous_claw_health - claw_health),
+    )
+    claw_hit_reward = CLAW_HIT_REWARD_SCALE * claw_health_loss
+
     average_pain = float(obs["AveragePain"])
     average_pain_delta = average_pain - env.previous_average_pain
     average_pain_delta_reward = (
@@ -249,6 +262,7 @@ def Reward(obs, act, env):
         + radiation_sickness_delta_reward
         + sickness_amount_delta_reward
         + temperature_delta_reward
+        + claw_hit_reward
         - ragdoll_stall_penalty
         - exhaustion_stall_penalty
         + death_penalty
@@ -265,6 +279,7 @@ def Reward(obs, act, env):
     env.previous_radiation_sickness = radiation_sickness
     env.previous_sickness_amount = sickness_amount
     env.previous_temperature = temperature
+    env.previous_claw_health = claw_health
     env.previous_time_ragdolled = current_time_ragdolled
     env.last_reward_terms = {
         "best_progress": best_progress,
@@ -288,6 +303,8 @@ def Reward(obs, act, env):
         "sickness_amount_delta": sickness_amount_delta,
         "temperature": temperature_delta_reward,
         "temperature_deviation_delta": temperature_deviation_delta,
+        "claw_hit_reward": claw_hit_reward,
+        "claw_health_loss": claw_health_loss,
         "ragdoll_stall_penalty": ragdoll_stall_penalty,
         "ragdoll_seconds_since_depth_milestone": (
             env.ragdoll_seconds_since_depth_milestone
