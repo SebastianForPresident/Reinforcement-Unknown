@@ -32,10 +32,9 @@ class GridEncoder(nn.Module):
 
             nn.ReLU(),
 
-            nn.AdaptiveAvgPool2d((7, 5)),
             nn.Flatten(),
 
-            nn.Linear(out_channels * 7 * 5, embedding_dim),
+            nn.Linear(out_channels * 85 * 49, embedding_dim),
             nn.ReLU()
         )
 
