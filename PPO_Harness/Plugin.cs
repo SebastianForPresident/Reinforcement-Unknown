@@ -761,6 +761,13 @@ public static class PPOBridge
 
     public static List<PendingSound> SoundEvents = new List<PendingSound>();
 
+    // WorldGeneration.GetBlockDamage() uses LINQ over the damage list. The
+    // relative map is 85x49, so calling it once per tile would allocate
+    // thousands of iterators per observation. Reuse this index instead;
+    // WorldGeneration caps blockDamages at 128 entries.
+    static readonly Dictionary<Vector2Int, BlockDamage> BlockDamageByPosition =
+        new Dictionary<Vector2Int, BlockDamage>(256);
+
     static Observation obs = new();
 
     static volatile bool resetComplete = true;
@@ -880,6 +887,22 @@ public static class PPOBridge
     {
         int width = maxDim.x * 2 + 1;
         int height = maxDim.y * 2 + 1;
+        WorldGeneration world = WorldGeneration.world;
+
+        // Build the reusable lookup once per observation. Do not call
+        // WorldGeneration.GetBlockDamage() here: its LINQ implementation
+        // allocates an iterator for every queried tile.
+        BlockDamageByPosition.Clear();
+        int damagedBlockCount = world.blockDamages.Count;
+        if (damagedBlockCount > 0)
+        {
+            for (int i = 0; i < damagedBlockCount; i++)
+            {
+                BlockDamage blockDamage = world.blockDamages[i];
+                if (blockDamage != null)
+                    BlockDamageByPosition[blockDamage.pos] = blockDamage;
+            }
+        }
 
         for (int x = 0; x < width; x++)
         {
@@ -887,9 +910,11 @@ public static class PPOBridge
             {
                 Vector2Int worldPos = pos + new Vector2Int(x - maxDim.x, maxDim.y - y);
 
-                ushort blockId = WorldGeneration.world.GetBlock(worldPos);
-                BlockInfo blockInfo = WorldGeneration.world.GetBlockInfo(blockId);
-                BlockDamage blockDamage = WorldGeneration.world.GetBlockDamage(worldPos);
+                ushort blockId = world.GetBlock(worldPos);
+                BlockInfo blockInfo = world.GetBlockInfo(blockId);
+                BlockDamage blockDamage = null;
+                if (damagedBlockCount > 0)
+                    BlockDamageByPosition.TryGetValue(worldPos, out blockDamage);
                 float currentHealth = blockInfo == null
                     ? 0f
                     : blockInfo.health - (blockDamage?.damage ?? 0f);
