@@ -387,7 +387,7 @@ class Env(gym.Env):
         return PreprocessObservation(obs), reward, terminated, truncated, info
 
     def close(self):
-        self.episode_trace.finish_episode(complete=False)
+        self.episode_trace.close()
         if _server is not None:
             _server.Shutdown()
         
