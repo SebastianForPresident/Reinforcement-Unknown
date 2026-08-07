@@ -856,7 +856,7 @@ public static class PPOBridge
         dst.PullLiquidFromWorld = src.PullLiquidFromWorld;
     }
 
-    static void CollectBlockObservation(BlockObservation obs, BlockInfo block)
+    static void CollectBlockObservation(BlockObservation obs, BlockInfo block, float? healthOverride = null)
     {
         if (block == null)
         {
@@ -866,7 +866,7 @@ public static class PPOBridge
             return;
         }
 
-        obs.Health = block.health;
+        obs.Health = Mathf.Max(0f, healthOverride ?? block.health);
         obs.SleepQuality = block.sleep;
         obs.Toxicity = block.toxicity;
     }
@@ -888,8 +888,13 @@ public static class PPOBridge
                 Vector2Int worldPos = pos + new Vector2Int(x - maxDim.x, maxDim.y - y);
 
                 ushort blockId = WorldGeneration.world.GetBlock(worldPos);
+                BlockInfo blockInfo = WorldGeneration.world.GetBlockInfo(blockId);
+                BlockDamage blockDamage = WorldGeneration.world.GetBlockDamage(worldPos);
+                float currentHealth = blockInfo == null
+                    ? 0f
+                    : blockInfo.health - (blockDamage?.damage ?? 0f);
 
-                CollectBlockObservation(map[x, y], WorldGeneration.world.GetBlockInfo(blockId));
+                CollectBlockObservation(map[x, y], blockInfo, currentHealth);
             }
         }
     }
