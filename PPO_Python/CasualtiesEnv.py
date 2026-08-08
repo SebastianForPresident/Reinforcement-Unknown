@@ -3,179 +3,49 @@ import numpy as np
 import threading
 import Reward
 from EpisodeTrace import EpisodeTraceWriter
-from ObservationFlattener import flatten, build_plan
+import ObservationNormalization as ObsNorm
+import ProtocolValidation
 import Types
 
 _server = None
-_general_flatten_plans = {}
 _general_input_dim = None
 _observation_lock = None
 MAX_RESET_ATTEMPTS = 3
 
-# These are world/player values rather than spatial grids or repeated entity
-# collections. Keep the order explicit so GeneralEncoder.input_dim is stable.
-GENERAL_FIELD_NAMES = (
-    "Velocity",
-    "IsRight",
-    "MaxSpeed",
-    "RelativeLookPos",
-    "JumpCooldown",
-    "Grounded",
-    "TimeSinceGrounded",
-    "StandingOn",
-    "TimeRagdolled",
-    "CrawlTime",
-    "InWater",
-    "LiquidSlipTime",
-    "LiquidRagdollBar",
-    "LiquidDrinkTime",
-    "CanWalljumpLeft",
-    "CanWalljumpRight",
-    "AttackCooldown",
-    "CrouchAmount",
-    "Crouching",
-    "IsClimbing",
-    "ClimbableProgress",
-    "ClimbVelocity",
-    "HeartRate",
-    "FibrillationProgress",
-    "FibrillationForced",
-    "FibrillationRising",
-    "HasPulmonaryEmbolism",
-    "BloodOxygen",
-    "BloodVolume",
-    "BloodPressure",
-    "BloodVesselSize",
-    "BloodViscosity",
-    "TotalBleedSpeed",
-    "InternalBleeding",
-    "Hemothorax",
-    "VenomTotal",
-    "VenomCurrent",
-    "RespiratoryRate",
-    "Breathing",
-    "Adrenaline",
-    "CurAdrenaline",
-    "StimulantMultiplier",
-    "OnHardStimulants",
-    "OpiateHappiness",
-    "AntidepressantHappiness",
-    "BrainGrowSickness",
-    "UsedNeuralBooster",
-    "MindWiped",
-    "Caffeinated",
-    "OverdoseIndex",
-    "WeightOffset",
-    "Hunger",
-    "Thirst",
-    "Stamina",
-    "Energy",
-    "Immunity",
-    "TotalHappiness",
-    "Dirtyness",
-    "ClawHealth",
-    "BrainHealth",
-    "Consciousness",
-    "Shock",
-    "ReversedControls",
-    "BrainDying",
-    "PlayerDead",
-    "StrokeAmount",
-    "Temperature",
-    "ClothingTemperature",
-    "AveragePain",
-    "PainShock",
-    "HearingLoss",
-    "BothHandsUnusable",
-    "SicknessAmount",
-    "SepticShock",
-    "RadiationSickness",
-    "CorpsesSeen",
-    "TraumaAmount",
-    "HorrifiedLevel",
-    "FocusedLevel",
-    "Disfigured",
-    "EyeGone",
-    "BothEyesGone",
-    "TotalEncumberance",
-    "OverEncumberance",
-    "MaxEncumberance",
-    "Sleeping",
-    "CurSleep",
-    "BadSleepAmount",
-    "GoodSleepTime",
-    "ForcedSleepQuality",
-    "UsingSleepingBag",
-    "CanTakeNap",
-    "TriedRollingLastStand",
-    "LastStandTime",
-    "STR",
-    "RES",
-    "INT",
-    "STRProgress",
-    "RESProgress",
-    "INTProgress",
-    "LayerProgress",
-    "CurrentLayer",
-    "BestLayerDepth",
-    "LayerTimeRemaining",
-    "RadLineDisplacement",
-)
+# CB1 adds previous-action and absolute-position context and uses a
+# semantic encoder instead of flattening raw wire values.
+GENERAL_FIELD_NAMES = ObsNorm.GENERAL_FIELD_NAMES
 
 def GetGeneralValues(obs):
-    """Return selected non-spatial, non-entity values as one float32 vector."""
-    values = []
-
-    for field_name in GENERAL_FIELD_NAMES:
-        values.append(flatten(obs[field_name], _general_flatten_plans[field_name]))
-
-    return np.concatenate(values).astype(np.float32, copy=False)
-
-def EncodeGrid(grid):
-    channels = []
-
-    for field in grid.dtype.names:
-        channels.append(grid[field].astype(np.float32))
-
-    return np.ascontiguousarray(np.stack(channels, axis=0))
+    return ObsNorm.encode_general(obs)
 
 def Init_General():
     global _general_input_dim
-    general_input_dim = 0
-
-    for field_name in GENERAL_FIELD_NAMES:
-        field_dtype = Types.OBSERVATION_DTYPE[field_name]
-
-        plan = build_plan(field_dtype)
-        _general_flatten_plans[field_name] = plan
-
-        dummy = np.zeros((), dtype=field_dtype)
-        general_input_dim += flatten(dummy, plan).size
-
-    _general_input_dim = general_input_dim
+    dummy = np.zeros((), dtype=Types.OBSERVATION_DTYPE)
+    dummy["WorldDimensions"]["X"] = 1
+    dummy["WorldDimensions"]["Y"] = 1
+    _general_input_dim = GetGeneralValues(dummy).size
 
 def PreprocessObservation(obs):
     return {
         "general": GetGeneralValues(obs),
-        "blocks": EncodeGrid(obs["RelativeBlockMap"]),
-        "fluids": EncodeGrid(obs["RelativeFluidMap"])
+        "spatial": ObsNorm.encode_spatial(obs),
     }
 
 def Start(server):
-    global _server, _listener, _observation_lock
+    global _server, _observation_lock
     _server = server
     _observation_lock = server.observation_lock
 
 def Decode(action):
-    """Decode the seven-action C13 policy into the legacy wire protocol.
+    """Decode the seven-action CB1 policy into the sequenced wire protocol.
 
-    The Unity harness and Server keep accepting/sending all 28 protocol
-    fields.  C13 only exposes the seven controls that affect locomotion and
-    direct item use; every other field is explicitly reset to an inactive
-    value on every policy step so no stale C12 action can leak through.
+    The Unity harness and Server retain the 28 control fields plus a CB1
+    decision sequence. Only seven controls affect locomotion and direct item
+    use; every other field is explicitly reset on each policy decision.
     """
     if len(action) != 7:
-        raise ValueError(f"C13 expects 7 actions, received {len(action)}")
+        raise ValueError(f"CB1 expects 7 actions, received {len(action)}")
 
     _server.move = action[0] - 1
     _server.jump = action[1]
@@ -187,8 +57,7 @@ def Decode(action):
 
     _server.attack = action[6]
 
-    # Legacy protocol fields intentionally disabled for C13.  Keep these
-    # assignments explicit so they cannot retain a value from C12.
+    # Legacy control fields intentionally disabled for CB1.
     _server.interact = 0
     _server.targetSlotIndex = 0
     _server.selectedSlotIndex = -1
@@ -211,10 +80,13 @@ def Decode(action):
     _server.drainLiquid = 0
     _server.pullLiquidFromWorld = 0
 
+    # The bridge latches only a strictly newer sequence at a policy boundary.
+    _server.action_sequence += 1
+
     # PPO optimizer updates leave Unity paused.  Resume only after this fresh
     # policy action has been decoded, so no physics tick can replay the action
     # that preceded the update.
-    _server.ResumeSimulation()
+    _server.SendDecodedAction()
 
 def SendReset(reset_token):
     if _server is None:
@@ -227,34 +99,24 @@ def SendReset(reset_token):
 class Env(gym.Env):
     def __init__(self):
         Init_General()
-        # C13 policy controls: move, jump, vertical move, crouch, look X,
-        # look Y, and attack.  The legacy 28-field TCP protocol remains
-        # unchanged; Decode() supplies inactive defaults for its other fields.
+        # CB1 policy controls: move, jump, vertical move, crouch, look X,
+        # look Y, and attack. Decode() supplies inactive defaults for the
+        # retained legacy control fields and appends a decision sequence.
         self.action_space = gym.spaces.MultiDiscrete(
             [3, 2, 3, 2, 9, 11, 2]
         )
         self.observation_space = gym.spaces.Dict({
             "general": gym.spaces.Box(
-                low=-np.inf,
-                high=np.inf,
+                low=-1.0,
+                high=1.0,
                 shape=(_general_input_dim,),
                 dtype=np.float32,
             ),
-            "blocks": gym.spaces.Box(
-                low=-np.inf,
-                high=np.inf,
+            "spatial": gym.spaces.Box(
+                low=0.0,
+                high=1.0,
                 shape=(
-                    len(Types.BLOCK_DTYPE.names),
-                    Types.SIGHT_RANGE_X * 2 + 1,
-                    Types.SIGHT_RANGE_Y * 2 + 1,
-                ),
-                dtype=np.float32,
-            ),
-            "fluids": gym.spaces.Box(
-                low=-np.inf,
-                high=np.inf,
-                shape=(
-                    len(Types.FLUID_TILE_DTYPE.names),
+                    ObsNorm.SPATIAL_CHANNELS,
                     Types.SIGHT_RANGE_X * 2 + 1,
                     Types.SIGHT_RANGE_Y * 2 + 1,
                 ),
@@ -267,10 +129,11 @@ class Env(gym.Env):
         self.last_consumed_observation_id = None
         self.obs_ready = threading.Event()
         self.previous_progress = None
-        self.previous_risk = None
         self.last_reward_terms = {}
 
-        self.max_episode_steps = 40000
+        # Ten million 5 Hz decisions is a multi-week technical watchdog, not
+        # a learning horizon. Normal episodes end only on layer completion.
+        self.max_episode_steps = 10_000_000
         self.episode_steps = 0
         self.episode_number = 0
         self.reset_token = 0
@@ -296,7 +159,7 @@ class Env(gym.Env):
             # with a newer ID than the previous episode is not sufficient:
             # the last old-world packet can arrive after RESET was sent.
             first_observation_id = _server.WaitForResetReady(reset_token)
-            obs, observation_id, _ = self._wait_for_observation_at_least(
+            obs, observation_id = self._wait_for_observation_id(
                 first_observation_id
             )
             if not bool(obs["PlayerDead"]):
@@ -315,62 +178,54 @@ class Env(gym.Env):
 
         self.last_consumed_observation_id = observation_id
         Reward.Reset(self, obs)
-        return PreprocessObservation(obs), {}
+        processed = PreprocessObservation(obs)
+        ProtocolValidation.validate_reset_observation(obs, processed)
+        return processed, {}
 
-    def _wait_for_observation_at_least(self, minimum_id):
-        """Return the newest observation whose ID is at least minimum_id."""
-        waited = False
+    def _wait_for_observation_id(self, expected_id):
+        """Return exactly the observation identified by expected_id."""
         while True:
             with _observation_lock:
                 current_id = self.latest_observation_id
-                if current_id is not None and current_id >= minimum_id:
+                if current_id == expected_id:
                     obs = self.latest_obs
                     self.obs_ready.clear()
-                    return obs, current_id, not waited
+                    return obs, current_id
+
+                if current_id is not None and current_id > expected_id:
+                    raise RuntimeError(
+                        "CB1 observation ID mismatch: "
+                        f"expected {expected_id}, observed {current_id}"
+                    )
 
                 self.obs_ready.clear()
 
-            waited = True
-            self.obs_ready.wait()
-
-    def _wait_for_new_observation(self, previous_id):
-        """Return the newest observation whose ID follows previous_id.
-
-        The receiver and this check share observation_lock.  That makes the
-        ID check and event clear atomic with respect to receiver publication,
-        avoiding a lost wakeup when an observation arrives at the boundary.
-        """
-        waited = False
-        while True:
-            with _observation_lock:
-                current_id = self.latest_observation_id
-                if (
-                    current_id is not None
-                    and (previous_id is None or current_id > previous_id)
-                ):
-                    obs = self.latest_obs
-                    self.obs_ready.clear()
-                    return obs, current_id, not waited
-
-                self.obs_ready.clear()
-
-            waited = True
             self.obs_ready.wait()
 
     def step(self, action):
         Decode(action)
 
-        obs, observation_id, _ = self._wait_for_new_observation(
-            self.last_consumed_observation_id
+        if self.last_consumed_observation_id is None:
+            raise RuntimeError("CB1 Env.step called before Env.reset")
+
+        obs, observation_id = self._wait_for_observation_id(
+            self.last_consumed_observation_id + 1
         )
 
         self.episode_steps += 1
 
         self.last_consumed_observation_id = observation_id
+        processed = PreprocessObservation(obs)
+        validation_info = ProtocolValidation.validate_step_observation(
+            obs,
+            processed,
+            action,
+        )
         reward = Reward.Reward(obs, action, self)
-        terminated = bool(obs["PlayerDead"]) or obs["LayerProgress"] >= 1.0
+        terminated = obs["LayerProgress"] >= 1.0
         truncated = self.episode_steps >= self.max_episode_steps
         info = self.last_reward_terms.copy()
+        info.update(validation_info)
         self.episode_trace.record(
             self.episode_steps,
             action,
@@ -382,9 +237,11 @@ class Env(gym.Env):
             truncated,
         )
         if terminated or truncated:
-            self.episode_trace.finish_episode()
+            self.episode_trace.finish_episode(
+                complete=bool(terminated and not truncated)
+            )
 
-        return PreprocessObservation(obs), reward, terminated, truncated, info
+        return processed, reward, terminated, truncated, info
 
     def close(self):
         self.episode_trace.close()

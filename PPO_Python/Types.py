@@ -1,6 +1,10 @@
 import numpy as np
 
-# Fixed binary observation protocol.
+# CB1/VB1 experiment lineage and fixed binary observation protocol.
+CHECKPOINT_NAME = "CB1"
+REWARD_NAME = "VB1"
+PROTOCOL_VERSION = 1
+POLICY_PHYSICS_TICKS = 10
 MAX_NEARBY_BUILDINGS = 16
 MAX_NEARBY_ITEMS = 16 # 16
 SIGHT_RANGE_X = 42
@@ -29,6 +33,16 @@ VECTOR2_INT_DTYPE = np.dtype([
 VECTOR2_DTYPE = np.dtype([
     ("X", FLOAT_DTYPE),
     ("Y", FLOAT_DTYPE),
+], align=False)
+
+POLICY_ACTION_DTYPE = np.dtype([
+    ("MoveDirection", SBYTE_DTYPE),
+    ("Jump", SBYTE_DTYPE),
+    ("VerticalMovement", SBYTE_DTYPE),
+    ("Crouch", SBYTE_DTYPE),
+    ("LookDX", SBYTE_DTYPE),
+    ("LookDY", SBYTE_DTYPE),
+    ("Attack", SBYTE_DTYPE),
 ], align=False)
 
 QUALITY_DTYPE = np.dtype([
@@ -152,9 +166,10 @@ SOUND_DTYPE = np.dtype([
 # below, but omit them from the live wire dtype while the current policy does
 # not consume them. This must match PPOBridge.IncludeUnusedObservations.
 INCLUDE_UNUSED_OBSERVATIONS = False
-# Limbs are a deliberate exception because Reward.py consumes their damage and
-# infection fields. This must match PPOBridge.IncludeLimbObservations.
-INCLUDE_LIMB_OBSERVATIONS = True
+# Functional godmode makes limb pathology neither actionable nor reward
+# relevant. Keep the definition above for trace/backward tooling, but omit the
+# 660-byte limb payload from the CB1 wire protocol.
+INCLUDE_LIMB_OBSERVATIONS = False
 
 OBSERVATION_DTYPE = np.dtype([
     ("RelativeBlockMap", BLOCK_DTYPE, (SIGHT_RANGE_X * 2 + 1, SIGHT_RANGE_Y * 2 + 1)),
@@ -276,6 +291,11 @@ OBSERVATION_DTYPE = np.dtype([
     ("LayerTimeRemaining", INT_DTYPE),
     ("RadLineDisplacement", SHORT_DTYPE),
     ("SimulationDeltaTime", FLOAT_DTYPE),
+    ("ProtocolVersion", BYTE_DTYPE),
+    ("MacrostepPhysicsTicks", BYTE_DTYPE),
+    ("PreviousAction", POLICY_ACTION_DTYPE),
+    ("PlayerTilePosition", VECTOR2_INT_DTYPE),
+    ("WorldDimensions", VECTOR2_INT_DTYPE),
     *([
         ("SoundsHeard", SOUND_DTYPE, (MAX_SOUNDS_HEARD,)),
     ] if INCLUDE_UNUSED_OBSERVATIONS else []),

@@ -114,10 +114,11 @@ GRID_HISTORY_HEALTH_SCALE = 10
 GRID_HISTORY_FRAME_HEADER = struct.Struct("<QII7b4fhhB")
 GRID_HISTORY_FILE_HEADER = struct.Struct("<8sHHHHI")
 GRID_HISTORY_FLUSH_INTERVAL = 128
+TRACE_ROW_FLUSH_INTERVAL = 512
 
 
 class GridHistoryWriter:
-    """Stream compact player-relative geometry frames beside the CSV trace."""
+    """Stream geometry and raw CB1 policy-index frames beside the CSV trace."""
 
     def __init__(self, output_path, width, height):
         self.path = Path(output_path)
@@ -153,6 +154,8 @@ class GridHistoryWriter:
         if self._closed or step % self.stride != 0:
             return
 
+        # Keep the same raw MultiDiscrete policy indices as the CSV trace.
+        # Decode()'s wire values are available in obs PreviousAction instead.
         action_values = [int(value) for value in action[:7]]
         action_values.extend([0] * (7 - len(action_values)))
 
@@ -340,13 +343,19 @@ def _record_scalar_observations(row, obs, prefix=""):
 
 
 class EpisodeTraceWriter:
-    """Buffer one episode, then append its complete rows to a CSV file."""
+    """Trace raw CB1 policy indices and scalar/grid episode diagnostics.
+
+    The legacy action_* columns and grid sidecar retain the raw policy values
+    passed to Env.step(); they are not decoded wire actions. The
+    episode_complete marker is true only for genuine layer-completion
+    termination, never for watchdog truncation or incomplete shutdown.
+    """
 
     def __init__(self, output_path=None):
         if output_path is None:
             output_dir = Path(__file__).resolve().parent / "episode_traces"
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            output_path = output_dir / f"episode_trace_{timestamp}.csv"
+            output_path = output_dir / f"episode_trace_cb1_vb1_{timestamp}.csv"
 
         self.path = Path(output_path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -386,9 +395,10 @@ class EpisodeTraceWriter:
         if not self.episode_open:
             raise RuntimeError("Cannot record a step without an active episode")
 
-        # C13 exposes seven policy actions while retaining the legacy 28-field
-        # trace schema for tooling and comparisons with C11/C12.  The omitted
-        # fields are recorded as zero (their inactive wire-protocol encoding).
+        # CB1 exposes seven raw policy actions while retaining the legacy
+        # 28-field trace schema for historical tooling. Decode() maps the
+        # seven values to wire actions separately; omitted trace fields are
+        # recorded as zero because those controls are inactive in CB1.
         action_values = list(action)
         if len(action_values) > len(ACTION_NAMES):
             raise ValueError(
@@ -456,16 +466,30 @@ class EpisodeTraceWriter:
             observation_id,
         )
         self._rows.append(row)
+        if (
+            len(self._rows) >= TRACE_ROW_FLUSH_INTERVAL
+            and not terminated
+            and not truncated
+        ):
+            self._append_rows(self._rows)
+            self._rows = []
 
-    def finish_episode(self, complete=True):
+    def finish_episode(self, complete=False):
         if not self.episode_open:
             return
         if not self._rows:
             self._episode = None
             return
 
-        for row in self._rows:
-            row["episode_complete"] = bool(complete)
+        # Earlier chunks of an unlimited episode have already been streamed
+        # with a blank completion marker. The final row is the authoritative
+        # terminal/incomplete marker.
+        final_row = self._rows[-1]
+        final_row["episode_complete"] = bool(
+            complete
+            and final_row["terminated"]
+            and not final_row["truncated"]
+        )
 
         self._append_rows(self._rows)
         self._rows = []

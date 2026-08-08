@@ -1,18 +1,65 @@
-import gymnasium as gym
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
-from stable_baselines3.common.env_checker import check_env
 import traceback
 from datetime import datetime
 from pathlib import Path
+import json
 import zipfile
 import sys
 import time
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 import ObservationEncoding
+import Types
 
 
 TARGET_TOTAL_TIMESTEPS = 2_000_000
+PPO_GAMMA = 0.99
+PPO_GAE_LAMBDA = 0.95
+PPO_N_STEPS = 2048
+CB1_MODEL_SCHEMA_VERSION = 1
+PROTOCOL_MANIFEST_NAME = f"protocol_{Types.CHECKPOINT_NAME.lower()}.json"
+
+
+def ProtocolManifest(env):
+    return {
+        "checkpoint": Types.CHECKPOINT_NAME,
+        "reward": Types.REWARD_NAME,
+        "protocol_version": Types.PROTOCOL_VERSION,
+        "physics_hz": 50,
+        "policy_hz": 5,
+        "physics_ticks_per_action": Types.POLICY_PHYSICS_TICKS,
+        "model_schema_version": CB1_MODEL_SCHEMA_VERSION,
+        "gamma": PPO_GAMMA,
+        "gae_lambda": PPO_GAE_LAMBDA,
+        "n_steps": PPO_N_STEPS,
+        "action_space_nvec": env.action_space.nvec.tolist(),
+        "observation_shapes": {
+            name: list(space.shape)
+            for name, space in env.observation_space.spaces.items()
+        },
+    }
+
+
+def ValidateOrWriteProtocolManifest(run_dir, env, resuming):
+    path = run_dir / PROTOCOL_MANIFEST_NAME
+    expected = ProtocolManifest(env)
+    if resuming:
+        if not path.is_file():
+            raise RuntimeError(
+                f"Refusing to resume {run_dir}: missing {PROTOCOL_MANIFEST_NAME}. "
+                "Pre-CB1 checkpoints are intentionally incompatible."
+            )
+        actual = json.loads(path.read_text(encoding="utf-8"))
+        if actual != expected:
+            raise RuntimeError(
+                f"Refusing to resume {run_dir}: protocol manifest does not "
+                "match the current CB1 observation/action contract."
+            )
+    else:
+        path.write_text(
+            json.dumps(expected, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
 
 class PausingPPO(PPO):
@@ -91,7 +138,7 @@ class TrainingProgressCallback(BaseCallback):
             return f"{minutes}m {seconds:02d}s"
 
         message = (
-            f"\rC13 [{bar}] {fraction:6.2%} | "
+            f"\rCB1 [{bar}] {fraction:6.2%} | "
             f"{current:,}/{target:,} steps | "
             f"{rate:5.1f} FPS | ETA {format_duration(eta_seconds)}"
         )
@@ -119,7 +166,10 @@ def FindResumeModel(run_dir):
 
 def Begin_Training(env, pause_simulation=None, resume_dir=None):
     if resume_dir is None:
-        run_dir = Path("checkpoints") / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        run_dir = Path("checkpoints") / (
+            f"{Types.CHECKPOINT_NAME}_"
+            f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        )
         resume_model = None
     else:
         run_dir = Path(resume_dir).expanduser().resolve()
@@ -128,11 +178,20 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
         resume_model = FindResumeModel(run_dir)
 
     run_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        ValidateOrWriteProtocolManifest(
+            run_dir,
+            env,
+            resuming=resume_model is not None,
+        )
+    except Exception:
+        env.close()
+        raise
 
     checkpoint_callback = CheckpointCallback(
         save_freq=10_000,
         save_path=str(run_dir),
-        name_prefix="casu_ppo",
+        name_prefix="casu_ppo_cb1_vb1",
     )
 
     try:
@@ -144,11 +203,14 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 policy_kwargs={
                     "features_extractor_class": ObservationEncoding.CasualtiesFeatureExtractor,
                 },
+                gamma=PPO_GAMMA,
+                gae_lambda=PPO_GAE_LAMBDA,
+                n_steps=PPO_N_STEPS,
                 device="auto",
                 tensorboard_log=str(run_dir / "tensorboard"),
                 pause_simulation=pause_simulation,
             )
-            final_model = run_dir / "casu_ppo_c15_2m_final"
+            final_model = run_dir / "casu_ppo_cb1_vb1_final"
             reset_num_timesteps = True
             total_timesteps = TARGET_TOTAL_TIMESTEPS
         else:
@@ -163,7 +225,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 tensorboard_log=str(run_dir / "tensorboard"),
             )
             model._pause_simulation = pause_simulation
-            final_model = run_dir / "casu_ppo_c15_2m_final"
+            final_model = run_dir / "casu_ppo_cb1_vb1_final"
             reset_num_timesteps = False
             total_timesteps = max(
                 0,

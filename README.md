@@ -45,3 +45,12 @@ The stretch goal is to complete multiple.
 | Checkpoint 14 | V14 & V15 | Careful descent |
 | Checkpoint 15 | V15 | High-exertion "descent" |
 | Checkpoint 16 | V16 | Aggressive, high-entropy descent |
+| Checkpoint 17 | V17 | Searching for places to fall |
+
+## B Series
+
+A jump from the original checkpoints that heavily modified the learning problem
+
+| Checkpoint | Reward | Behavior |
+|------------|--------|----------|
+| CB1 | VB1 | Validation in progress |

@@ -1,16 +1,12 @@
 import socket
-import os
-import Human_Input
-import Visualization
-import json
 import threading
 import time
 import sys
 import numpy as np
 import CasualtiesEnv
-import gymnasium as gym
 import Train
 import Inference
+import Validation
 import Types
 
 TCP_HOST = "127.0.0.1"
@@ -61,7 +57,7 @@ def RecvExact(connection, size):
 
 
 def BuildActionMessage():
-    return f"{move},{jump},{vertMove},{crouch},{lookdX},{lookdY},{attack},{interact},{targetSlotIndex},{selectedSlotIndex},{dropItem},{moveItem},{selectedBagIndex},{useItem},{useItemWorld},{selectedLimb},{useItemMedical},{selectedRecipe},{favoriteItem},{switchMainHand},{trySleep},{ragdoll},{exercise},{bark},{throw},{liquidAmount},{drainLiquid},{pullLiquidFromWorld}\n".encode("utf-8")
+    return f"{move},{jump},{vertMove},{crouch},{lookdX},{lookdY},{attack},{interact},{targetSlotIndex},{selectedSlotIndex},{dropItem},{moveItem},{selectedBagIndex},{useItem},{useItemWorld},{selectedLimb},{useItemMedical},{selectedRecipe},{favoriteItem},{switchMainHand},{trySleep},{ragdoll},{exercise},{bark},{throw},{liquidAmount},{drainLiquid},{pullLiquidFromWorld},{action_sequence}\n".encode("utf-8")
 
 
 def ControlAckLoop():
@@ -134,6 +130,8 @@ def ResumeSimulation():
 
     resume_applied.clear()
     with action_write_lock:
+        if reset_requested.is_set():
+            raise RuntimeError("Cannot resume Unity while a reset is in progress")
         action_pipe.sendall(b"RESUME\n")
         action_pipe.sendall(BuildActionMessage())
     simulation_paused.clear()
@@ -141,25 +139,20 @@ def ResumeSimulation():
     if not resume_applied.wait(timeout=5.0):
         raise RuntimeError("Unity did not acknowledge the PPO resume")
 
-def ActionLoop():
-    global move, jump, vertMove, crouch, running
-    running = True
-    while running:
-        try:
-            if reset_requested.is_set() or simulation_paused.is_set():
-                time.sleep(0.005)
-                continue
+def SendDecodedAction():
+    """Send exactly one packet for the already-decoded CB1 decision."""
+    if reset_requested.is_set():
+        raise RuntimeError("Cannot send a policy action while a reset is in progress")
 
-            msg = BuildActionMessage()
+    if simulation_paused.is_set():
+        # ResumeSimulation atomically writes RESUME and this fresh action.
+        ResumeSimulation()
+        return
 
-            with action_write_lock:
-                if not reset_requested.is_set():
-                    action_pipe.sendall(msg)
-            time.sleep(0.005)
-        except OSError as e:
-            print(f"Action TCP connection closed: {e}")
-            running = False
-            break
+    with action_write_lock:
+        if reset_requested.is_set():
+            raise RuntimeError("Cannot send a policy action while a reset is in progress")
+        action_pipe.sendall(BuildActionMessage())
 
 def Shutdown():
     global running, shutdown_started
@@ -189,12 +182,12 @@ def Shutdown():
 if (
     len(sys.argv) < 2
     or len(sys.argv) > 3
-    or sys.argv[1] not in ("train", "inference")
+    or sys.argv[1] not in ("train", "inference", "validate")
     or (sys.argv[1] == "inference" and len(sys.argv) != 3)
 ):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
-        "inference <checkpoint.zip>"
+        "inference <checkpoint.zip> | validate [steps]"
     )
 
 print("Waiting for Unity observation connection...")
@@ -235,6 +228,7 @@ throw = 0
 liquidAmount = 0 # mL to transfer, currently between 0 and 1000
 drainLiquid = 0 # simple hold input to drain liquid
 pullLiquidFromWorld = 0 # simple button to pull liquids from watercontaineritems in the world like minibarrels
+action_sequence = 0  # CB1 monotonically identifies each policy decision.
 
 # AUXILIARY VARIABLES
 mode = "none"
@@ -250,20 +244,17 @@ aux = {
     "LiquidAmount": liquidAmount
 }
 
-# Human_Input.Start(sys.modules[__name__])
-
 CasualtiesEnv.Start(sys.modules[__name__])
 
-threading.Thread(target=ActionLoop, daemon=True).start()
 threading.Thread(target=ControlAckLoop, daemon=True).start()
 
 OBSERVATION_DATA_SIZE = Types.OBSERVATION_DTYPE.itemsize
 OBSERVATION_ID_SIZE = 8
 OBSERVATION_MESSAGE_SIZE = OBSERVATION_DATA_SIZE + OBSERVATION_ID_SIZE
 EXPECTED_OBSERVATION_DATA_SIZE = (
-    1031519 if Types.INCLUDE_UNUSED_OBSERVATIONS
-    else 42641 if Types.INCLUDE_LIMB_OBSERVATIONS
-    else 41981
+    1031536 if Types.INCLUDE_UNUSED_OBSERVATIONS
+    else 42658 if Types.INCLUDE_LIMB_OBSERVATIONS
+    else 41998
 )
 EXPECTED_OBSERVATION_MESSAGE_SIZE = EXPECTED_OBSERVATION_DATA_SIZE + OBSERVATION_ID_SIZE
 
@@ -293,6 +284,13 @@ elif sys.argv[1] == "inference":
         threading.Thread(target=Inference.Infer, args=(env, sys.argv[2]), daemon=True).start()
     else:
         raise SystemExit("Usage: python Server.py inference <checkpoint.zip>")
+elif sys.argv[1] == "validate":
+    validation_steps = int(sys.argv[2]) if len(sys.argv) == 3 else 1_500
+    threading.Thread(
+        target=Validation.Run,
+        args=(env, validation_steps),
+        daemon=True,
+    ).start()
 
 while running:
     try:

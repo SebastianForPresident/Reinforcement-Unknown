@@ -17,6 +17,8 @@ using UnityEngine.SceneManagement;
 [BepInPlugin("sebastian.ppoharness", "PPO Harness", "1.0.0")]
 public class PPO_Harness : BaseUnityPlugin
 {
+    bool handlingWorldGenerationException;
+
     private void Awake()
     {
         Logger.LogInfo("PPO Harness loaded");
@@ -27,6 +29,46 @@ public class PPO_Harness : BaseUnityPlugin
         Logger.LogInfo("Patches applied");
 
         Application.quitting += PPOBridge.Shutdown;
+        Application.logMessageReceived += HandleUnityLogMessage;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void HandleUnityLogMessage(
+        string condition,
+        string stackTrace,
+        LogType type
+    )
+    {
+        if (
+            handlingWorldGenerationException ||
+            type != LogType.Exception ||
+            !((condition ?? "") + "\n" + (stackTrace ?? ""))
+                .Contains("WorldGeneration+<InstantiateWorld>", StringComparison.Ordinal)
+        )
+        {
+            return;
+        }
+
+        handlingWorldGenerationException = true;
+        try
+        {
+            PPOBridge.RecordWorldGenerationException(condition, stackTrace);
+        }
+        finally
+        {
+            handlingWorldGenerationException = false;
+        }
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        PPOBridge.RecordSceneLoaded(scene, mode);
+    }
+
+    private void OnDestroy()
+    {
+        Application.logMessageReceived -= HandleUnityLogMessage;
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
     }
 }
 
@@ -34,9 +76,9 @@ class BinaryObservationWriter
 {
     // The full observation payload and the temporary reduced payload both
     // keep the little-endian uint64 observation ID at the end.
-    public const int FullExpectedSize = 1031527;
-    public const int ReducedExpectedSize = 41989;
-    public const int LimbsExpectedSize = 42649;
+    public const int FullExpectedSize = 1031544;
+    public const int ReducedExpectedSize = 42006;
+    public const int LimbsExpectedSize = 42666;
     public static int ExpectedSize => PPOBridge.IncludeUnusedObservations
         ? FullExpectedSize
         : PPOBridge.IncludeLimbObservations
@@ -314,6 +356,8 @@ public class SoundObservation
 
 public class Observation
 {
+    public const byte PROTOCOL_VERSION = 1;
+    public const byte POLICY_PHYSICS_TICKS = 10;
     public const int MAX_NEARBY_BUILDINGS = 16;
     public const int MAX_NEARBY_ITEMS = 16; // 16
     public const int SIGHT_RANGE_X = 42;
@@ -508,6 +552,13 @@ public class Observation
     public short RadLineDisplacement; // negative values mean you're behind the radline (bad)
     public float SimulationDeltaTime; // scaled Unity seconds represented by this observation
 
+    // CB1 control/position metadata.
+    public byte ProtocolVersion;
+    public byte MacrostepPhysicsTicks;
+    public Action PreviousAction;
+    public Vector2IntObservation PlayerTilePosition;
+    public Vector2IntObservation WorldDimensions;
+
     // Sounds
     public SoundObservation[] SoundsHeard;
 
@@ -541,6 +592,9 @@ public class Observation
         // Basic Locomotion
         Velocity = new();
         RelativeLookPos = new();
+        PreviousAction = new();
+        PlayerTilePosition = new();
+        WorldDimensions = new();
 
         // Jumping
         StandingOn = new();
@@ -605,7 +659,7 @@ public static class PPOBridge
     // serializers intact, but omit fields that the current policy does not
     // consume. Set this to true to restore the full observation packet.
     public static bool IncludeUnusedObservations = false;
-    public static bool IncludeLimbObservations = true;
+    public static bool IncludeLimbObservations = false;
 
     const string TcpHost = "127.0.0.1";
     const int ObservationPort = 45701;
@@ -740,8 +794,18 @@ public static class PPOBridge
     static ulong nextObservationId = 0;
     static float lastObservationFixedTime;
     static bool hasObservationFixedTime;
-    static int fixedStepsUntilObservation;
-    static int lastObservationSkipCount;
+    static int macrostepPhysicsTicks;
+    static float macrostepSimulationDeltaTime;
+    static float macrostepDeepestLayerProgress;
+    static bool awaitingPolicyAction = true;
+    static bool initialObservationPending;
+    static bool policyBoundaryPaused;
+    static float policyResumeTimeScale = 1f;
+    static bool newMacrostepAction;
+
+    static readonly object ActionLock = new object();
+    static ulong latestActionSequence;
+    static ulong activeActionSequence;
     
     static List<string> ItemNameList = new();
 
@@ -756,7 +820,7 @@ public static class PPOBridge
     static bool StartRan = false;
 
     static int BestLayerDepth = 0;
-    const float C12LayerTimeLimitSeconds = 300f;
+    const float CompletionProtocolLayerTimeLimitSeconds = 1000000000f;
     static int configuredLayerWorldInstanceId;
 
     public static List<PendingSound> SoundEvents = new List<PendingSound>();
@@ -771,6 +835,7 @@ public static class PPOBridge
     static Observation obs = new();
 
     static volatile bool resetComplete = true;
+    static int worldGenerationExceptionCount;
 
     static readonly FieldRef<Body, float> jc = FieldRefAccess<Body, float>("jumpCooldown");
     static readonly FieldRef<Body, float> tsg = FieldRefAccess<Body, float>("timeSinceGrounded");
@@ -779,6 +844,57 @@ public static class PPOBridge
     static readonly FieldRef<Body, float> ct = FieldRefAccess<Body, float>("crawlTime");
     static readonly FieldRef<Body, float> tsl = FieldRefAccess<Body, float>("timeSinceSlidLeft");
     static readonly FieldRef<Body, float> tsr = FieldRefAccess<Body, float>("timeSinceSlidRight");
+
+    static string WorldGenerationState(string phase)
+    {
+        WorldGeneration world = WorldGeneration.world;
+        PlayerCamera playerCamera = PlayerCamera.main;
+        Body body = playerCamera == null ? null : playerCamera.body;
+
+        return
+            $"phase={phase}, scene={SceneManager.GetActiveScene().name}, " +
+            $"realtime={Time.realtimeSinceStartup:F3}, time={Time.time:F3}, " +
+            $"timeScale={Time.timeScale:F3}, " +
+            $"world={(world == null ? "null" : world.GetInstanceID().ToString())}, " +
+            $"worldExists={(world != null && world.worldExists)}, " +
+            $"generating={(world != null && world.generatingWorld)}, " +
+            $"dimensions={(world == null ? "n/a" : $"{world.width}x{world.height}")}, " +
+            $"chunks={(world == null ? "n/a" : $"{world.chunkWidth}x{world.chunkHeight}")}, " +
+            $"loadingObject={(world != null && world.loadingObject != null ? world.loadingObject.activeSelf.ToString() : "null")}, " +
+            $"fluidManager={(FluidManager.main == null ? "null" : FluidManager.main.GetInstanceID().ToString())}, " +
+            $"radiationLine={(RadiationLine.line == null ? "null" : RadiationLine.line.GetInstanceID().ToString())}, " +
+            $"radlineActive={(RadiationLine.line != null && RadiationLine.line.active)}, " +
+            $"playerCamera={(playerCamera == null ? "null" : playerCamera.GetInstanceID().ToString())}, " +
+            $"body={(body == null ? "null" : body.GetInstanceID().ToString())}, " +
+            $"bodyAlive={(body != null && body.alive)}, " +
+            $"bodyConscious={(body != null && body.conscious)}, " +
+            $"resetComplete={resetComplete}, " +
+            $"resetRequested={resetRequested}, " +
+            $"resetToken={activeResetToken}/{requestedResetToken}, " +
+            $"generationFinishedWorld={generationFinishedWorldInstanceId}.";
+    }
+
+    public static void RecordSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log(
+            $"PPO CB1 scene diagnostic: loaded={scene.name}, mode={mode}, " +
+            WorldGenerationState("scene-loaded")
+        );
+    }
+
+    public static void RecordWorldGenerationException(
+        string condition,
+        string stackTrace
+    )
+    {
+        worldGenerationExceptionCount++;
+        Debug.LogError(
+            $"PPO CB1 world-generation diagnostic " +
+            $"#{worldGenerationExceptionCount}: {WorldGenerationState("InstantiateWorld exception")}\n" +
+            $"condition={condition}\n" +
+            $"stack={stackTrace}"
+        );
+    }
 
     static byte NarrowByte(int value, string field)
     {
@@ -1282,8 +1398,8 @@ public static class PPOBridge
         obs.IsRight = body.isRight;
         obs.MaxSpeed = body.maxSpeed;
 
-        obs.RelativeLookPos.X = NarrowShort(LastAction.LookDX, "look X");
-        obs.RelativeLookPos.Y = NarrowShort(LastAction.LookDY, "look Y");
+        obs.RelativeLookPos.X = NarrowShort(CurrentAction.LookDX, "look X");
+        obs.RelativeLookPos.Y = NarrowShort(CurrentAction.LookDY, "look Y");
 
         // Jumping
         obs.JumpCooldown = jc(body);
@@ -1437,24 +1553,43 @@ public static class PPOBridge
 
         }
 
-        // Limbs remain enabled because the reward model consumes them; the
-        // other unused observation groups stay disabled.
         if (IncludeLimbObservations)
             GetLimbs(obs.Limbs, body);
 
         float layerHeightMeters = ((float)world.height - 3.1f) * 0.3f;
 
         // Progress
-        obs.LayerProgress = Mathf.Clamp01(world.PlayerLayerDepthMeters() / layerHeightMeters);
+        float currentLayerProgress = Mathf.Clamp01(
+            world.PlayerLayerDepthMeters() / layerHeightMeters
+        );
+        obs.LayerProgress = Mathf.Max(
+            currentLayerProgress,
+            macrostepDeepestLayerProgress
+        );
         obs.CurrentLayer = NarrowByte(world.biomeDepth, "current layer");
-        if (world.PlayerLayerDepthMeters() > BestLayerDepth) BestLayerDepth = Mathf.RoundToInt(world.PlayerLayerDepthMeters());
+        float deepestLayerDepthMeters = obs.LayerProgress * layerHeightMeters;
+        if (deepestLayerDepthMeters > BestLayerDepth)
+            BestLayerDepth = Mathf.RoundToInt(deepestLayerDepthMeters);
         obs.BestLayerDepth = NarrowShort(BestLayerDepth, "best layer depth");
 
         // Radline
         obs.LayerTimeRemaining = Mathf.RoundToInt(world.maxTimePerLayer - world.layerTimeSpent); // seconds
         if (obs.LayerTimeRemaining <= 0) obs.RadLineDisplacement = NarrowShort(Mathf.RoundToInt(world.PlayerLayerDepthMeters() - world.RadlineLayerDepthMeters()), "radline displacement"); // negative values mean you're behind the radline (bad)
         else obs.RadLineDisplacement = 10000; // Basically not a problem
-        obs.SimulationDeltaTime = Time.deltaTime;
+        obs.SimulationDeltaTime = macrostepSimulationDeltaTime;
+
+        // CB1 metadata. PreviousAction is the exact latched action
+        // whose ten physics ticks produced this observation.
+        obs.ProtocolVersion = Observation.PROTOCOL_VERSION;
+        obs.MacrostepPhysicsTicks = NarrowByte(
+            macrostepPhysicsTicks,
+            "macrostep physics tick count"
+        );
+        CopyAction(CurrentAction, obs.PreviousAction);
+        obs.PlayerTilePosition.X = NarrowShort(playerTile.x, "player tile X");
+        obs.PlayerTilePosition.Y = NarrowShort(playerTile.y, "player tile Y");
+        obs.WorldDimensions.X = NarrowShort((int)world.width, "world width");
+        obs.WorldDimensions.Y = NarrowShort((int)world.height, "world height");
 
         // Sound
         if (IncludeUnusedObservations)
@@ -1622,6 +1757,17 @@ public static class PPOBridge
         writer.Write(limb.Dismembered);
 
         writer.Write(limb.TotalBleedAmount);
+    }
+
+    static void WritePolicyAction(BinaryObservationWriter writer, Action action)
+    {
+        writer.Write(NarrowSByte(action.MoveDirection, "previous move direction"));
+        writer.Write(NarrowSByte(action.Jump, "previous jump"));
+        writer.Write(NarrowSByte(action.VerticalMovement, "previous vertical movement"));
+        writer.Write(NarrowSByte(action.Crouch, "previous crouch"));
+        writer.Write(NarrowSByte(action.LookDX, "previous look X"));
+        writer.Write(NarrowSByte(action.LookDY, "previous look Y"));
+        writer.Write(NarrowSByte(action.Attack, "previous attack"));
     }
 
     static void WriteObservation(
@@ -1825,6 +1971,11 @@ public static class PPOBridge
         writer.Write(obs.LayerTimeRemaining);
         writer.Write(obs.RadLineDisplacement);
         writer.Write(obs.SimulationDeltaTime);
+        writer.Write(obs.ProtocolVersion);
+        writer.Write(obs.MacrostepPhysicsTicks);
+        WritePolicyAction(writer, obs.PreviousAction);
+        WriteVector2Int(writer, obs.PlayerTilePosition);
+        WriteVector2Int(writer, obs.WorldDimensions);
 
         if (IncludeUnusedObservations)
         {
@@ -1846,6 +1997,11 @@ public static class PPOBridge
             Application.Quit();
             return;
         }
+
+        // The game may contain other Body instances. Only the camera-owned
+        // player defines the PPO physics clock and reset source.
+        if (body == null || PlayerCamera.main == null || PlayerCamera.main.body != body)
+            return;
 
         if (resetRequested && resetComplete && WorldGeneration.world != null)
         {
@@ -1902,6 +2058,17 @@ public static class PPOBridge
             if (worldReady)
             {
                 resetComplete = true;
+                initialObservationPending = true;
+                awaitingPolicyAction = true;
+                macrostepPhysicsTicks = 0;
+                macrostepSimulationDeltaTime = 0f;
+                macrostepDeepestLayerProgress = 0f;
+                lock (ActionLock)
+                {
+                    activeActionSequence = latestActionSequence;
+                }
+                CurrentAction = new Action();
+                LastAction = new Action();
                 Debug.Log(
                     $"PPO reset complete: sourceWorld={resetSourceWorldInstanceId}, " +
                     $"newWorld={world.GetInstanceID()}, " +
@@ -1941,35 +2108,90 @@ public static class PPOBridge
         
         if (!StartRan) Start();
 
-        EnsureC12LayerTimeLimit();
+        EnsureCompletionProtocol();
 
-        // Body.FixedUpdate is patched once per Body. Publish at most one
-        // observation for each distinct physics step. During the game's
-        // intentional unconscious fast-forward, sample one step and skip
-        // round(Time.timeScale) - 1 subsequent fixed steps.
+        // Body.FixedUpdate is patched once per Body. Count each distinct
+        // physics step exactly once, regardless of render cadence.
         if (hasObservationFixedTime && Time.fixedTime == lastObservationFixedTime)
             return;
 
         hasObservationFixedTime = true;
         lastObservationFixedTime = Time.fixedTime;
 
-        int observationSkipCount = Mathf.Max(0, Mathf.RoundToInt(Time.timeScale) - 1);
-        if (observationSkipCount != lastObservationSkipCount)
-        {
-            fixedStepsUntilObservation = 0;
-            lastObservationSkipCount = observationSkipCount;
-        }
+        EnsureConnections();
+        if (!connected || !actionConnected)
+            return;
 
-        if (fixedStepsUntilObservation > 0)
+        ApplyFunctionalGodMode(body);
+
+        if (initialObservationPending)
         {
-            fixedStepsUntilObservation--;
+            initialObservationPending = false;
+            macrostepPhysicsTicks = 0;
+            macrostepSimulationDeltaTime = 0f;
+            macrostepDeepestLayerProgress = CurrentLayerProgress();
+            PublishCurrentObservation();
+            PauseAtPolicyBoundary();
             return;
         }
 
-        fixedStepsUntilObservation = observationSkipCount;
+        if (awaitingPolicyAction)
+            return;
 
+        macrostepPhysicsTicks++;
+        macrostepSimulationDeltaTime += Time.fixedDeltaTime;
+        macrostepDeepestLayerProgress = Mathf.Max(
+            macrostepDeepestLayerProgress,
+            CurrentLayerProgress()
+        );
+        if (macrostepPhysicsTicks < Observation.POLICY_PHYSICS_TICKS)
+            return;
+
+        PublishCurrentObservation();
+        awaitingPolicyAction = true;
+        PauseAtPolicyBoundary();
+    }
+
+    static void PublishCurrentObservation()
+    {
         CollectObservations();
+        bufferWriter.Reset();
 
+        ulong observationId = ++nextObservationId;
+        WriteObservation(bufferWriter, obs, observationId);
+
+        if (bufferWriter.BytesWritten != BinaryObservationWriter.ExpectedSize)
+        {
+            throw new InvalidDataException(
+                $"Observation writer produced {bufferWriter.BytesWritten} bytes; " +
+                $"expected {BinaryObservationWriter.ExpectedSize}"
+            );
+        }
+
+        obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten);
+
+        if (resetObservationAcknowledgementPending)
+        {
+            resetObservationAcknowledgementPending = false;
+            SendActionAcknowledgement(
+                $"RESET_READY {activeResetToken} {observationId}"
+            );
+        }
+    }
+
+    static float CurrentLayerProgress()
+    {
+        WorldGeneration world = WorldGeneration.world;
+        if (world == null)
+            return 0f;
+        float layerHeightMeters = ((float)world.height - 3.1f) * 0.3f;
+        if (layerHeightMeters <= 0f)
+            return 0f;
+        return Mathf.Clamp01(world.PlayerLayerDepthMeters() / layerHeightMeters);
+    }
+
+    static void EnsureConnections()
+    {
         if (!connected)
         {
             try
@@ -1977,10 +2199,8 @@ public static class PPOBridge
                 Debug.Log("Connecting observation TCP stream...");
                 obsClient = new TcpClient();
                 bufferWriter = new BinaryObservationWriter();
-
                 obsClient.Connect(TcpHost, ObservationPort);
                 obsPipe = obsClient.GetStream();
-
                 connected = true;
                 Debug.Log("Observation TCP stream connected.");
             }
@@ -1990,34 +2210,9 @@ public static class PPOBridge
                     $"Failed to connect to observation TCP stream. " +
                     $"Is the Server process running? {ex.Message}"
                 );
-                return;
             }
         }
-        else
-        {
-            bufferWriter.Reset();
 
-            ulong observationId = ++nextObservationId;
-            WriteObservation(bufferWriter, obs, observationId);
-
-            if (bufferWriter.BytesWritten != BinaryObservationWriter.ExpectedSize)
-            {
-                throw new InvalidDataException(
-                    $"Observation writer produced {bufferWriter.BytesWritten} bytes; " +
-                    $"expected {BinaryObservationWriter.ExpectedSize}"
-                );
-            }
-
-            obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten);
-
-            if (resetObservationAcknowledgementPending)
-            {
-                resetObservationAcknowledgementPending = false;
-                SendActionAcknowledgement(
-                    $"RESET_READY {activeResetToken} {observationId}"
-                );
-            }
-        }
         if (!actionConnected)
         {
             try
@@ -2047,7 +2242,7 @@ public static class PPOBridge
         }
     }
 
-    static void EnsureC12LayerTimeLimit()
+    static void EnsureCompletionProtocol()
     {
         WorldGeneration world = WorldGeneration.world;
         if (world == null || !world.worldExists || world.generatingWorld)
@@ -2057,9 +2252,112 @@ public static class PPOBridge
         if (worldInstanceId == configuredLayerWorldInstanceId)
             return;
 
-        world.maxTimePerLayer = C12LayerTimeLimitSeconds;
+        world.maxTimePerLayer = CompletionProtocolLayerTimeLimitSeconds;
+        if (RadiationLine.line != null && RadiationLine.line.active)
+            RadiationLine.line.Deactivate();
         configuredLayerWorldInstanceId = worldInstanceId;
-        Debug.Log($"PPO C12 layer time limit set to {C12LayerTimeLimitSeconds:0} seconds.");
+        Debug.Log("PPO CB1 completion protocol active: radline deadline disabled.");
+    }
+
+    public static bool FunctionalGodModeActive(Body body)
+    {
+        return
+            !ControlEnabled &&
+            body != null &&
+            PlayerCamera.main != null &&
+            PlayerCamera.main.body == body;
+    }
+
+    public static void ApplyFunctionalGodMode(Body body)
+    {
+        if (!FunctionalGodModeActive(body))
+            return;
+
+        // CB1 is defined against Unity's normal 50 Hz physics clock.
+        Time.fixedDeltaTime = 0.02f;
+
+        // Repair lasting pathology after the ordinary game simulation has
+        // processed this frame. Rigidbody velocity, collision response,
+        // recoil, falling, and standing/ragdoll state are intentionally left
+        // untouched.
+        body.brainHealth = 100f;
+        body.consciousness = 100f;
+        body.shock = 0f;
+        body.stamina = 100f;
+        body.energy = 100f;
+        body.hunger = 100f;
+        body.thirst = 100f;
+        body.temperature = 37f;
+        body.clawHealth = 100f;
+
+        body.bloodOxygen = 100f;
+        body.bloodVolume = 100f;
+        body.bloodPressure = 120f;
+        body.bloodVesselSize = 1f;
+        body.bloodViscosity = 0f;
+        body.heartRate = 70f;
+        body.respiratoryRate = 100f;
+        body.breathing = true;
+        body.fibrillationProgress = 0f;
+        body.fibrillationForced = false;
+        body.hasPulmonaryEmbolism = false;
+        body.strokeAmount = 0f;
+
+        body.internalBleeding = 0f;
+        body.hemothorax = 0f;
+        body.venomTotal = 0f;
+        body.venomCurrent = 0f;
+        body.totalBleedSpeed = 0f;
+        body.sicknessAmount = 0f;
+        body.septicShock = 0f;
+        body.radiationSickness = 0f;
+        body.averagePain = 0f;
+        body.painShock = 0f;
+        body.traumaAmount = 0f;
+        body.hearingLoss = 0f;
+        body.brainGrowSickness = 0f;
+        body.reversedControls = false;
+        body.disfigured = false;
+        body.eyeGone = false;
+        body.bothEyesGone = false;
+        body.sleeping = false;
+        body.forcedSleepQuality = null;
+        body.usingSleepingBag = false;
+        body.happiness = 0f;
+        body.weightOffset = 0f;
+        body.dirtyness = 0f;
+        body.immunity = 100f;
+        body.overdoseIndex = 0;
+        body.opiateHappiness = 0f;
+        body.antidepressantHappiness = 0f;
+
+        if (body.limbs == null)
+            return;
+
+        foreach (Limb limb in body.limbs)
+        {
+            if (limb == null)
+                continue;
+
+            if (limb.broken)
+                limb.MendBone();
+            if (limb.dislocated)
+                limb.UnDislocate();
+
+            limb.skinHealth = 100f;
+            limb.muscleHealth = 100f;
+            limb.pain = 0f;
+            limb.bleedAmount = 0f;
+            limb.infected = false;
+            limb.infectionAmount = 0f;
+            limb.disinfectionTime = 0f;
+            limb.shrapnel = 0;
+            limb.dismembered = false;
+        }
+
+        // MendBone/UnDislocate normally award happiness; keep godmode
+        // physiologically neutral rather than turning damage into a buff.
+        body.happiness = 0f;
     }
 
     public static void Start()
@@ -2189,36 +2487,43 @@ public static class PPOBridge
                             continue;
                         }
                         string[] parts = line.Split(',');
-                        if (parts.Length >= 28)
+                        if (parts.Length >= 29 && ulong.TryParse(parts[28], out ulong sequence))
                         {
-                            LatestAction.MoveDirection = int.Parse(parts[0]);
-                            LatestAction.Jump = int.Parse(parts[1]);
-                            LatestAction.VerticalMovement = int.Parse(parts[2]);
-                            LatestAction.Crouch = int.Parse(parts[3]);
-                            LatestAction.LookDX = int.Parse(parts[4]);
-                            LatestAction.LookDY = int.Parse(parts[5]);
-                            LatestAction.Attack = int.Parse(parts[6]);
-                            LatestAction.Interact = int.Parse(parts[7]);
-                            LatestAction.TargetItemSlot = int.Parse(parts[8]);
-                            LatestAction.SelectedItemSlot = int.Parse(parts[9]);
-                            LatestAction.DropItem = int.Parse(parts[10]);
-                            LatestAction.MoveItem = int.Parse(parts[11]);
-                            LatestAction.SelectedBagIndex = int.Parse(parts[12]);
-                            LatestAction.UseItem = int.Parse(parts[13]);
-                            LatestAction.UseItemWorld = int.Parse(parts[14]);
-                            LatestAction.SelectedLimb = int.Parse(parts[15]);
-                            LatestAction.UseItemMedical = int.Parse(parts[16]);
-                            LatestAction.SelectedRecipe = int.Parse(parts[17]);
-                            LatestAction.FavoriteItem = int.Parse(parts[18]);
-                            LatestAction.SwitchMainHand = int.Parse(parts[19]);
-                            LatestAction.TrySleep = int.Parse(parts[20]);
-                            LatestAction.Ragdoll = int.Parse(parts[21]);
-                            LatestAction.Exercise = int.Parse(parts[22]);
-                            LatestAction.Bark = int.Parse(parts[23]);
-                            LatestAction.Throw = int.Parse(parts[24]);
-                            LatestAction.LiquidAmount = int.Parse(parts[25]);
-                            LatestAction.DrainLiquid = int.Parse(parts[26]);
-                            LatestAction.PullLiquidFromWorld = int.Parse(parts[27]);
+                            lock (ActionLock)
+                            {
+                                if (sequence > latestActionSequence)
+                                {
+                                    LatestAction.MoveDirection = int.Parse(parts[0]);
+                                    LatestAction.Jump = int.Parse(parts[1]);
+                                    LatestAction.VerticalMovement = int.Parse(parts[2]);
+                                    LatestAction.Crouch = int.Parse(parts[3]);
+                                    LatestAction.LookDX = int.Parse(parts[4]);
+                                    LatestAction.LookDY = int.Parse(parts[5]);
+                                    LatestAction.Attack = int.Parse(parts[6]);
+                                    LatestAction.Interact = int.Parse(parts[7]);
+                                    LatestAction.TargetItemSlot = int.Parse(parts[8]);
+                                    LatestAction.SelectedItemSlot = int.Parse(parts[9]);
+                                    LatestAction.DropItem = int.Parse(parts[10]);
+                                    LatestAction.MoveItem = int.Parse(parts[11]);
+                                    LatestAction.SelectedBagIndex = int.Parse(parts[12]);
+                                    LatestAction.UseItem = int.Parse(parts[13]);
+                                    LatestAction.UseItemWorld = int.Parse(parts[14]);
+                                    LatestAction.SelectedLimb = int.Parse(parts[15]);
+                                    LatestAction.UseItemMedical = int.Parse(parts[16]);
+                                    LatestAction.SelectedRecipe = int.Parse(parts[17]);
+                                    LatestAction.FavoriteItem = int.Parse(parts[18]);
+                                    LatestAction.SwitchMainHand = int.Parse(parts[19]);
+                                    LatestAction.TrySleep = int.Parse(parts[20]);
+                                    LatestAction.Ragdoll = int.Parse(parts[21]);
+                                    LatestAction.Exercise = int.Parse(parts[22]);
+                                    LatestAction.Bark = int.Parse(parts[23]);
+                                    LatestAction.Throw = int.Parse(parts[24]);
+                                    LatestAction.LiquidAmount = int.Parse(parts[25]);
+                                    LatestAction.DrainLiquid = int.Parse(parts[26]);
+                                    LatestAction.PullLiquidFromWorld = int.Parse(parts[27]);
+                                    latestActionSequence = sequence;
+                                }
+                            }
                             if (!ppoPauseRequested)
                                 ppoResumeActionReceived = true;
                         }
@@ -2234,6 +2539,63 @@ public static class PPOBridge
         actionThread.Start();
     }
 
+    static bool TryLatchPolicyAction()
+    {
+        if (!awaitingPolicyAction || ppoPauseRequested || ppoPaused)
+            return false;
+
+        lock (ActionLock)
+        {
+            if (latestActionSequence <= activeActionSequence)
+                return false;
+
+            CopyAction(CurrentAction, LastAction);
+            CopyAction(LatestAction, CurrentAction);
+            activeActionSequence = latestActionSequence;
+        }
+
+        macrostepPhysicsTicks = 0;
+        macrostepSimulationDeltaTime = 0f;
+        macrostepDeepestLayerProgress = CurrentLayerProgress();
+        awaitingPolicyAction = false;
+        newMacrostepAction = true;
+
+        if (policyBoundaryPaused)
+        {
+            policyResumeTimeScale = 1f;
+            Time.timeScale = 1f;
+            policyBoundaryPaused = false;
+        }
+
+        return true;
+    }
+
+    static void ConsumeLatchedPolicyEdges()
+    {
+        if (!newMacrostepAction)
+            return;
+
+        CopyAction(CurrentAction, LastAction);
+        newMacrostepAction = false;
+    }
+
+    static void PauseAtPolicyBoundary()
+    {
+        if (!policyBoundaryPaused)
+        {
+            if (Time.timeScale > 0f)
+                policyResumeTimeScale = Time.timeScale;
+            policyBoundaryPaused = true;
+        }
+        Time.timeScale = 0f;
+    }
+
+    public static void MaintainPolicyPause()
+    {
+        if (policyBoundaryPaused || ppoPauseRequested || ppoPaused)
+            Time.timeScale = 0f;
+    }
+
     public static void ApplyPPOActions(PlayerCamera playerCamera)
     {
         if (HandlePPOPause(playerCamera))
@@ -2242,9 +2604,9 @@ public static class PPOBridge
         if (!resetComplete || resetRequested)
             return;
 
-        // Before doing anything, update Actions:
-        CopyAction(CurrentAction, LastAction);
-        CopyAction(LatestAction, CurrentAction);
+        TryLatchPolicyAction();
+        if (awaitingPolicyAction)
+            return;
 
         Body body = playerCamera.body;
 
@@ -2307,10 +2669,12 @@ public static class PPOBridge
 			if (body.allowUseItem)
 			{
 				body.UseItemInHand();
-				return;
 			}
-			body.talker.Talk(Locale.GetCharacter("refuse"));
-			playerCamera.UseFailUnhappiness();
+			else
+			{
+				body.talker.Talk(Locale.GetCharacter("refuse"));
+				playerCamera.UseFailUnhappiness();
+			}
 		}
 
         // Craft
@@ -2495,7 +2859,11 @@ public static class PPOBridge
         else if (CurrentAction.DrainLiquid == 1 && CurrentAction.SelectedItemSlot != NO_ITEM_SLOT)
         {
             Item selectedItem = CurrentAction.SelectedItemSlot < 6 ? body.GetItem(CurrentAction.SelectedItemSlot) : body.GetWearableBySlotID(WearableSlots[CurrentAction.SelectedItemSlot - 6]);
-            if (!selectedItem) return;
+            if (!selectedItem)
+            {
+                ConsumeLatchedPolicyEdges();
+                return;
+            }
             WaterContainerItem container = selectedItem.GetComponent<WaterContainerItem>();
             
             if (container)
@@ -2506,9 +2874,17 @@ public static class PPOBridge
         else if (CurrentAction.PullLiquidFromWorld == 1 && LastAction.PullLiquidFromWorld == 0)
         {
             Item targetItem = CurrentAction.TargetItemSlot < 6 ? body.GetItem(CurrentAction.TargetItemSlot) : body.GetWearableBySlotID(WearableSlots[CurrentAction.TargetItemSlot - 6]);
-            if (!targetItem) return;
+            if (!targetItem)
+            {
+                ConsumeLatchedPolicyEdges();
+                return;
+            }
             WaterContainerItem transferTo = targetItem.GetComponent<WaterContainerItem>();
-            if (!transferTo) return;
+            if (!transferTo)
+            {
+                ConsumeLatchedPolicyEdges();
+                return;
+            }
             Collider2D hit = Physics2D.OverlapBox(targetWorldPos, Vector2.one, 0);
             Item itemFound = hit?.GetComponent<Item>();
             WaterContainerItem transferFrom = null;
@@ -2519,9 +2895,17 @@ public static class PPOBridge
                     transferFrom = cont;
                 }
             } 
-            if (transferFrom == null) return;
+            if (transferFrom == null)
+            {
+                ConsumeLatchedPolicyEdges();
+                return;
+            }
             body.CombineLiquids(transferTo, transferFrom, CurrentAction.LiquidAmount);
         }
+
+        // Consume all rising edges once while leaving held movement, jump,
+        // and automatic attacks active for the rest of this macrostep.
+        ConsumeLatchedPolicyEdges();
     }
 
     static bool HandlePPOPause(PlayerCamera playerCamera)
@@ -2530,7 +2914,9 @@ public static class PPOBridge
         {
             if (!ppoPaused)
             {
-                prePPOPauseTimeScale = Time.timeScale;
+                prePPOPauseTimeScale = policyBoundaryPaused
+                    ? policyResumeTimeScale
+                    : Time.timeScale;
                 Time.timeScale = 0f;
                 ppoPaused = true;
                 SendActionAcknowledgement("PAUSED");
@@ -2564,7 +2950,7 @@ public static class PPOBridge
             if (automaticFastForward && gameReturnedToNormal)
                 resumeTimeScale = 1f;
 
-            Time.timeScale = resumeTimeScale;
+            Time.timeScale = policyBoundaryPaused ? 0f : resumeTimeScale;
             ppoPaused = false;
             SendActionAcknowledgement("RESUMED");
         }
@@ -2743,8 +3129,13 @@ public static class PPOBridge
 
         resetComplete = false;
 		hasObservationFixedTime = false;
-		fixedStepsUntilObservation = 0;
-		lastObservationSkipCount = 0;
+		macrostepPhysicsTicks = 0;
+		macrostepSimulationDeltaTime = 0f;
+		macrostepDeepestLayerProgress = 0f;
+		awaitingPolicyAction = true;
+		initialObservationPending = false;
+		policyBoundaryPaused = false;
+		newMacrostepAction = false;
 		configuredLayerWorldInstanceId = 0;
 		generationFinishedWorldInstanceId = 0;
 		ppoPauseRequested = false;
@@ -2897,6 +3288,62 @@ public static class BodyFixedUpdatePatch
     static void Postfix(Body __instance)
     {
         PPOBridge.Tick(__instance);
+    }
+}
+
+[HarmonyPatch(typeof(Body), "Update")]
+public static class BodyGodModeUpdatePatch
+{
+    static void Postfix(Body __instance)
+    {
+        PPOBridge.ApplyFunctionalGodMode(__instance);
+        PPOBridge.MaintainPolicyPause();
+    }
+}
+
+[HarmonyPatch(typeof(PlayerCamera), "Update")]
+public static class PlayerCameraGodModeUpdatePatch
+{
+    static void Prefix(PlayerCamera __instance)
+    {
+        PPOBridge.ApplyFunctionalGodMode(__instance.body);
+        PPOBridge.MaintainPolicyPause();
+    }
+}
+
+[HarmonyPatch(typeof(Limb), nameof(Limb.Dismember))]
+public static class PreventPPOPlayerDismembermentPatch
+{
+    static bool Prefix(Limb __instance)
+    {
+        return !PPOBridge.FunctionalGodModeActive(__instance.body);
+    }
+}
+
+[HarmonyPatch(typeof(Limb), nameof(Limb.BreakBone))]
+public static class PreventPPOPlayerFracturePatch
+{
+    static bool Prefix(Limb __instance)
+    {
+        return !PPOBridge.FunctionalGodModeActive(__instance.body);
+    }
+}
+
+[HarmonyPatch(typeof(Limb), nameof(Limb.Dislocate))]
+public static class PreventPPOPlayerDislocationPatch
+{
+    static bool Prefix(Limb __instance)
+    {
+        return !PPOBridge.FunctionalGodModeActive(__instance.body);
+    }
+}
+
+[HarmonyPatch(typeof(RadiationLine), nameof(RadiationLine.Activate))]
+public static class DisablePPORadlinePatch
+{
+    static bool Prefix()
+    {
+        return PPOBridge.ControlEnabled;
     }
 }
 

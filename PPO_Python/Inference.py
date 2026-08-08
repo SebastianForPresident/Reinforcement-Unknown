@@ -1,6 +1,4 @@
-import gymnasium as gym
 from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -32,18 +30,14 @@ def Infer(env, checkpoint_path):
                 raw_obs = env.latest_obs
                 step += 1
 
-                if step % LOG_EVERY == 0 or action_changed and step <= 10:
+                if (step % LOG_EVERY == 0) or (action_changed and step <= 10):
                     log.write(
                         f"step={step} action_changed={action_changed} "
                         f"action={action_list} reward={reward:.5f} "
-                        f"progress={info.get('progress', 0.0):.5f} "
-                        f"risk={info.get('risk', 0.0):.5f} "
-                        f"physical={info.get('physical_risk', 0.0):.5f} "
-                        f"acute={info.get('acute_risk', 0.0):.5f} "
-                        f"systemic={info.get('systemic_risk', 0.0):.5f} "
-                        f"safety_delta={info.get('safety_delta', 0.0):.5f} "
-                        f"death={info.get('death', 0.0):.1f} "
-                        f"completion={info.get('completion', 0.0):.1f} "
+                        f"progress={info['progress']:.5f} "
+                        f"completion={info['completion']:.1f} "
+                        f"ticks={info.get('macrostep_physics_ticks', 0)} "
+                        f"sim_dt={info.get('simulation_delta_time', 0.0):.3f} "
                         f"layer={float(raw_obs['LayerProgress']):.5f} "
                         f"dead={bool(raw_obs['PlayerDead'])} "
                         f"stamina={float(raw_obs['Stamina']):.2f} "
