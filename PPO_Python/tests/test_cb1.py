@@ -202,8 +202,11 @@ class ActionDispatchTests(unittest.TestCase):
         action = np.asarray([2, 1, 0, 1, 8, 0, 1], dtype=np.int64)
         try:
             CasualtiesEnv._server = fake_server
-            CasualtiesEnv.SendReset(7)
-            self.assertEqual(fake_server.action_pipe.messages, [b"RESET 7\n"])
+            CasualtiesEnv.SendReset(7, 123456)
+            self.assertEqual(
+                fake_server.action_pipe.messages,
+                [b"RESET 7 123456\n"],
+            )
             self.assertTrue(fake_server.reset_requested.is_set())
 
             # Env.reset clears this only after consuming RESET_READY.
@@ -217,7 +220,7 @@ class ActionDispatchTests(unittest.TestCase):
             )
             self.assertEqual(
                 fake_server.action_pipe.messages,
-                [b"RESET 7\n", b"ACTION 1\n"],
+                [b"RESET 7 123456\n", b"ACTION 1\n"],
             )
 
             CasualtiesEnv.Decode(
@@ -229,10 +232,25 @@ class ActionDispatchTests(unittest.TestCase):
             )
             self.assertEqual(
                 fake_server.action_pipe.messages,
-                [b"RESET 7\n", b"ACTION 1\n", b"ACTION 2\n"],
+                [
+                    b"RESET 7 123456\n",
+                    b"ACTION 1\n",
+                    b"ACTION 2\n",
+                ],
             )
         finally:
             CasualtiesEnv._server = previous_server
+
+    def test_world_seed_validation(self):
+        self.assertEqual(CasualtiesEnv.NormalizeWorldSeed(0), 0)
+        self.assertEqual(
+            CasualtiesEnv.NormalizeWorldSeed(np.int64(2_147_483_647)),
+            2_147_483_647,
+        )
+        for invalid in (-1, 2_147_483_648, True, 1.5, "17"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    CasualtiesEnv.NormalizeWorldSeed(invalid)
 
 
 class TraceTests(unittest.TestCase):
@@ -245,7 +263,7 @@ class TraceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "trace.csv"
             writer = EpisodeTrace.EpisodeTraceWriter(path)
-            writer.begin_episode(1)
+            writer.begin_episode(1, world_seed=123456)
             writer.record(
                 1, action, obs, 42, 0.0, {}, terminated=False, truncated=True
             )
@@ -256,6 +274,7 @@ class TraceTests(unittest.TestCase):
                 row = next(csv.DictReader(handle))
 
             self.assertEqual(row["episode_complete"], "False")
+            self.assertEqual(row["world_seed"], "123456")
             self.assertEqual(row["action_move"], "2")
             self.assertEqual(row["action_look_dx"], "8")
             self.assertEqual(row["action_interact"], "0")

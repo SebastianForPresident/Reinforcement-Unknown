@@ -22,7 +22,7 @@ simulation_paused = threading.Event()
 pause_applied = threading.Event()
 resume_applied = threading.Event()
 reset_ready_condition = threading.Condition()
-reset_ready_observation_ids = {}
+reset_ready_results = {}
 
 def CreateTcpListener(port):
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -77,27 +77,31 @@ def ControlAckLoop():
                     resume_applied.set()
                 elif line.startswith(b"RESET_READY "):
                     parts = line.split()
-                    if len(parts) == 3:
+                    if len(parts) == 4:
                         try:
                             reset_token = int(parts[1])
                             first_observation_id = int(parts[2])
+                            world_seed = int(parts[3])
                         except ValueError:
                             print(f"Malformed Unity reset acknowledgement: {line!r}")
                         else:
                             with reset_ready_condition:
-                                reset_ready_observation_ids[reset_token] = (
-                                    first_observation_id
+                                reset_ready_results[reset_token] = (
+                                    first_observation_id,
+                                    world_seed,
                                 )
                                 reset_ready_condition.notify_all()
+                    else:
+                        print(f"Malformed Unity reset acknowledgement: {line!r}")
         except OSError:
             return
 
 
-def WaitForResetReady(reset_token, timeout=30.0):
-    """Wait for Unity to identify the first observation from this reset."""
+def WaitForResetReady(reset_token, expected_world_seed, timeout=30.0):
+    """Wait for Unity to acknowledge the seeded reset and first observation."""
     deadline = time.monotonic() + timeout
     with reset_ready_condition:
-        while reset_token not in reset_ready_observation_ids:
+        while reset_token not in reset_ready_results:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError(
@@ -106,7 +110,16 @@ def WaitForResetReady(reset_token, timeout=30.0):
                 )
             reset_ready_condition.wait(timeout=remaining)
 
-        return reset_ready_observation_ids.pop(reset_token)
+        first_observation_id, applied_world_seed = reset_ready_results.pop(
+            reset_token
+        )
+        if applied_world_seed != expected_world_seed:
+            raise RuntimeError(
+                "Unity acknowledged the wrong world seed for reset "
+                f"{reset_token}: expected {expected_world_seed}, "
+                f"applied {applied_world_seed}"
+            )
+        return first_observation_id
 
 
 def PauseSimulation():
@@ -179,16 +192,36 @@ def Shutdown():
             except OSError:
                 pass
 
+if len(sys.argv) < 2 or sys.argv[1] not in ("train", "inference", "validate"):
+    raise SystemExit(
+        "Usage: python Server.py train [checkpoint-directory] | "
+        "inference <checkpoint.zip> [world-seed] | "
+        "validate [steps] [world-seed]"
+    )
+
 if (
-    len(sys.argv) < 2
-    or len(sys.argv) > 3
-    or sys.argv[1] not in ("train", "inference", "validate")
-    or (sys.argv[1] == "inference" and len(sys.argv) != 3)
+    (sys.argv[1] == "train" and len(sys.argv) not in (2, 3))
+    or (sys.argv[1] == "inference" and len(sys.argv) not in (3, 4))
+    or (sys.argv[1] == "validate" and len(sys.argv) not in (2, 3, 4))
 ):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
-        "inference <checkpoint.zip> | validate [steps]"
+        "inference <checkpoint.zip> [world-seed] | "
+        "validate [steps] [world-seed]"
     )
+
+inference_world_seed = None
+validation_steps = 1_500
+validation_world_seed = None
+if sys.argv[1] == "inference" and len(sys.argv) == 4:
+    inference_world_seed = CasualtiesEnv.NormalizeWorldSeed(int(sys.argv[3]))
+elif sys.argv[1] == "validate":
+    if len(sys.argv) >= 3:
+        validation_steps = int(sys.argv[2])
+    if len(sys.argv) == 4:
+        validation_world_seed = CasualtiesEnv.NormalizeWorldSeed(
+            int(sys.argv[3])
+        )
 
 print("Waiting for Unity observation connection...")
 obs_pipe, _ = obs_listener.accept()
@@ -280,15 +313,15 @@ if sys.argv[1] == "train":
         daemon=True,
     ).start()
 elif sys.argv[1] == "inference":
-    if len(sys.argv) == 3:
-        threading.Thread(target=Inference.Infer, args=(env, sys.argv[2]), daemon=True).start()
-    else:
-        raise SystemExit("Usage: python Server.py inference <checkpoint.zip>")
+    threading.Thread(
+        target=Inference.Infer,
+        args=(env, sys.argv[2], inference_world_seed),
+        daemon=True,
+    ).start()
 elif sys.argv[1] == "validate":
-    validation_steps = int(sys.argv[2]) if len(sys.argv) == 3 else 1_500
     threading.Thread(
         target=Validation.Run,
-        args=(env, validation_steps),
+        args=(env, validation_steps, 0, validation_world_seed),
         daemon=True,
     ).start()
 

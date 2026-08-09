@@ -3,9 +3,13 @@
 import numpy as np
 
 
-def Run(env, steps=1_500, seed=0):
+def Run(env, steps=1_500, seed=0, world_seed=None):
     rng = np.random.default_rng(seed)
-    obs, _ = env.reset()
+    reset_options = (
+        {"world_seed": world_seed} if world_seed is not None else None
+    )
+    obs, reset_info = env.reset(options=reset_options)
+    print(f"Validation world seed: {reset_info['world_seed']}")
     positions = set()
     completions = 0
     peak_ragdoll_time = 0.0
@@ -61,7 +65,8 @@ def Run(env, steps=1_500, seed=0):
             if terminated or truncated:
                 if terminated:
                     completions += 1
-                obs, _ = env.reset()
+                obs, reset_info = env.reset(options=reset_options)
+                print(f"Validation world seed: {reset_info['world_seed']}")
                 previous_tile = None
                 previous_health = None
 

@@ -12,10 +12,14 @@ import ObservationEncoding
 import Types
 
 
-TARGET_TOTAL_TIMESTEPS = 2_000_000
+TARGET_TOTAL_TIMESTEPS = 500_000
 PPO_GAMMA = 0.99
 PPO_GAE_LAMBDA = 0.95
 PPO_N_STEPS = 2048
+PPO_LEARNING_RATE = 1e-4
+PPO_BATCH_SIZE = 256
+PPO_N_EPOCHS = 4
+PPO_TARGET_KL = 0.05
 CB1_MODEL_SCHEMA_VERSION = 1
 PROTOCOL_MANIFEST_NAME = f"protocol_{Types.CHECKPOINT_NAME.lower()}.json"
 
@@ -189,7 +193,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
         raise
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=10_000,
+        save_freq=1_000,
         save_path=str(run_dir),
         name_prefix="casu_ppo_cb1_vb1",
     )
@@ -206,11 +210,15 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 gamma=PPO_GAMMA,
                 gae_lambda=PPO_GAE_LAMBDA,
                 n_steps=PPO_N_STEPS,
+                learning_rate=PPO_LEARNING_RATE,
+                batch_size=PPO_BATCH_SIZE,
+                n_epochs=PPO_N_EPOCHS,
+                target_kl=PPO_TARGET_KL,
                 device="auto",
                 tensorboard_log=str(run_dir / "tensorboard"),
                 pause_simulation=pause_simulation,
             )
-            final_model = run_dir / "casu_ppo_cb1_vb1_final"
+            final_model = run_dir / "casu_ppo_cb1_vb1_500k"
             reset_num_timesteps = True
             total_timesteps = TARGET_TOTAL_TIMESTEPS
         else:
@@ -223,9 +231,15 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 },
                 device="auto",
                 tensorboard_log=str(run_dir / "tensorboard"),
+                custom_objects={
+                    "learning_rate": PPO_LEARNING_RATE,
+                    "batch_size": PPO_BATCH_SIZE,
+                    "n_epochs": PPO_N_EPOCHS,
+                    "target_kl": PPO_TARGET_KL,
+                },
             )
             model._pause_simulation = pause_simulation
-            final_model = run_dir / "casu_ppo_cb1_vb1_final"
+            final_model = run_dir / "casu_ppo_cb1_vb1_500k"
             reset_num_timesteps = False
             total_timesteps = max(
                 0,

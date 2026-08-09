@@ -740,6 +740,11 @@ public static class PPOBridge
     static volatile bool ppoResumeActionReceived = false;
     static ulong requestedResetToken;
     static ulong activeResetToken;
+    static int requestedWorldSeed;
+    static int activeWorldSeed;
+    static int appliedWorldSeed;
+    static int seededWorldInstanceId;
+    static volatile bool worldSeedApplicationPending;
     static bool resetObservationAcknowledgementPending;
     static bool ppoPaused = false;
     static float prePPOPauseTimeScale = 1f;
@@ -871,7 +876,26 @@ public static class PPOBridge
             $"resetComplete={resetComplete}, " +
             $"resetRequested={resetRequested}, " +
             $"resetToken={activeResetToken}/{requestedResetToken}, " +
+            $"worldSeed={appliedWorldSeed}/{activeWorldSeed}/{requestedWorldSeed}, " +
+            $"seedPending={worldSeedApplicationPending}, " +
+            $"seededWorld={seededWorldInstanceId}, " +
             $"generationFinishedWorld={generationFinishedWorldInstanceId}.";
+    }
+
+    public static void ApplyPendingWorldSeed(WorldGeneration world)
+    {
+        if (!worldSeedApplicationPending || world == null)
+            return;
+
+        UnityEngine.Random.InitState(activeWorldSeed);
+        appliedWorldSeed = activeWorldSeed;
+        seededWorldInstanceId = world.GetInstanceID();
+        worldSeedApplicationPending = false;
+        Debug.Log(
+            $"PPO applied world seed {appliedWorldSeed} before " +
+            $"WorldGeneration.Start: world={seededWorldInstanceId}, " +
+            $"scene={SceneManager.GetActiveScene().name}."
+        );
     }
 
     public static void RecordSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -1989,6 +2013,45 @@ public static class PPOBridge
         writer.Write(observationId);
     }
 
+    static bool TryStartPendingReset(Body body)
+    {
+        if (
+            !resetRequested ||
+            !resetComplete ||
+            WorldGeneration.world == null ||
+            body == null ||
+            PlayerCamera.main == null ||
+            PlayerCamera.main.body != body
+        )
+        {
+            return false;
+        }
+
+        resetRequested = false;
+        resetComplete = false;
+        activeResetToken = requestedResetToken;
+        activeWorldSeed = requestedWorldSeed;
+        appliedWorldSeed = 0;
+        seededWorldInstanceId = 0;
+        worldSeedApplicationPending = true;
+        resetObservationAcknowledgementPending = true;
+        resetSourceWorldInstanceId = WorldGeneration.world.GetInstanceID();
+        resetSourceBodyInstanceId = body.GetInstanceID();
+        generationFinishedWorldInstanceId = 0;
+        resetStartedRealtime = Time.realtimeSinceStartup;
+        resetLastDiagnosticRealtime = resetStartedRealtime;
+
+        Debug.Log(
+            $"PPO reset started: sourceWorld={resetSourceWorldInstanceId}, " +
+            $"scene={SceneManager.GetActiveScene().name}, " +
+            $"worldSeed={activeWorldSeed}, " +
+            $"worldExists={WorldGeneration.world.worldExists}, " +
+            $"generating={WorldGeneration.world.generatingWorld}."
+        );
+        WorldGeneration.world.StartCoroutine(Reset());
+        return true;
+    }
+
     public static void Tick(Body body)
     {
         if (shutdownRequested)
@@ -2003,28 +2066,8 @@ public static class PPOBridge
         if (body == null || PlayerCamera.main == null || PlayerCamera.main.body != body)
             return;
 
-        if (resetRequested && resetComplete && WorldGeneration.world != null)
-        {
-            resetRequested = false;
-            resetComplete = false;
-            activeResetToken = requestedResetToken;
-            resetObservationAcknowledgementPending = true;
-            resetSourceWorldInstanceId = WorldGeneration.world.GetInstanceID();
-            resetSourceBodyInstanceId = body == null ? 0 : body.GetInstanceID();
-            generationFinishedWorldInstanceId = 0;
-            resetStartedRealtime = Time.realtimeSinceStartup;
-            resetLastDiagnosticRealtime = resetStartedRealtime;
-
-            Debug.Log(
-                $"PPO reset started: sourceWorld={resetSourceWorldInstanceId}, " +
-                $"scene={SceneManager.GetActiveScene().name}, " +
-                $"worldExists={WorldGeneration.world.worldExists}, " +
-                $"generating={WorldGeneration.world.generatingWorld}."
-            );
-            WorldGeneration.world.StartCoroutine(Reset());
-
+        if (TryStartPendingReset(body))
             return;
-        }
 
         if (!resetComplete)
         {
@@ -2046,6 +2089,9 @@ public static class PPOBridge
             bool worldReady =
                 world != null &&
                 world.GetInstanceID() != resetSourceWorldInstanceId &&
+                world.GetInstanceID() == seededWorldInstanceId &&
+                appliedWorldSeed == activeWorldSeed &&
+                !worldSeedApplicationPending &&
                 world.worldExists &&
                 !world.generatingWorld &&
                 generationFinished &&
@@ -2174,7 +2220,8 @@ public static class PPOBridge
         {
             resetObservationAcknowledgementPending = false;
             SendActionAcknowledgement(
-                $"RESET_READY {activeResetToken} {observationId}"
+                $"RESET_READY {activeResetToken} {observationId} " +
+                $"{appliedWorldSeed}"
             );
         }
     }
@@ -2452,17 +2499,20 @@ public static class PPOBridge
                         if (line == "RESET" || line.StartsWith("RESET ", StringComparison.Ordinal))
                         {
                             requestedResetToken = 0;
+                            requestedWorldSeed = 0;
                             string[] resetParts = line.Split(
                                 new[] { ' ' },
                                 StringSplitOptions.RemoveEmptyEntries
                             );
                             if (
-                                resetParts.Length == 2 &&
-                                !ulong.TryParse(resetParts[1], out requestedResetToken)
+                                resetParts.Length != 3 ||
+                                !ulong.TryParse(resetParts[1], out requestedResetToken) ||
+                                !int.TryParse(resetParts[2], out requestedWorldSeed) ||
+                                requestedWorldSeed < 0
                             )
                             {
                                 Debug.LogWarning(
-                                    $"Ignoring malformed PPO reset token: {line}"
+                                    $"Ignoring malformed seeded PPO reset: {line}"
                                 );
                                 continue;
                             }
@@ -2592,6 +2642,10 @@ public static class PPOBridge
 
     public static void MaintainPolicyPause()
     {
+        Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
+        if (TryStartPendingReset(body))
+            return;
+
         if (policyBoundaryPaused || ppoPauseRequested || ppoPaused)
             Time.timeScale = 0f;
     }
@@ -3248,6 +3302,15 @@ public static class PPOBridge
             actionPipe?.Close();
         }
         catch {}
+    }
+}
+
+[HarmonyPatch(typeof(WorldGeneration), "Start")]
+public static class WorldGenerationSeedPatch
+{
+    static void Prefix(WorldGeneration __instance)
+    {
+        PPOBridge.ApplyPendingWorldSeed(__instance);
     }
 }
 

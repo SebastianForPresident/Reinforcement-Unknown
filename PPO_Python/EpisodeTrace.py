@@ -47,6 +47,7 @@ ACTION_NAMES = (
 
 BASE_COLUMNS = (
     "episode",
+    "world_seed",
     "step",
     "observation_id",
     "reward",
@@ -370,15 +371,17 @@ class EpisodeTraceWriter:
         self._columns = None
         self._rows = []
         self._episode = None
+        self._world_seed = None
 
     @property
     def episode_open(self):
         return self._episode is not None
 
-    def begin_episode(self, episode):
+    def begin_episode(self, episode, world_seed=None):
         if self.episode_open:
             self.finish_episode(complete=False)
         self._episode = int(episode)
+        self._world_seed = None if world_seed is None else int(world_seed)
         self._rows = []
 
     def record(
@@ -408,6 +411,7 @@ class EpisodeTraceWriter:
         action_values.extend([0] * (len(ACTION_NAMES) - len(action_values)))
         row = {
             "episode": self._episode,
+            "world_seed": self._world_seed,
             "step": int(step),
             "observation_id": _scalar(observation_id),
             "reward": _scalar(reward),
@@ -479,6 +483,7 @@ class EpisodeTraceWriter:
             return
         if not self._rows:
             self._episode = None
+            self._world_seed = None
             return
 
         # Earlier chunks of an unlimited episode have already been streamed
@@ -494,6 +499,7 @@ class EpisodeTraceWriter:
         self._append_rows(self._rows)
         self._rows = []
         self._episode = None
+        self._world_seed = None
 
     def _append_rows(self, rows):
         discovered = []

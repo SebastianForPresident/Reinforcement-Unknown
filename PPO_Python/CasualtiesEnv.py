@@ -1,5 +1,6 @@
 import gymnasium as gym
 import numpy as np
+import operator
 import threading
 import Reward
 from EpisodeTrace import EpisodeTraceWriter
@@ -11,6 +12,8 @@ _server = None
 _general_input_dim = None
 _observation_lock = None
 MAX_RESET_ATTEMPTS = 3
+MIN_WORLD_SEED = 0
+MAX_WORLD_SEED = np.iinfo(np.int32).max
 
 # CB1 adds previous-action and absolute-position context and uses a
 # semantic encoder instead of flattening raw wire values.
@@ -88,13 +91,33 @@ def Decode(action):
     # that preceded the update.
     _server.SendDecodedAction()
 
-def SendReset(reset_token):
+def NormalizeWorldSeed(world_seed):
+    if isinstance(world_seed, (bool, np.bool_)):
+        raise ValueError("World seed must be an integer, not a boolean")
+
+    try:
+        normalized = operator.index(world_seed)
+    except TypeError as exc:
+        raise ValueError(f"Invalid world seed: {world_seed!r}") from exc
+
+    if not MIN_WORLD_SEED <= normalized <= MAX_WORLD_SEED:
+        raise ValueError(
+            f"World seed must be in [{MIN_WORLD_SEED}, {MAX_WORLD_SEED}], "
+            f"received {normalized}"
+        )
+    return normalized
+
+
+def SendReset(reset_token, world_seed):
     if _server is None:
         raise RuntimeError("PPO server has not been started")
 
+    world_seed = NormalizeWorldSeed(world_seed)
     _server.reset_requested.set()
     with _server.action_write_lock:
-        _server.action_pipe.sendall(f"RESET {reset_token}\n".encode("ascii"))
+        _server.action_pipe.sendall(
+            f"RESET {reset_token} {world_seed}\n".encode("ascii")
+        )
 
 class Env(gym.Env):
     def __init__(self):
@@ -137,13 +160,26 @@ class Env(gym.Env):
         self.episode_steps = 0
         self.episode_number = 0
         self.reset_token = 0
+        self.world_seed = None
         self.episode_trace = EpisodeTraceWriter()
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
+        requested_world_seed = None
+        if options is not None:
+            requested_world_seed = options.get("world_seed")
+        if requested_world_seed is None:
+            requested_world_seed = seed
+        if requested_world_seed is None:
+            requested_world_seed = self.np_random.integers(
+                MIN_WORLD_SEED,
+                MAX_WORLD_SEED + 1,
+            )
+        self.world_seed = NormalizeWorldSeed(requested_world_seed)
+
         self.episode_number += 1
-        self.episode_trace.begin_episode(self.episode_number)
+        self.episode_trace.begin_episode(self.episode_number, self.world_seed)
         self.episode_steps = 0
 
         with _observation_lock:
@@ -152,13 +188,16 @@ class Env(gym.Env):
         for reset_attempt in range(MAX_RESET_ATTEMPTS):
             self.reset_token += 1
             reset_token = self.reset_token
-            SendReset(reset_token)
+            SendReset(reset_token, self.world_seed)
 
             # The acknowledgement carries the ID of the first observation
             # emitted after Unity has completed this reset. An observation
             # with a newer ID than the previous episode is not sufficient:
             # the last old-world packet can arrive after RESET was sent.
-            first_observation_id = _server.WaitForResetReady(reset_token)
+            first_observation_id = _server.WaitForResetReady(
+                reset_token,
+                self.world_seed,
+            )
             obs, observation_id = self._wait_for_observation_id(
                 first_observation_id
             )
@@ -180,7 +219,7 @@ class Env(gym.Env):
         Reward.Reset(self, obs)
         processed = PreprocessObservation(obs)
         ProtocolValidation.validate_reset_observation(obs, processed)
-        return processed, {}
+        return processed, {"world_seed": self.world_seed}
 
     def _wait_for_observation_id(self, expected_id):
         """Return exactly the observation identified by expected_id."""

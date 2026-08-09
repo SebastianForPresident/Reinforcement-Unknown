@@ -54,3 +54,18 @@ A jump from the original checkpoints that heavily modified the learning problem
 | Checkpoint | Reward | Behavior |
 |------------|--------|----------|
 | CB1 | VB1 | Validation in progress |
+
+## Reproducible Cave Seeds
+
+CB1 resets send an explicit non-negative 32-bit world seed to the Unity
+harness. Training selects a fresh seed for every procedural cave, while
+inference and validation can load a specific cave:
+
+```bash
+./.venv/bin/python PPO_Python/Server.py inference checkpoint.zip 123456
+./.venv/bin/python PPO_Python/Server.py validate 1500 123456
+```
+
+The applied seed is acknowledged by Unity and recorded in every episode trace
+under `world_seed`. Calling `env.reset(seed=123456)` or
+`env.reset(options={"world_seed": 123456})` loads the same requested seed.

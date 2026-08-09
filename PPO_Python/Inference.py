@@ -6,19 +6,23 @@ from pathlib import Path
 
 LOG_EVERY = 100
 
-def Infer(env, checkpoint_path):
+def Infer(env, checkpoint_path, world_seed=None):
     log_file = Path("inference_debug.log")
     try:
         model = PPO.load(checkpoint_path, env=env)
 
-        obs, info = env.reset()
+        reset_options = (
+            {"world_seed": world_seed} if world_seed is not None else None
+        )
+        obs, info = env.reset(options=reset_options)
         previous_action = None
         step = 0
 
         with log_file.open("a", encoding="utf-8") as log:
             log.write(
                 f"\n[{datetime.now().isoformat(timespec='seconds')}] "
-                f"checkpoint={checkpoint_path}\n"
+                f"checkpoint={checkpoint_path} "
+                f"world_seed={info.get('world_seed')}\n"
             )
 
             while True:
@@ -52,7 +56,7 @@ def Infer(env, checkpoint_path):
                 if terminated or truncated:
                     log.write(f"episode_end step={step} terminated={terminated} truncated={truncated}\n")
                     log.flush()
-                    obs, info = env.reset()
+                    obs, info = env.reset(options=reset_options)
                     previous_action = None
 
     except KeyboardInterrupt:
