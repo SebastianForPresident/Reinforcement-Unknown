@@ -1,6 +1,7 @@
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -127,6 +128,18 @@ class IndependentCriticTests(unittest.TestCase):
 
 
 class RolloutCheckpointTests(unittest.TestCase):
+    def test_training_progress_callback_starts_and_updates(self):
+        callback = Train.TrainingProgressCallback()
+        callback.model = SimpleNamespace(
+            num_timesteps=100,
+            _total_timesteps=200,
+            _num_timesteps_at_start=100,
+        )
+        with mock.patch("sys.stderr"):
+            callback._on_training_start()
+            self.assertTrue(callback._on_step())
+            callback._on_training_end()
+
     def test_checkpoint_is_saved_only_after_five_complete_updates(self):
         class Model:
             def __init__(self):

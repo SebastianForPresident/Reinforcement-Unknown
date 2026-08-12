@@ -114,6 +114,40 @@ class TrainingProgressCallback(BaseCallback):
         sys.stderr.write("\n")
         sys.stderr.flush()
 
+    def _print_progress(self, force=False):
+        now = time.monotonic()
+        if not force and now - self.last_update < self.update_interval:
+            return
+
+        self.last_update = now
+        current = self.model.num_timesteps
+        target = max(self.model._total_timesteps, 1)
+        fraction = min(max(current / target, 0.0), 1.0)
+        bar_width = 30
+        filled = int(bar_width * fraction)
+        bar = "█" * filled + "░" * (bar_width - filled)
+
+        elapsed = max(now - self.started_at, 0.001)
+        rate = max((current - self.model._num_timesteps_at_start) / elapsed, 0.0)
+        remaining = max(target - current, 0)
+        eta_seconds = remaining / rate if rate > 0.0 else 0.0
+
+        def format_duration(seconds):
+            seconds = int(seconds)
+            hours, seconds = divmod(seconds, 3600)
+            minutes, seconds = divmod(seconds, 60)
+            if hours:
+                return f"{hours}h {minutes:02d}m"
+            return f"{minutes}m {seconds:02d}s"
+
+        message = (
+            f"\rCB1 [{bar}] {fraction:6.2%} | "
+            f"{current:,}/{target:,} steps | "
+            f"{rate:5.1f} FPS | ETA {format_duration(eta_seconds)}"
+        )
+        sys.stderr.write(message)
+        sys.stderr.flush()
+
 
 class RolloutCheckpointCallback(BaseCallback):
     """Save only after complete PPO updates, never midway through a rollout."""
@@ -152,40 +186,6 @@ class RolloutCheckpointCallback(BaseCallback):
         path = self.save_path / f"{self.name_prefix}_{timestep}_steps"
         self.model.save(str(path))
         self.last_saved_timestep = timestep
-
-    def _print_progress(self, force=False):
-        now = time.monotonic()
-        if not force and now - self.last_update < self.update_interval:
-            return
-
-        self.last_update = now
-        current = self.model.num_timesteps
-        target = max(self.model._total_timesteps, 1)
-        fraction = min(max(current / target, 0.0), 1.0)
-        bar_width = 30
-        filled = int(bar_width * fraction)
-        bar = "█" * filled + "░" * (bar_width - filled)
-
-        elapsed = max(now - self.started_at, 0.001)
-        rate = max((current - self.model._num_timesteps_at_start) / elapsed, 0.0)
-        remaining = max(target - current, 0)
-        eta_seconds = remaining / rate if rate > 0.0 else 0.0
-
-        def format_duration(seconds):
-            seconds = int(seconds)
-            hours, seconds = divmod(seconds, 3600)
-            minutes, seconds = divmod(seconds, 60)
-            if hours:
-                return f"{hours}h {minutes:02d}m"
-            return f"{minutes}m {seconds:02d}s"
-
-        message = (
-            f"\rCB1 [{bar}] {fraction:6.2%} | "
-            f"{current:,}/{target:,} steps | "
-            f"{rate:5.1f} FPS | ETA {format_duration(eta_seconds)}"
-        )
-        sys.stderr.write(message)
-        sys.stderr.flush()
 
 def FindResumeModel(run_dir):
     """Select the newest completed PPO model in an existing run directory."""
@@ -274,6 +274,10 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                     "batch_size": PPO_BATCH_SIZE,
                     "n_epochs": PPO_N_EPOCHS,
                     "target_kl": PPO_TARGET_KL,
+                    # A checkpoint written by an experimental collector may
+                    # have a longer physical collection window. Plain CB1
+                    # always restores its original optimizer rollout size.
+                    "n_steps": PPO_N_STEPS,
                 },
             )
             model._pause_simulation = pause_simulation

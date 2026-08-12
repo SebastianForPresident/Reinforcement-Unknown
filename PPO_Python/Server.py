@@ -6,6 +6,7 @@ import numpy as np
 import CasualtiesEnv
 import Train
 import CriticTraining
+import ReinforceTraining
 import Inference
 import Validation
 import Types
@@ -194,11 +195,12 @@ def Shutdown():
                 pass
 
 if len(sys.argv) < 2 or sys.argv[1] not in (
-    "train", "critic-train", "inference", "validate"
+    "train", "critic-train", "reinforce-train", "inference", "validate"
 ):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
         "critic-train <checkpoint-directory> [shadow|active] | "
+        "reinforce-train <checkpoint-directory> [shadow|active] | "
         "inference <checkpoint.zip> [world-seed] | "
         "validate [steps] [world-seed]"
     )
@@ -206,12 +208,14 @@ if len(sys.argv) < 2 or sys.argv[1] not in (
 if (
     (sys.argv[1] == "train" and len(sys.argv) not in (2, 3))
     or (sys.argv[1] == "critic-train" and len(sys.argv) not in (3, 4))
+    or (sys.argv[1] == "reinforce-train" and len(sys.argv) not in (3, 4))
     or (sys.argv[1] == "inference" and len(sys.argv) not in (3, 4))
     or (sys.argv[1] == "validate" and len(sys.argv) not in (2, 3, 4))
 ):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
         "critic-train <checkpoint-directory> [shadow|active] | "
+        "reinforce-train <checkpoint-directory> [shadow|active] | "
         "inference <checkpoint.zip> [world-seed] | "
         "validate [steps] [world-seed]"
     )
@@ -234,6 +238,12 @@ if sys.argv[1] == "critic-train" and len(sys.argv) == 4:
     critic_mode = sys.argv[3]
     if critic_mode not in ("shadow", "active"):
         raise SystemExit("critic-train mode must be 'shadow' or 'active'")
+
+reinforce_mode = "shadow"
+if sys.argv[1] == "reinforce-train" and len(sys.argv) == 4:
+    reinforce_mode = sys.argv[3]
+    if reinforce_mode not in ("shadow", "active"):
+        raise SystemExit("reinforce-train mode must be 'shadow' or 'active'")
 
 print("Waiting for Unity observation connection...")
 obs_pipe, _ = obs_listener.accept()
@@ -328,6 +338,12 @@ elif sys.argv[1] == "critic-train":
     threading.Thread(
         target=CriticTraining.Begin_Critic_Training,
         args=(env, PauseSimulation, sys.argv[2], critic_mode),
+        daemon=True,
+    ).start()
+elif sys.argv[1] == "reinforce-train":
+    threading.Thread(
+        target=ReinforceTraining.Begin_Reinforce_Training,
+        args=(env, PauseSimulation, sys.argv[2], reinforce_mode),
         daemon=True,
     ).start()
 elif sys.argv[1] == "inference":

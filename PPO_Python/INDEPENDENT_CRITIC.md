@@ -70,3 +70,22 @@ TensorBoard receives:
 
 Do not activate based on one rollout. Cave returns are sparse and
 explained-variance readings can be pathological when target variance is tiny.
+
+## CB1 shadow result (1,270,648–1,317,752)
+
+The first shadow experiment was rejected after 22 trained held-out
+comparisons. The independent critic trained on fixed archived TD(lambda)
+targets did not generalize better than the ordinary shared critic:
+
+- held-out loss wins: 5/22
+- explained-variance wins: 5/22
+- median held-out loss ratio: 1.18 (independent/shared)
+- catastrophic explained variance below -10: 5 independent versus 1 shared
+
+On three reward-rich rollouts, mean loss was essentially tied. Most failures
+occurred when transferring back to quiet rollouts after fitting a different
+recent return regime. This snapshot must remain shadow-only; it is not an
+approved source of actor advantages.
+
+The actor continued ordinary PPO updates throughout shadow mode and was never
+trained using independent-critic advantages.
