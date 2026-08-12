@@ -1,5 +1,4 @@
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import CheckpointCallback
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -115,6 +114,45 @@ class TrainingProgressCallback(BaseCallback):
         sys.stderr.write("\n")
         sys.stderr.flush()
 
+
+class RolloutCheckpointCallback(BaseCallback):
+    """Save only after complete PPO updates, never midway through a rollout."""
+
+    def __init__(self, save_path, name_prefix, updates_per_save=5):
+        super().__init__(verbose=0)
+        self.save_path = Path(save_path)
+        self.name_prefix = name_prefix
+        self.updates_per_save = int(updates_per_save)
+        self.completed_rollouts = 0
+        self.last_saved_timestep = None
+
+    def _on_step(self):
+        return True
+
+    def _on_rollout_start(self):
+        # on_rollout_start for rollout N+1 occurs after train() has consumed
+        # rollout N, so the saved policy and timestep form a complete boundary.
+        if (
+            self.completed_rollouts > 0
+            and self.completed_rollouts % self.updates_per_save == 0
+        ):
+            self._save()
+
+    def _on_rollout_end(self):
+        self.completed_rollouts += 1
+
+    def _on_training_end(self):
+        self._save()
+
+    def _save(self):
+        timestep = int(self.model.num_timesteps)
+        if timestep == self.last_saved_timestep:
+            return
+        self.save_path.mkdir(parents=True, exist_ok=True)
+        path = self.save_path / f"{self.name_prefix}_{timestep}_steps"
+        self.model.save(str(path))
+        self.last_saved_timestep = timestep
+
     def _print_progress(self, force=False):
         now = time.monotonic()
         if not force and now - self.last_update < self.update_interval:
@@ -192,10 +230,10 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
         env.close()
         raise
 
-    checkpoint_callback = CheckpointCallback(
-        save_freq=1_000,
+    checkpoint_callback = RolloutCheckpointCallback(
         save_path=str(run_dir),
         name_prefix="casu_ppo_cb1_vb1",
+        updates_per_save=5,
     )
 
     try:

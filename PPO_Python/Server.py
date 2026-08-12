@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import CasualtiesEnv
 import Train
+import CriticTraining
 import Inference
 import Validation
 import Types
@@ -192,20 +193,25 @@ def Shutdown():
             except OSError:
                 pass
 
-if len(sys.argv) < 2 or sys.argv[1] not in ("train", "inference", "validate"):
+if len(sys.argv) < 2 or sys.argv[1] not in (
+    "train", "critic-train", "inference", "validate"
+):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
+        "critic-train <checkpoint-directory> [shadow|active] | "
         "inference <checkpoint.zip> [world-seed] | "
         "validate [steps] [world-seed]"
     )
 
 if (
     (sys.argv[1] == "train" and len(sys.argv) not in (2, 3))
+    or (sys.argv[1] == "critic-train" and len(sys.argv) not in (3, 4))
     or (sys.argv[1] == "inference" and len(sys.argv) not in (3, 4))
     or (sys.argv[1] == "validate" and len(sys.argv) not in (2, 3, 4))
 ):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
+        "critic-train <checkpoint-directory> [shadow|active] | "
         "inference <checkpoint.zip> [world-seed] | "
         "validate [steps] [world-seed]"
     )
@@ -222,6 +228,12 @@ elif sys.argv[1] == "validate":
         validation_world_seed = CasualtiesEnv.NormalizeWorldSeed(
             int(sys.argv[3])
         )
+
+critic_mode = "shadow"
+if sys.argv[1] == "critic-train" and len(sys.argv) == 4:
+    critic_mode = sys.argv[3]
+    if critic_mode not in ("shadow", "active"):
+        raise SystemExit("critic-train mode must be 'shadow' or 'active'")
 
 print("Waiting for Unity observation connection...")
 obs_pipe, _ = obs_listener.accept()
@@ -310,6 +322,12 @@ if sys.argv[1] == "train":
     threading.Thread(
         target=Train.Begin_Training,
         args=(env, PauseSimulation, resume_dir),
+        daemon=True,
+    ).start()
+elif sys.argv[1] == "critic-train":
+    threading.Thread(
+        target=CriticTraining.Begin_Critic_Training,
+        args=(env, PauseSimulation, sys.argv[2], critic_mode),
         daemon=True,
     ).start()
 elif sys.argv[1] == "inference":
