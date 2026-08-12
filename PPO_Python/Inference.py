@@ -26,7 +26,7 @@ def Infer(env, checkpoint_path, world_seed=None):
             )
 
             while True:
-                action, _ = model.predict(obs, deterministic=False)
+                action, _ = model.predict(obs, deterministic=True)
                 action_list = action.tolist()
                 action_changed = previous_action is None or action_list != previous_action
 
