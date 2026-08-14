@@ -12,7 +12,9 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Collections;
 using System.Text;
+using System.Reflection.Emit;
 using UnityEngine.SceneManagement;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 [BepInPlugin("sebastian.ppoharness", "PPO Harness", "1.0.0")]
 public class PPO_Harness : BaseUnityPlugin
@@ -26,6 +28,7 @@ public class PPO_Harness : BaseUnityPlugin
         Harmony harmony = new Harmony("sebastian.ppoharness");
         harmony.PatchAll();
 
+        PPOBridge.EnsureTrainingFrameCap();
         Logger.LogInfo("Patches applied");
 
         Application.quitting += PPOBridge.Shutdown;
@@ -69,6 +72,181 @@ public class PPO_Harness : BaseUnityPlugin
     {
         Application.logMessageReceived -= HandleUnityLogMessage;
         SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+}
+
+[HarmonyPatch(typeof(FluidManager), nameof(FluidManager.SimulationStep))]
+public static class PPOFluidSimulationPerformancePatch
+{
+    static void Prefix(out long __state)
+    {
+        __state = PPOPerformanceInstrumentation.Start();
+    }
+
+    static void Postfix(long __state)
+    {
+        PPOPerformanceInstrumentation.AddFluidSimulation(__state);
+    }
+}
+
+[HarmonyPatch(typeof(FluidManager), nameof(FluidManager.RenderFluids))]
+public static class PPOFluidRenderingPerformancePatch
+{
+    static void Prefix(out long __state)
+    {
+        __state = PPOPerformanceInstrumentation.Start();
+    }
+
+    static void Postfix(long __state)
+    {
+        PPOPerformanceInstrumentation.AddFluidRendering(__state);
+    }
+}
+
+[HarmonyPatch(typeof(WorldGeneration), nameof(WorldGeneration.UpdateChunk))]
+public static class PPOChunkRefreshPerformancePatch
+{
+    static void Prefix(out long __state)
+    {
+        __state = PPOPerformanceInstrumentation.Start();
+    }
+
+    static void Postfix(long __state)
+    {
+        PPOPerformanceInstrumentation.AddChunkRefresh(__state);
+    }
+}
+
+[HarmonyPatch(typeof(Body), "FixedUpdate")]
+public static class PPOBodyFixedPerformancePatch
+{
+    static void Prefix(out long __state)
+    {
+        __state = PPOPerformanceInstrumentation.Start();
+    }
+
+    static void Postfix(Body __instance, long __state)
+    {
+        PPOPerformanceInstrumentation.AddBodyFixedUpdate(__state, __instance);
+    }
+}
+
+[HarmonyPatch(typeof(Body), "Update")]
+public static class PPOBodyUpdatePerformancePatch
+{
+    static void Prefix(out long __state)
+    {
+        __state = PPOPerformanceInstrumentation.Start();
+    }
+
+    static void Postfix(long __state)
+    {
+        PPOPerformanceInstrumentation.AddBodyUpdate(__state);
+    }
+}
+
+[HarmonyPatch(typeof(Limb), "Update")]
+public static class PPOLimbUpdatePerformancePatch
+{
+    static void Prefix(out long __state)
+    {
+        __state = PPOPerformanceInstrumentation.Start();
+    }
+
+    static void Postfix(long __state)
+    {
+        PPOPerformanceInstrumentation.AddLimbUpdate(__state);
+    }
+}
+
+static class PPOTimeScaleThresholds
+{
+    static readonly System.Reflection.MethodInfo TimeScaleGetter =
+        AccessTools.PropertyGetter(typeof(Time), nameof(Time.timeScale));
+
+    public static IEnumerable<CodeInstruction> Replace(
+        IEnumerable<CodeInstruction> instructions,
+        float replacement,
+        int expectedReplacements,
+        string methodName
+    )
+    {
+        List<CodeInstruction> codes = new List<CodeInstruction>(instructions);
+        int replacements = 0;
+        for (int i = 1; i < codes.Count; i++)
+        {
+            if (
+                codes[i].opcode == OpCodes.Ldc_R4 &&
+                codes[i].operand is float value &&
+                Mathf.Approximately(value, 5f) &&
+                codes[i - 1].Calls(TimeScaleGetter)
+            )
+            {
+                codes[i].operand = replacement;
+                replacements++;
+            }
+        }
+
+        if (replacements != expectedReplacements)
+        {
+            throw new InvalidOperationException(
+                $"PPO time-scale patch for {methodName} replaced {replacements} " +
+                $"checks; expected {expectedReplacements}."
+            );
+        }
+
+        return codes;
+    }
+}
+
+[HarmonyPatch(typeof(Item), "Update")]
+public static class PPOItemTimeScaleThresholdPatch
+{
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        return PPOTimeScaleThresholds.Replace(instructions, 19f, 1, "Item.Update");
+    }
+}
+
+[HarmonyPatch(typeof(BuildingEntity), nameof(BuildingEntity.Update))]
+public static class PPOBuildingTimeScaleThresholdPatch
+{
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        return PPOTimeScaleThresholds.Replace(
+            instructions,
+            19f,
+            1,
+            "BuildingEntity.Update"
+        );
+    }
+}
+
+[HarmonyPatch(typeof(PlayerCamera), "HandleInput")]
+public static class PPOPlayerInputTimeScaleThresholdPatch
+{
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        return PPOTimeScaleThresholds.Replace(
+            instructions,
+            19f,
+            2,
+            "PlayerCamera.HandleInput"
+        );
+    }
+}
+
+[HarmonyPatch(typeof(WorldGeneration), "Update")]
+public static class PPOBlackoutTimeScaleThresholdPatch
+{
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        return PPOTimeScaleThresholds.Replace(
+            instructions,
+            20f,
+            1,
+            "WorldGeneration.Update"
+        );
     }
 }
 
@@ -175,6 +353,127 @@ class BinaryObservationWriter
         Buffer[BytesWritten++] = unchecked((byte)(bits >> 40));
         Buffer[BytesWritten++] = unchecked((byte)(bits >> 48));
         Buffer[BytesWritten++] = unchecked((byte)(bits >> 56));
+    }
+}
+
+static class PPOPerformanceInstrumentation
+{
+    const int ReportEveryMacrosteps = 250;
+
+    struct Timing
+    {
+        public long Ticks;
+        public long Calls;
+        public long MaxTicks;
+
+        public void Add(long ticks)
+        {
+            Ticks += ticks;
+            Calls++;
+            if (ticks > MaxTicks)
+                MaxTicks = ticks;
+        }
+
+        public void Clear()
+        {
+            Ticks = 0;
+            Calls = 0;
+            MaxTicks = 0;
+        }
+    }
+
+    static Timing fluidSimulation;
+    static Timing fluidRendering;
+    static Timing chunkRefresh;
+    static Timing bodyFixedUpdate;
+    static Timing bodyUpdate;
+    static Timing limbUpdate;
+    static Timing observationCollect;
+    static Timing observationEncode;
+    static Timing observationPublish;
+    static long windowStartedAt;
+    static long playerPhysicsTicks;
+    static long reports;
+
+    public static long Start() => Stopwatch.GetTimestamp();
+
+    static long Elapsed(long startedAt) => Stopwatch.GetTimestamp() - startedAt;
+
+    public static void AddFluidSimulation(long startedAt) => fluidSimulation.Add(Elapsed(startedAt));
+    public static void AddFluidRendering(long startedAt) => fluidRendering.Add(Elapsed(startedAt));
+    public static void AddChunkRefresh(long startedAt) => chunkRefresh.Add(Elapsed(startedAt));
+    public static void AddBodyFixedUpdate(long startedAt, Body body)
+    {
+        bodyFixedUpdate.Add(Elapsed(startedAt));
+        if (
+            body == null ||
+            PlayerCamera.main == null ||
+            PlayerCamera.main.body != body
+        )
+        {
+            return;
+        }
+
+        if (playerPhysicsTicks == 0)
+            windowStartedAt = Start();
+        playerPhysicsTicks++;
+        if (playerPhysicsTicks >= ReportEveryMacrosteps * Observation.POLICY_PHYSICS_TICKS)
+            ReportAndReset();
+    }
+    public static void AddBodyUpdate(long startedAt) => bodyUpdate.Add(Elapsed(startedAt));
+    public static void AddLimbUpdate(long startedAt) => limbUpdate.Add(Elapsed(startedAt));
+    public static void AddObservationCollect(long startedAt) => observationCollect.Add(Elapsed(startedAt));
+    public static void AddObservationEncode(long startedAt) => observationEncode.Add(Elapsed(startedAt));
+    public static void AddObservationPublish(long startedAt) => observationPublish.Add(Elapsed(startedAt));
+
+    static double Milliseconds(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
+
+    static string Format(string name, Timing timing, double macrostepMilliseconds)
+    {
+        double totalMilliseconds = Milliseconds(timing.Ticks);
+        double meanMilliseconds = timing.Calls == 0 ? 0.0 : totalMilliseconds / timing.Calls;
+        double percent = macrostepMilliseconds <= 0.0 ? 0.0 : totalMilliseconds * 100.0 / macrostepMilliseconds;
+        return
+            $"{name}={totalMilliseconds:F1}ms/{timing.Calls} " +
+            $"({meanMilliseconds:F3}ms avg, {Milliseconds(timing.MaxTicks):F3}ms max, {percent:F1}%)";
+    }
+
+    static void ReportAndReset()
+    {
+        double measuredWallMilliseconds = Milliseconds(Elapsed(windowStartedAt));
+        double simulatedSeconds = playerPhysicsTicks * 0.02;
+        double simulatedSpeed = measuredWallMilliseconds <= 0.0
+            ? 0.0
+            : simulatedSeconds / (measuredWallMilliseconds / 1000.0);
+        long refreshedTiles = chunkRefresh.Calls * WorldGeneration.CHUNKSIZE * WorldGeneration.CHUNKSIZE;
+
+        Debug.Log(
+            $"PPO PERF window={++reports}, macrosteps={playerPhysicsTicks / Observation.POLICY_PHYSICS_TICKS}, " +
+            $"wall={measuredWallMilliseconds:F1}ms, simulated={simulatedSeconds:F1}s, " +
+            $"simSpeed={simulatedSpeed:F2}x; " +
+            Format("fluidSim", fluidSimulation, measuredWallMilliseconds) + "; " +
+            Format("fluidRender", fluidRendering, measuredWallMilliseconds) + "; " +
+            Format("chunkRefresh", chunkRefresh, measuredWallMilliseconds) +
+            $", submittedTiles={refreshedTiles}; " +
+            Format("bodyFixed", bodyFixedUpdate, measuredWallMilliseconds) + "; " +
+            Format("bodyUpdate", bodyUpdate, measuredWallMilliseconds) + "; " +
+            Format("limbUpdate", limbUpdate, measuredWallMilliseconds) + "; " +
+            Format("obsCollect", observationCollect, measuredWallMilliseconds) + "; " +
+            Format("obsEncode", observationEncode, measuredWallMilliseconds) + "; " +
+            Format("obsPublishTotal", observationPublish, measuredWallMilliseconds)
+        );
+
+        fluidSimulation.Clear();
+        fluidRendering.Clear();
+        chunkRefresh.Clear();
+        bodyFixedUpdate.Clear();
+        bodyUpdate.Clear();
+        limbUpdate.Clear();
+        observationCollect.Clear();
+        observationEncode.Clear();
+        observationPublish.Clear();
+        playerPhysicsTicks = 0;
+        windowStartedAt = 0;
     }
 }
 
@@ -715,6 +1014,42 @@ public static class PPOBridge
     static bool shuttingDown = false;
 
     public static bool ControlEnabled = false;
+    public const int TrainingFrameRate = 60;
+    public const float TrainingTimeScale = 4f;
+
+    public static void EnsureTrainingFrameCap()
+    {
+        if (ControlEnabled)
+            return;
+
+        if (QualitySettings.vSyncCount != 0)
+            QualitySettings.vSyncCount = 0;
+        if (Application.targetFrameRate != TrainingFrameRate)
+            Application.targetFrameRate = TrainingFrameRate;
+    }
+
+    static float PolicySimulationTimeScale(float capturedTimeScale)
+    {
+        Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
+        if (body != null && body.consciousness < 20f)
+        {
+            // CasU owns unconscious fast-forward. Preserve its absolute 25x
+            // or 3.5x value; never multiply it by the controllable 4x rate.
+            if (
+                Mathf.Approximately(capturedTimeScale, 25f) ||
+                Mathf.Approximately(capturedTimeScale, 3.5f)
+            )
+            {
+                return capturedTimeScale;
+            }
+
+            // Before the blackout transition completes, CasU intentionally
+            // runs at normal speed so the falling body can settle.
+            return 1f;
+        }
+
+        return TrainingTimeScale;
+    }
     public static Observation CurrentObservation = new Observation();
 
     static TcpClient obsClient;
@@ -2200,7 +2535,11 @@ public static class PPOBridge
 
     static void PublishCurrentObservation()
     {
+        long publishStartedAt = PPOPerformanceInstrumentation.Start();
+        long collectStartedAt = PPOPerformanceInstrumentation.Start();
         CollectObservations();
+        PPOPerformanceInstrumentation.AddObservationCollect(collectStartedAt);
+        long encodeStartedAt = PPOPerformanceInstrumentation.Start();
         bufferWriter.Reset();
 
         ulong observationId = ++nextObservationId;
@@ -2214,7 +2553,9 @@ public static class PPOBridge
             );
         }
 
+        PPOPerformanceInstrumentation.AddObservationEncode(encodeStartedAt);
         obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten);
+        PPOPerformanceInstrumentation.AddObservationPublish(publishStartedAt);
 
         if (resetObservationAcknowledgementPending)
         {
@@ -2612,8 +2953,8 @@ public static class PPOBridge
 
         if (policyBoundaryPaused)
         {
-            policyResumeTimeScale = 1f;
-            Time.timeScale = 1f;
+            policyResumeTimeScale = PolicySimulationTimeScale(policyResumeTimeScale);
+            Time.timeScale = policyResumeTimeScale;
             policyBoundaryPaused = false;
         }
 
@@ -2991,8 +3332,8 @@ public static class PPOBridge
 
             // The game's unconscious/death fast-forward can reset itself to
             // Normal while PPO is paused. Do not replay a stale automatic
-            // fast-forward value after that reset. Manual 5x/20x speeds are
-            // deliberately left alone.
+            // fast-forward value after that reset. Ordinary controllable PPO
+            // play resumes at its dedicated training rate.
             bool automaticFastForward =
                 Mathf.Approximately(prePPOPauseTimeScale, 25f) ||
                 Mathf.Approximately(prePPOPauseTimeScale, 3.5f);
@@ -3002,7 +3343,9 @@ public static class PPOBridge
                  playerCamera.body == null ||
                  playerCamera.body.consciousness >= 20f);
             if (automaticFastForward && gameReturnedToNormal)
-                resumeTimeScale = 1f;
+                resumeTimeScale = TrainingTimeScale;
+            else if (gameReturnedToNormal)
+                resumeTimeScale = PolicySimulationTimeScale(resumeTimeScale);
 
             Time.timeScale = policyBoundaryPaused ? 0f : resumeTimeScale;
             ppoPaused = false;
@@ -3369,6 +3712,7 @@ public static class PlayerCameraGodModeUpdatePatch
 {
     static void Prefix(PlayerCamera __instance)
     {
+        PPOBridge.EnsureTrainingFrameCap();
         PPOBridge.ApplyFunctionalGodMode(__instance.body);
         PPOBridge.MaintainPolicyPause();
     }
