@@ -14,6 +14,7 @@ using System.Collections;
 using System.Text;
 using System.Reflection.Emit;
 using UnityEngine.SceneManagement;
+using UnityEngine.LowLevel;
 using Stopwatch = System.Diagnostics.Stopwatch;
 
 [BepInPlugin("sebastian.ppoharness", "PPO Harness", "1.0.0")]
@@ -28,6 +29,7 @@ public class PPO_Harness : BaseUnityPlugin
         Harmony harmony = new Harmony("sebastian.ppoharness");
         harmony.PatchAll();
 
+        PPOPhysicsBoundaryLoop.Install();
         PPOBridge.EnsureTrainingFrameCap();
         Logger.LogInfo("Patches applied");
 
@@ -70,8 +72,85 @@ public class PPO_Harness : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        PPOPhysicsBoundaryLoop.Uninstall();
         Application.logMessageReceived -= HandleUnityLogMessage;
         SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+}
+
+static class PPOPhysicsBoundaryLoop
+{
+    sealed class PostPhysics2DBoundaryMarker {}
+
+    static PlayerLoopSystem originalLoop;
+    static bool installed;
+
+    public static void Install()
+    {
+        if (installed)
+            return;
+
+        originalLoop = PlayerLoop.GetCurrentPlayerLoop();
+        PlayerLoopSystem modifiedLoop = originalLoop;
+        PlayerLoopSystem boundary = new PlayerLoopSystem
+        {
+            type = typeof(PostPhysics2DBoundaryMarker),
+            updateDelegate = PPOBridge.PostPhysicsStep
+        };
+
+        if (!InsertAfter(ref modifiedLoop, typeof(UnityEngine.PlayerLoop.FixedUpdate.Physics2DFixedUpdate), boundary))
+        {
+            throw new InvalidOperationException(
+                "Could not insert the PPO boundary after Physics2DFixedUpdate."
+            );
+        }
+
+        PlayerLoop.SetPlayerLoop(modifiedLoop);
+        installed = true;
+        Debug.Log("PPO post-Physics2D boundary installed.");
+    }
+
+    public static void Uninstall()
+    {
+        if (!installed)
+            return;
+
+        PlayerLoop.SetPlayerLoop(originalLoop);
+        installed = false;
+    }
+
+    static bool InsertAfter(
+        ref PlayerLoopSystem parent,
+        Type targetType,
+        PlayerLoopSystem insertedSystem
+    )
+    {
+        PlayerLoopSystem[] children = parent.subSystemList;
+        if (children == null)
+            return false;
+
+        for (int i = 0; i < children.Length; i++)
+        {
+            if (children[i].type == targetType)
+            {
+                PlayerLoopSystem[] replacement = new PlayerLoopSystem[children.Length + 1];
+                Array.Copy(children, 0, replacement, 0, i + 1);
+                replacement[i + 1] = insertedSystem;
+                Array.Copy(children, i + 1, replacement, i + 2, children.Length - i - 1);
+                parent.subSystemList = replacement;
+                return true;
+            }
+
+            PlayerLoopSystem child = children[i];
+            if (InsertAfter(ref child, targetType, insertedSystem))
+            {
+                children[i] = child;
+                parent.subSystemList = children;
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
@@ -1011,11 +1090,11 @@ public static class PPOBridge
         "Back Foot" // 14
     };
     
-    static bool shuttingDown = false;
+    static volatile bool shuttingDown = false;
 
     public static bool ControlEnabled = false;
     public const int TrainingFrameRate = 60;
-    public const float TrainingTimeScale = 4f;
+    public const float TrainingTimeScale = 10f;
 
     public static void EnsureTrainingFrameCap()
     {
@@ -1069,6 +1148,8 @@ public static class PPOBridge
     public static Action LatestAction = new Action(); // Reader Publishing Action, separate from the actor
 
     static Thread actionThread;
+    static volatile bool actionReaderFailed;
+    static string actionReaderFailureMessage;
     static volatile bool resetRequested = false;
     static volatile bool shutdownRequested = false;
     static volatile bool ppoPauseRequested = false;
@@ -1132,8 +1213,6 @@ public static class PPOBridge
     public static float ThrowCharge;
 
     static ulong nextObservationId = 0;
-    static float lastObservationFixedTime;
-    static bool hasObservationFixedTime;
     static int macrostepPhysicsTicks;
     static float macrostepSimulationDeltaTime;
     static float macrostepDeepestLayerProgress;
@@ -2387,7 +2466,13 @@ public static class PPOBridge
         return true;
     }
 
-    public static void Tick(Body body)
+    public static void PostPhysicsStep()
+    {
+        Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
+        Tick(body);
+    }
+
+    static void Tick(Body body)
     {
         if (shutdownRequested)
         {
@@ -2491,14 +2576,6 @@ public static class PPOBridge
 
         EnsureCompletionProtocol();
 
-        // Body.FixedUpdate is patched once per Body. Count each distinct
-        // physics step exactly once, regardless of render cadence.
-        if (hasObservationFixedTime && Time.fixedTime == lastObservationFixedTime)
-            return;
-
-        hasObservationFixedTime = true;
-        lastObservationFixedTime = Time.fixedTime;
-
         EnsureConnections();
         if (!connected || !actionConnected)
             return;
@@ -2512,7 +2589,7 @@ public static class PPOBridge
             macrostepSimulationDeltaTime = 0f;
             macrostepDeepestLayerProgress = CurrentLayerProgress();
             PublishCurrentObservation();
-            PauseAtPolicyBoundary();
+            WaitAtPolicyBoundary(body);
             return;
         }
 
@@ -2530,7 +2607,7 @@ public static class PPOBridge
 
         PublishCurrentObservation();
         awaitingPolicyAction = true;
-        PauseAtPolicyBoundary();
+        WaitAtPolicyBoundary(body);
     }
 
     static void PublishCurrentObservation()
@@ -2828,6 +2905,8 @@ public static class PPOBridge
     
     static void StartActionReader()
     {
+        actionReaderFailed = false;
+        actionReaderFailureMessage = null;
         actionThread = new Thread(() =>
         {
             while (!shuttingDown)
@@ -2835,6 +2914,8 @@ public static class PPOBridge
                 try
                 {
                     string line = actionReader.ReadLine();
+                    if (line == null)
+                        throw new EndOfStreamException("PPO action stream closed.");
                     if (!string.IsNullOrEmpty(line))
                     {
                         if (line == "RESET" || line.StartsWith("RESET ", StringComparison.Ordinal))
@@ -2858,23 +2939,27 @@ public static class PPOBridge
                                 continue;
                             }
                             resetRequested = true;
+                            SignalActionWaiters();
                             continue;
                         }
                         if (line == "SHUTDOWN")
                         {
                             shutdownRequested = true;
+                            SignalActionWaiters();
                             continue;
                         }
                         if (line == "PAUSE")
                         {
                             ppoPauseRequested = true;
                             ppoResumeActionReceived = false;
+                            SignalActionWaiters();
                             continue;
                         }
                         if (line == "RESUME")
                         {
                             ppoPauseRequested = false;
                             ppoResumeActionReceived = false;
+                            SignalActionWaiters();
                             continue;
                         }
                         string[] parts = line.Split(',');
@@ -2914,20 +2999,119 @@ public static class PPOBridge
                                     LatestAction.PullLiquidFromWorld = int.Parse(parts[27]);
                                     latestActionSequence = sequence;
                                 }
+                                Monitor.PulseAll(ActionLock);
                             }
                             if (!ppoPauseRequested)
                                 ppoResumeActionReceived = true;
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    actionReaderFailureMessage = ex.ToString();
+                    actionReaderFailed = true;
+                    SignalActionWaiters();
                     break;
                 }
             }
         });
         actionThread.IsBackground = true;
         actionThread.Start();
+    }
+
+    static void SignalActionWaiters()
+    {
+        lock (ActionLock)
+            Monitor.PulseAll(ActionLock);
+    }
+
+    static void WaitAtPolicyBoundary(Body body)
+    {
+        long waitStartedAt = Stopwatch.GetTimestamp();
+        long nextDiagnosticAt = waitStartedAt + Stopwatch.Frequency * 10;
+
+        while (true)
+        {
+            if (shuttingDown)
+                return;
+
+            if (shutdownRequested)
+            {
+                shutdownRequested = false;
+                Application.Quit();
+                return;
+            }
+
+            if (actionReaderFailed)
+            {
+                throw new IOException(
+                    "PPO action reader failed while Unity was waiting at a " +
+                    $"physics boundary: {actionReaderFailureMessage}"
+                );
+            }
+
+            if (resetRequested)
+            {
+                Time.timeScale = 0f;
+                TryStartPendingReset(body);
+                return;
+            }
+
+            if (ppoPauseRequested)
+            {
+                if (!ppoPaused)
+                {
+                    ppoPaused = true;
+                    SendActionAcknowledgement("PAUSED");
+                }
+            }
+            else
+            {
+                if (ppoPaused)
+                {
+                    ppoPaused = false;
+                    SendActionAcknowledgement("RESUMED");
+                }
+
+                if (TryLatchPolicyAction())
+                {
+                    PlayerCamera playerCamera = PlayerCamera.main;
+                    if (playerCamera == null || playerCamera.body != body)
+                        throw new InvalidOperationException(
+                            "Player changed while waiting at a PPO physics boundary."
+                        );
+
+                    // Apply the newly latched controls before returning to
+                    // Unity, so any already-accumulated next physics step
+                    // begins under the new action without waiting for Update.
+                    ApplyPPOActions(playerCamera);
+                    return;
+                }
+            }
+
+            lock (ActionLock)
+            {
+                if (
+                    latestActionSequence <= activeActionSequence ||
+                    ppoPauseRequested
+                )
+                {
+                    Monitor.Wait(ActionLock, 1000);
+                }
+            }
+
+            long now = Stopwatch.GetTimestamp();
+            if (now >= nextDiagnosticAt)
+            {
+                Debug.LogWarning(
+                    "PPO still waiting at an exact post-physics boundary: " +
+                    $"seconds={(now - waitStartedAt) / (double)Stopwatch.Frequency:F1}, " +
+                    $"activeAction={activeActionSequence}, latestAction={latestActionSequence}, " +
+                    $"pauseRequested={ppoPauseRequested}, resetRequested={resetRequested}."
+                );
+                nextDiagnosticAt = now + Stopwatch.Frequency * 10;
+            }
+        }
     }
 
     static bool TryLatchPolicyAction()
@@ -2951,12 +3135,12 @@ public static class PPOBridge
         awaitingPolicyAction = false;
         newMacrostepAction = true;
 
-        if (policyBoundaryPaused)
-        {
-            policyResumeTimeScale = PolicySimulationTimeScale(policyResumeTimeScale);
-            Time.timeScale = policyResumeTimeScale;
-            policyBoundaryPaused = false;
-        }
+        float capturedTimeScale = Time.timeScale > 0f
+            ? Time.timeScale
+            : policyResumeTimeScale;
+        policyResumeTimeScale = PolicySimulationTimeScale(capturedTimeScale);
+        Time.timeScale = policyResumeTimeScale;
+        policyBoundaryPaused = false;
 
         return true;
     }
@@ -2968,17 +3152,6 @@ public static class PPOBridge
 
         CopyAction(CurrentAction, LastAction);
         newMacrostepAction = false;
-    }
-
-    static void PauseAtPolicyBoundary()
-    {
-        if (!policyBoundaryPaused)
-        {
-            if (Time.timeScale > 0f)
-                policyResumeTimeScale = Time.timeScale;
-            policyBoundaryPaused = true;
-        }
-        Time.timeScale = 0f;
     }
 
     public static void MaintainPolicyPause()
@@ -3525,7 +3698,6 @@ public static class PPOBridge
         );
 
         resetComplete = false;
-		hasObservationFixedTime = false;
 		macrostepPhysicsTicks = 0;
 		macrostepSimulationDeltaTime = 0f;
 		macrostepDeepestLayerProgress = 0f;
@@ -3636,6 +3808,7 @@ public static class PPOBridge
     public static void Shutdown()
     {
         shuttingDown = true;
+        SignalActionWaiters();
 
         try
         {
@@ -3684,16 +3857,6 @@ public static class PPoPausePatch
     static bool Prefix()
     {
         return !PPOBridge.PPOPauseActive;
-    }
-}
-
-[HarmonyPatch(typeof(Body))]
-[HarmonyPatch("FixedUpdate")]
-public static class BodyFixedUpdatePatch
-{   
-    static void Postfix(Body __instance)
-    {
-        PPOBridge.Tick(__instance);
     }
 }
 
