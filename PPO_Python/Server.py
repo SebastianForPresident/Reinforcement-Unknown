@@ -9,6 +9,7 @@ import CriticTraining
 import ReinforceTraining
 import Inference
 import Validation
+import MatchedPairs
 import Types
 
 TCP_HOST = "127.0.0.1"
@@ -195,14 +196,16 @@ def Shutdown():
                 pass
 
 if len(sys.argv) < 2 or sys.argv[1] not in (
-    "train", "critic-train", "reinforce-train", "inference", "validate"
+    "train", "critic-train", "reinforce-train", "inference", "validate",
+    "matched-eval"
 ):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
         "critic-train <checkpoint-directory> [shadow|active] | "
         "reinforce-train <checkpoint-directory> [shadow|active] | "
         "inference <checkpoint.zip> [world-seed] | "
-        "validate [steps] [world-seed]"
+        "validate [steps] [world-seed] | "
+        "matched-eval <config.json> <1x|10x>"
     )
 
 if (
@@ -211,13 +214,15 @@ if (
     or (sys.argv[1] == "reinforce-train" and len(sys.argv) not in (3, 4))
     or (sys.argv[1] == "inference" and len(sys.argv) not in (3, 4))
     or (sys.argv[1] == "validate" and len(sys.argv) not in (2, 3, 4))
+    or (sys.argv[1] == "matched-eval" and len(sys.argv) != 4)
 ):
     raise SystemExit(
         "Usage: python Server.py train [checkpoint-directory] | "
         "critic-train <checkpoint-directory> [shadow|active] | "
         "reinforce-train <checkpoint-directory> [shadow|active] | "
         "inference <checkpoint.zip> [world-seed] | "
-        "validate [steps] [world-seed]"
+        "validate [steps] [world-seed] | "
+        "matched-eval <config.json> <1x|10x>"
     )
 
 inference_world_seed = None
@@ -332,6 +337,14 @@ if sys.argv[1] == "train":
     threading.Thread(
         target=Train.Begin_Training,
         args=(env, PauseSimulation, resume_dir),
+        daemon=True,
+    ).start()
+elif sys.argv[1] == "matched-eval":
+    if sys.argv[3] not in ("1x", "10x"):
+        raise SystemExit("matched-eval speed label must be '1x' or '10x'")
+    threading.Thread(
+        target=MatchedPairs.Run,
+        args=(env, sys.argv[2], sys.argv[3]),
         daemon=True,
     ).start()
 elif sys.argv[1] == "critic-train":

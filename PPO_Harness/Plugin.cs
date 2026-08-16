@@ -1094,7 +1094,27 @@ public static class PPOBridge
 
     public static bool ControlEnabled = false;
     public const int TrainingFrameRate = 60;
-    public const float TrainingTimeScale = 10f;
+    public static readonly float TrainingTimeScale = ConfiguredTrainingTimeScale();
+
+    static float ConfiguredTrainingTimeScale()
+    {
+        string configured = Environment.GetEnvironmentVariable("PPO_TIME_SCALE");
+        float value;
+        if (
+            !string.IsNullOrWhiteSpace(configured) &&
+            float.TryParse(
+                configured,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out value
+            ) &&
+            (Mathf.Approximately(value, 1f) || Mathf.Approximately(value, 10f))
+        )
+        {
+            return value;
+        }
+        return 10f;
+    }
 
     public static void EnsureTrainingFrameCap()
     {

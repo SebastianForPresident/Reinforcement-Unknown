@@ -52,6 +52,7 @@ fi
 
 echo "Launching workspace build through Proton Experimental..."
 cd -- "$PROJECT_ROOT"
+PPO_TIME_SCALE="${PPO_TIME_SCALE:-10}" \
 STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_ROOT" \
 STEAM_COMPAT_DATA_PATH="$COMPAT_DATA_PATH" \
 STEAM_COMPAT_APP_ID="$GAME_APP_ID" \
