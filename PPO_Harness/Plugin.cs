@@ -31,7 +31,11 @@ public class PPO_Harness : BaseUnityPlugin
 
         PPOPhysicsBoundaryLoop.Install();
         PPOBridge.EnsureTrainingFrameCap();
-        Logger.LogInfo("Patches applied");
+        Logger.LogInfo(
+            $"Patches applied; timeScale={PPOBridge.TrainingTimeScale:0.##}, " +
+            $"fixed gameplay={PPOBridge.ForceBodyUpdatePerPhysicsTick}, " +
+            $"gameplayHz={PPOBridge.GameplayUpdateRate}."
+        );
 
         Application.quitting += PPOBridge.Shutdown;
         Application.logMessageReceived += HandleUnityLogMessage;
@@ -213,28 +217,102 @@ public static class PPOBodyFixedPerformancePatch
 [HarmonyPatch(typeof(Body), "Update")]
 public static class PPOBodyUpdatePerformancePatch
 {
-    static void Prefix(out long __state)
+    static bool Prefix(Body __instance, out long __state)
     {
+        if (PPOBridge.ShouldReplacePlayerBodyUpdate(__instance))
+        {
+            __state = 0;
+            return false;
+        }
+
         __state = PPOPerformanceInstrumentation.Start();
+        return true;
     }
 
     static void Postfix(long __state)
     {
-        PPOPerformanceInstrumentation.AddBodyUpdate(__state);
+        if (__state != 0)
+            PPOPerformanceInstrumentation.AddBodyUpdate(__state);
+    }
+}
+
+[HarmonyPatch(typeof(Body), "Update")]
+public static class PPOManualBodyUpdate
+{
+    [HarmonyReversePatch]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Invoke(Body instance)
+    {
+        throw new NotSupportedException("Harmony reverse patch was not applied.");
+    }
+}
+
+[HarmonyPatch]
+public static class PPOBodyUpdateDeltaTimePatch
+{
+    static readonly string[] UpdateMethods =
+    {
+        "HandleVariableUpdates",
+        "HandleBody",
+        "HandleBodyTemperature",
+        "HandleDogWaterShaking",
+        "HandleRadiationSickness",
+        "HandlePeriodicChecks",
+        "HandleGroundedState",
+        "HandlePhysics",
+        "HandleVisuals",
+        "HandleSounds"
+    };
+
+    static IEnumerable<System.Reflection.MethodBase> TargetMethods()
+    {
+        foreach (string methodName in UpdateMethods)
+        {
+            System.Reflection.MethodInfo method = AccessTools.DeclaredMethod(typeof(Body), methodName);
+            if (method == null)
+                throw new MissingMethodException(typeof(Body).FullName, methodName);
+            yield return method;
+        }
+    }
+
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        System.Reflection.MethodInfo deltaTimeGetter =
+            AccessTools.PropertyGetter(typeof(Time), nameof(Time.deltaTime));
+        System.Reflection.MethodInfo replacement =
+            AccessTools.Method(typeof(PPOBridge), nameof(PPOBridge.BodyUpdateDeltaTime));
+
+        foreach (CodeInstruction instruction in instructions)
+        {
+            if (instruction.Calls(deltaTimeGetter))
+            {
+                instruction.opcode = OpCodes.Call;
+                instruction.operand = replacement;
+            }
+            yield return instruction;
+        }
     }
 }
 
 [HarmonyPatch(typeof(Limb), "Update")]
 public static class PPOLimbUpdatePerformancePatch
 {
-    static void Prefix(out long __state)
+    static bool Prefix(Limb __instance, out long __state)
     {
+        if (PPOBridge.ShouldSuppressPlayerLimbUpdate(__instance))
+        {
+            __state = 0;
+            return false;
+        }
+
         __state = PPOPerformanceInstrumentation.Start();
+        return true;
     }
 
     static void Postfix(long __state)
     {
-        PPOPerformanceInstrumentation.AddLimbUpdate(__state);
+        if (__state != 0)
+            PPOPerformanceInstrumentation.AddLimbUpdate(__state);
     }
 }
 
@@ -318,6 +396,11 @@ public static class PPOPlayerInputTimeScaleThresholdPatch
 [HarmonyPatch(typeof(WorldGeneration), "Update")]
 public static class PPOBlackoutTimeScaleThresholdPatch
 {
+    static void Prefix(WorldGeneration __instance)
+    {
+        PPOBridge.NeutralizeRenderScheduledHazards(__instance);
+    }
+
     static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         return PPOTimeScaleThresholds.Replace(
@@ -472,6 +555,7 @@ static class PPOPerformanceInstrumentation
     static Timing observationPublish;
     static long windowStartedAt;
     static long playerPhysicsTicks;
+    static long fixedActionApplications;
     static long reports;
 
     public static long Start() => Stopwatch.GetTimestamp();
@@ -504,6 +588,7 @@ static class PPOPerformanceInstrumentation
     public static void AddObservationCollect(long startedAt) => observationCollect.Add(Elapsed(startedAt));
     public static void AddObservationEncode(long startedAt) => observationEncode.Add(Elapsed(startedAt));
     public static void AddObservationPublish(long startedAt) => observationPublish.Add(Elapsed(startedAt));
+    public static void AddFixedActionApplication() => fixedActionApplications++;
 
     static double Milliseconds(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
 
@@ -536,6 +621,7 @@ static class PPOPerformanceInstrumentation
             $", submittedTiles={refreshedTiles}; " +
             Format("bodyFixed", bodyFixedUpdate, measuredWallMilliseconds) + "; " +
             Format("bodyUpdate", bodyUpdate, measuredWallMilliseconds) + "; " +
+            $"fixedActions={fixedActionApplications}; " +
             Format("limbUpdate", limbUpdate, measuredWallMilliseconds) + "; " +
             Format("obsCollect", observationCollect, measuredWallMilliseconds) + "; " +
             Format("obsEncode", observationEncode, measuredWallMilliseconds) + "; " +
@@ -551,6 +637,7 @@ static class PPOPerformanceInstrumentation
         observationCollect.Clear();
         observationEncode.Clear();
         observationPublish.Clear();
+        fixedActionApplications = 0;
         playerPhysicsTicks = 0;
         windowStartedAt = 0;
     }
@@ -1094,7 +1181,13 @@ public static class PPOBridge
 
     public static bool ControlEnabled = false;
     public const int TrainingFrameRate = 60;
+    public const int GameplayUpdateRate = 60;
+    public const float GameplayUpdateDeltaTime = 1f / GameplayUpdateRate;
     public static readonly float TrainingTimeScale = ConfiguredTrainingTimeScale();
+    public static readonly bool ForceBodyUpdatePerPhysicsTick = ConfiguredForceBodyUpdate();
+
+    [ThreadStatic]
+    static bool manualBodyUpdateActive;
 
     static float ConfiguredTrainingTimeScale()
     {
@@ -1114,6 +1207,94 @@ public static class PPOBridge
             return value;
         }
         return 10f;
+    }
+
+    static bool ConfiguredForceBodyUpdate()
+    {
+        string configured = Environment.GetEnvironmentVariable("PPO_FORCE_BODY_UPDATE");
+        if (string.IsNullOrWhiteSpace(configured))
+            return true;
+        return
+            string.Equals(configured, "1", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(configured, "true", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(configured, "yes", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static float BodyUpdateDeltaTime()
+    {
+        return manualBodyUpdateActive ? GameplayUpdateDeltaTime : Time.deltaTime;
+    }
+
+    public static bool ShouldReplacePlayerBodyUpdate(Body body)
+    {
+        WorldGeneration world = WorldGeneration.world;
+        return
+            ForceBodyUpdatePerPhysicsTick &&
+            !ControlEnabled &&
+            resetComplete &&
+            connected &&
+            actionConnected &&
+            body != null &&
+            PlayerCamera.main != null &&
+            PlayerCamera.main.body == body &&
+            world != null &&
+            world.worldExists &&
+            !world.generatingWorld;
+    }
+
+    public static bool ShouldSuppressPlayerLimbUpdate(Limb limb)
+    {
+        return limb != null && ShouldReplacePlayerBodyUpdate(limb.body);
+    }
+
+    public static void NeutralizeRenderScheduledHazards(WorldGeneration world)
+    {
+        if (
+            !ForceBodyUpdatePerPhysicsTick ||
+            ControlEnabled ||
+            world == null ||
+            !world.worldExists ||
+            world.generatingWorld
+        )
+        {
+            return;
+        }
+
+        // Earthquake onset and impulses are sampled in WorldGeneration.Update,
+        // so their transition distribution otherwise changes with render cadence.
+        // CB1's completion protocol excludes this survival hazard just as it
+        // excludes the radiation deadline.
+        world.earthquakeDelay = float.MaxValue;
+        world.earthquakeTime = -1f;
+        world.earthquakeIntensity = 0f;
+    }
+
+    static void RunManualBodyUpdates(Body body)
+    {
+        if (!ShouldReplacePlayerBodyUpdate(body))
+            return;
+
+        // Twelve gameplay updates per ten physics ticks: one after every tick,
+        // plus a second after ticks five and ten. This is a deterministic
+        // 60-Hz schedule over Unity's unchanged 50-Hz physics clock.
+        int completedTick = macrostepPhysicsTicks + 1;
+        int updateCount = completedTick % 5 == 0 ? 2 : 1;
+        for (int i = 0; i < updateCount; i++)
+        {
+            long started = PPOPerformanceInstrumentation.Start();
+            manualBodyUpdateActive = true;
+            try
+            {
+                PPOManualBodyUpdate.Invoke(body);
+            }
+            finally
+            {
+                manualBodyUpdateActive = false;
+                PPOPerformanceInstrumentation.AddBodyUpdate(started);
+            }
+
+            ApplyFunctionalGodMode(body);
+        }
     }
 
     public static void EnsureTrainingFrameCap()
@@ -2489,7 +2670,37 @@ public static class PPOBridge
     public static void PostPhysicsStep()
     {
         Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
+        RunManualBodyUpdates(body);
+        ReapplyHeldActionForNextPhysicsTick(body);
         Tick(body);
+    }
+
+    static void ReapplyHeldActionForNextPhysicsTick(Body body)
+    {
+        if (
+            !ShouldReplacePlayerBodyUpdate(body) ||
+            initialObservationPending ||
+            awaitingPolicyAction ||
+            macrostepPhysicsTicks >= Observation.POLICY_PHYSICS_TICKS - 1
+        )
+        {
+            return;
+        }
+
+        PlayerCamera playerCamera = PlayerCamera.main;
+        if (playerCamera == null || playerCamera.body != body)
+            return;
+
+        // The action was applied once when it was latched before tick one.
+        // Nine ordinary reapplications plus an extra after ticks four and
+        // eight produce exactly twelve fixed action executions per macrostep.
+        int completedTick = macrostepPhysicsTicks + 1;
+        int applicationCount = completedTick == 4 || completedTick == 8 ? 2 : 1;
+        for (int i = 0; i < applicationCount; i++)
+        {
+            ApplyPPOActions(playerCamera);
+            PPOPerformanceInstrumentation.AddFixedActionApplication();
+        }
     }
 
     static void Tick(Body body)
@@ -2738,6 +2949,7 @@ public static class PPOBridge
             return;
 
         world.maxTimePerLayer = CompletionProtocolLayerTimeLimitSeconds;
+        NeutralizeRenderScheduledHazards(world);
         if (RadiationLine.line != null && RadiationLine.line.active)
             RadiationLine.line.Deactivate();
         configuredLayerWorldInstanceId = worldInstanceId;
@@ -3105,6 +3317,7 @@ public static class PPOBridge
                     // Unity, so any already-accumulated next physics step
                     // begins under the new action without waiting for Update.
                     ApplyPPOActions(playerCamera);
+                    PPOPerformanceInstrumentation.AddFixedActionApplication();
                     return;
                 }
             }
@@ -3956,7 +4169,11 @@ public static class HandleInputPatch
         }
         else
         {
-            PPOBridge.ApplyPPOActions(__instance);
+            // Exact-boundary mode already applies each policy action before
+            // the next physics tick. Reapplying it per rendered frame makes
+            // jump, attack, and item-use semantics depend on FPS.
+            if (!PPOBridge.ForceBodyUpdatePerPhysicsTick)
+                PPOBridge.ApplyPPOActions(__instance);
         }
         return false; // Skip this!
     }

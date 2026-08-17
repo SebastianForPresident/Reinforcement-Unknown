@@ -89,3 +89,60 @@ only ten pairs, 9-1 or 10-0 directional results are required for a two-sided
 sign-test p-value below 0.05. Practical materiality should also be declared in
 advance; a suggested threshold is a median 1x/10x time ratio at or below 0.80,
 or any repeated completion advantage at the common horizon.
+
+## Run the repaired-10x continuation gate
+
+This configuration evaluates only the strong pre-acceleration checkpoint. Its
+ten 1x controls are already preserved in `matched_pairs_results.csv`.
+
+```bash
+./.venv/bin/python PPO_Python/Server.py matched-eval \
+  PPO_Python/matched_pairs_repaired_10x.json 10x
+```
+
+```bash
+PPO_TIME_SCALE=10 PPO_FORCE_BODY_UPDATE=1 ./PPO_Harness/Deploy.sh
+```
+
+Results append to `PPO_Python/matched_pairs_repaired_10x_results.csv`, so an
+interrupted run resumes by restarting the same two commands. Accept the repair
+only after comparing every repaired 10x seed with the archived
+`pre_acceleration`/`1x` row for that seed.
+
+```bash
+./.venv/bin/python PPO_Python/analyze_matched_pairs.py \
+  PPO_Python/matched_pairs_results.csv \
+  PPO_Python/matched_pairs_repaired_10x_results.csv
+```
+
+The boundary-only repaired run was rejected after losing all first eight
+pairs. The successor fixed-action gate processes each held action once per
+physics interval while retaining 5-Hz sampling:
+
+```bash
+./.venv/bin/python PPO_Python/Server.py matched-eval \
+  PPO_Python/matched_pairs_fixed_action_10x.json 10x
+```
+
+```bash
+PPO_TIME_SCALE=10 PPO_FORCE_BODY_UPDATE=1 ./PPO_Harness/Deploy.sh
+```
+
+Its results are isolated in
+`PPO_Python/matched_pairs_fixed_action_10x_results.csv` with speed label
+`fixedAction10x`.
+
+The deterministic-60-Hz successor retains stochastic policy sampling but runs
+twelve gameplay updates per ten physics ticks:
+
+```bash
+./.venv/bin/python PPO_Python/Server.py matched-eval \
+  PPO_Python/matched_pairs_fixed_60hz_10x.json 10x
+```
+
+```bash
+PPO_TIME_SCALE=10 PPO_FORCE_BODY_UPDATE=1 ./PPO_Harness/Deploy.sh
+```
+
+Its isolated result label is `fixed60Hz10x` and its output is
+`PPO_Python/matched_pairs_fixed_60hz_10x_results.csv`.

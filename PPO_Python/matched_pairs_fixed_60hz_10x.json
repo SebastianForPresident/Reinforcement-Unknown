@@ -1,0 +1,22 @@
+{
+  "checkpoints": {
+    "pre_acceleration": "../checkpoints/CB1_2026-08-08_02-13-52/casu_ppo_cb1_vb1_2091300_steps.zip"
+  },
+  "seeds": [
+    184091230,
+    391728405,
+    548203719,
+    723910864,
+    886431207,
+    1047293851,
+    1283049762,
+    1538920476,
+    1774309285,
+    2037185640
+  ],
+  "max_steps": 54000,
+  "deterministic": false,
+  "action_seed": 20260815,
+  "result_speed": "fixed60Hz10x",
+  "output": "matched_pairs_fixed_60hz_10x_results.csv"
+}

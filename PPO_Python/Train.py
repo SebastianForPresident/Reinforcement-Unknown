@@ -29,6 +29,8 @@ def ProtocolManifest(env):
         "reward": Types.REWARD_NAME,
         "protocol_version": Types.PROTOCOL_VERSION,
         "physics_hz": 50,
+        "gameplay_update_hz": 60,
+        "render_independent_gameplay": True,
         "policy_hz": 5,
         "physics_ticks_per_action": Types.POLICY_PHYSICS_TICKS,
         "model_schema_version": CB1_MODEL_SCHEMA_VERSION,

@@ -1,12 +1,15 @@
 from stable_baselines3 import PPO
 import traceback
+import random
+import numpy as np
+import torch
 from datetime import datetime
 from pathlib import Path
 
 
 LOG_EVERY = 100
 
-def Infer(env, checkpoint_path, world_seed=None):
+def Infer(env, checkpoint_path, world_seed=None, deterministic=True):
     log_file = Path("inference_debug.log")
     try:
         model = PPO.load(checkpoint_path, env=env)
@@ -14,6 +17,12 @@ def Infer(env, checkpoint_path, world_seed=None):
         reset_options = (
             {"world_seed": world_seed} if world_seed is not None else None
         )
+        action_seed = None
+        if not deterministic and world_seed is not None:
+            action_seed = 20260815 + world_seed
+            random.seed(action_seed)
+            np.random.seed(action_seed % (2 ** 32))
+            torch.manual_seed(action_seed)
         obs, info = env.reset(options=reset_options)
         previous_action = None
         step = 0
@@ -22,11 +31,13 @@ def Infer(env, checkpoint_path, world_seed=None):
             log.write(
                 f"\n[{datetime.now().isoformat(timespec='seconds')}] "
                 f"checkpoint={checkpoint_path} "
-                f"world_seed={info.get('world_seed')}\n"
+                f"world_seed={info.get('world_seed')} "
+                f"deterministic={deterministic} "
+                f"action_seed={action_seed}\n"
             )
 
             while True:
-                action, _ = model.predict(obs, deterministic=True)
+                action, _ = model.predict(obs, deterministic=deterministic)
                 action_list = action.tolist()
                 action_changed = previous_action is None or action_list != previous_action
 

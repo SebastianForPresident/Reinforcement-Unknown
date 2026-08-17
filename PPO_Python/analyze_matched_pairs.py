@@ -17,15 +17,16 @@ def exact_sign_p_value(wins, losses):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("results_csv")
+    parser.add_argument("results_csv", nargs="+")
     args = parser.parse_args()
     rows = []
-    with open(args.results_csv, newline="", encoding="utf-8") as handle:
-        for row in csv.DictReader(handle):
-            row["seed"] = int(row["seed"])
-            row["steps"] = int(row["steps"])
-            row["completed"] = row["completed"].lower() == "true"
-            rows.append(row)
+    for results_csv in args.results_csv:
+        with open(results_csv, newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                row["seed"] = int(row["seed"])
+                row["steps"] = int(row["steps"])
+                row["completed"] = row["completed"].lower() == "true"
+                rows.append(row)
 
     cells = defaultdict(dict)
     for row in rows:
@@ -59,12 +60,22 @@ def main():
             f"exact_sign_p={exact_sign_p_value(wins, losses):.4f}"
         )
 
-    print("\nPaired 1x versus 10x comparisons")
+    print("\nPaired 1x versus accelerated comparisons")
     checkpoints = sorted({row["checkpoint"] for row in rows})
     for checkpoint in checkpoints:
         one = cells.get((checkpoint, "1x"), {})
-        ten = cells.get((checkpoint, "10x"), {})
-        report_pair(checkpoint, one, ten, "1x", "10x")
+        accelerated_speeds = sorted(
+            speed for name, speed in cells if name == checkpoint and speed != "1x"
+        )
+        for speed in accelerated_speeds:
+            accelerated = cells.get((checkpoint, speed), {})
+            report_pair(
+                f"{checkpoint} 1x vs {speed}",
+                one,
+                accelerated,
+                "1x",
+                speed,
+            )
 
     if len(checkpoints) == 2:
         print("\nPaired checkpoint comparisons within each speed")

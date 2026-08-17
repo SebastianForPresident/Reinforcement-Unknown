@@ -26,8 +26,8 @@ def _load_config(path):
     config = json.loads(config_path.read_text(encoding="utf-8"))
     models = config.get("checkpoints", {})
     seeds = config.get("seeds", [])
-    if len(models) != 2:
-        raise ValueError("matched evaluation requires exactly two checkpoints")
+    if not models:
+        raise ValueError("matched evaluation requires at least one checkpoint")
     if len(seeds) != 10 or len(set(seeds)) != 10:
         raise ValueError("matched evaluation requires exactly ten unique seeds")
     config["seeds"] = [CasualtiesEnv.NormalizeWorldSeed(seed) for seed in seeds]
@@ -74,12 +74,13 @@ def _trial_order(model_names, seeds):
 
 
 def Run(env, config_path, speed_label):
-    """Evaluate both frozen policies on the same ten seeds at one game speed."""
+    """Evaluate frozen policies on the same ten seeds at one game speed."""
     config_path, config = _load_config(config_path)
     output_value = config.get("output", "matched_pairs_results.csv")
     output_path = Path(output_value)
     if not output_path.is_absolute():
         output_path = (config_path.parent / output_path).resolve()
+    result_speed = str(config.get("result_speed", speed_label))
 
     models = {
         name: PPO.load(path, env=env, device="auto")
@@ -89,7 +90,7 @@ def Run(env, config_path, speed_label):
 
     try:
         for model_name, world_seed in _trial_order(models, config["seeds"]):
-            key = (speed_label, model_name, world_seed)
+            key = (result_speed, model_name, world_seed)
             if key in completed:
                 print(f"Skipping completed matched trial: {key}")
                 continue
@@ -124,7 +125,7 @@ def Run(env, config_path, speed_label):
                     break
 
             result = {
-                "speed": speed_label,
+                "speed": result_speed,
                 "checkpoint": model_name,
                 "checkpoint_path": config["checkpoints"][model_name],
                 "seed": world_seed,
@@ -146,4 +147,3 @@ def Run(env, config_path, speed_label):
             print(f"Matched trial complete: {result}")
     finally:
         env.close()
-

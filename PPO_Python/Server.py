@@ -203,7 +203,7 @@ if len(sys.argv) < 2 or sys.argv[1] not in (
         "Usage: python Server.py train [checkpoint-directory] | "
         "critic-train <checkpoint-directory> [shadow|active] | "
         "reinforce-train <checkpoint-directory> [shadow|active] | "
-        "inference <checkpoint.zip> [world-seed] | "
+        "inference <checkpoint.zip> [world-seed] [deterministic|stochastic] | "
         "validate [steps] [world-seed] | "
         "matched-eval <config.json> <1x|10x>"
     )
@@ -212,7 +212,7 @@ if (
     (sys.argv[1] == "train" and len(sys.argv) not in (2, 3))
     or (sys.argv[1] == "critic-train" and len(sys.argv) not in (3, 4))
     or (sys.argv[1] == "reinforce-train" and len(sys.argv) not in (3, 4))
-    or (sys.argv[1] == "inference" and len(sys.argv) not in (3, 4))
+    or (sys.argv[1] == "inference" and len(sys.argv) not in (3, 4, 5))
     or (sys.argv[1] == "validate" and len(sys.argv) not in (2, 3, 4))
     or (sys.argv[1] == "matched-eval" and len(sys.argv) != 4)
 ):
@@ -220,16 +220,22 @@ if (
         "Usage: python Server.py train [checkpoint-directory] | "
         "critic-train <checkpoint-directory> [shadow|active] | "
         "reinforce-train <checkpoint-directory> [shadow|active] | "
-        "inference <checkpoint.zip> [world-seed] | "
+        "inference <checkpoint.zip> [world-seed] [deterministic|stochastic] | "
         "validate [steps] [world-seed] | "
         "matched-eval <config.json> <1x|10x>"
     )
 
 inference_world_seed = None
+inference_deterministic = True
 validation_steps = 1_500
 validation_world_seed = None
-if sys.argv[1] == "inference" and len(sys.argv) == 4:
-    inference_world_seed = CasualtiesEnv.NormalizeWorldSeed(int(sys.argv[3]))
+if sys.argv[1] == "inference":
+    if len(sys.argv) >= 4:
+        inference_world_seed = CasualtiesEnv.NormalizeWorldSeed(int(sys.argv[3]))
+    if len(sys.argv) == 5:
+        if sys.argv[4] not in ("deterministic", "stochastic"):
+            raise SystemExit("inference mode must be 'deterministic' or 'stochastic'")
+        inference_deterministic = sys.argv[4] == "deterministic"
 elif sys.argv[1] == "validate":
     if len(sys.argv) >= 3:
         validation_steps = int(sys.argv[2])
@@ -362,7 +368,7 @@ elif sys.argv[1] == "reinforce-train":
 elif sys.argv[1] == "inference":
     threading.Thread(
         target=Inference.Infer,
-        args=(env, sys.argv[2], inference_world_seed),
+        args=(env, sys.argv[2], inference_world_seed, inference_deterministic),
         daemon=True,
     ).start()
 elif sys.argv[1] == "validate":
