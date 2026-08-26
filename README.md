@@ -1,5 +1,5 @@
 # Reinforcement-Unknown
-An attempt at shoving a PPO into Casualties: Unknown and seeing if it'll make it out alive on the other side.
+A test to measure how PPO would fare in the complex learning problem that is Casualties: Unknown.
 
 ## Overview
 
