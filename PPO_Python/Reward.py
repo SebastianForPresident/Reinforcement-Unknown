@@ -3,6 +3,7 @@
 
 PROGRESS_REWARD_SCALE = 10.0
 COMPLETION_BONUS = 10.0
+INCOMPLETE_EPISODE_PENALTY = -10.0
 
 
 def Reset(env, obs):
@@ -31,6 +32,16 @@ def Reward(obs, act, env):
         "progress_delta": progress_delta,
         "progress": progress_reward,
         "completion": completion_bonus,
+        "incomplete_episode": 0.0,
         "reward": reward,
     }
     return float(reward)
+
+
+def ApplyIncompleteEpisodePenalty(env):
+    """Penalize a watchdog-ended descent attempt as an actual task failure."""
+    reward = float(env.last_reward_terms.get("reward", 0.0))
+    reward += INCOMPLETE_EPISODE_PENALTY
+    env.last_reward_terms["incomplete_episode"] = INCOMPLETE_EPISODE_PENALTY
+    env.last_reward_terms["reward"] = reward
+    return reward

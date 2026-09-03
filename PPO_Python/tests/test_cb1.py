@@ -85,6 +85,74 @@ class NormalizationTests(unittest.TestCase):
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_training_truncation_limits_are_part_of_environment_contract(self):
+        self.assertIsNone(CasualtiesEnv.TruncationReason(99_999, 25_000))
+        self.assertEqual(
+            CasualtiesEnv.TruncationReason(100_000, 99_999),
+            "max_episode_steps",
+        )
+        self.assertEqual(
+            CasualtiesEnv.TruncationReason(80_000, 5_000),
+            "stagnant_best_depth",
+        )
+        self.assertIsNone(CasualtiesEnv.TruncationReason(79_999, 5_000))
+        self.assertEqual(
+            CasualtiesEnv.TruncationReason(1_000, 999, inactive_steps=75),
+            "capable_inactivity",
+        )
+        self.assertIsNone(CasualtiesEnv.TruncationReason(
+            9_999,
+            0,
+            mobile_stagnant_steps=9_999,
+        ))
+        self.assertEqual(
+            CasualtiesEnv.TruncationReason(
+                10_000,
+                0,
+                mobile_stagnant_steps=10_000,
+            ),
+            "mobile_stagnation",
+        )
+        self.assertEqual(
+            CasualtiesEnv.AdvanceMobileStagnation(9_999, 0.0),
+            10_000,
+        )
+        self.assertEqual(CasualtiesEnv.AdvanceMobileStagnation(9_999, 0.001), 0)
+
+    def test_capable_inactivity_requires_static_player_and_block_health(self):
+        obs = live_observation()
+        previous_position = (256, 400)
+        previous_health = obs["RelativeBlockMap"]["Health"].copy()
+        self.assertEqual(
+            CasualtiesEnv.InactivityStatus(
+                obs, previous_position, previous_health
+            ),
+            {
+                "capable": True,
+                "tile_unchanged": True,
+                "velocity_inactive": True,
+                "block_health_unchanged": True,
+            },
+        )
+        self.assertTrue(CasualtiesEnv.CapableAndInactive(
+            obs, previous_position, previous_health
+        ))
+
+        obs["Velocity"]["X"] = 0.1
+        self.assertFalse(CasualtiesEnv.CapableAndInactive(
+            obs, previous_position, previous_health
+        ))
+        obs["Velocity"]["X"] = 0.0
+        obs["RelativeBlockMap"]["Health"][0, 0] = 1.0
+        self.assertFalse(CasualtiesEnv.CapableAndInactive(
+            obs, previous_position, previous_health
+        ))
+        obs["RelativeBlockMap"]["Health"][0, 0] = 0.0
+        obs["TimeRagdolled"] = 1.0
+        self.assertFalse(CasualtiesEnv.CapableAndInactive(
+            obs, previous_position, previous_health
+        ))
+
     def test_absolute_position_uses_zero_based_world_bounds(self):
         obs = live_observation()
         obs["PlayerTilePosition"]["X"] = 511
@@ -281,6 +349,128 @@ class TraceTests(unittest.TestCase):
             self.assertEqual(row["obs_previousaction_movedirection"], "1")
             self.assertEqual(row["obs_previousaction_lookdx"], "4")
 
+    def test_watchdog_penalty_and_gates_have_stable_trace_columns(self):
+        action = np.asarray([1, 0, 1, 0, 4, 5, 0], dtype=np.int64)
+        obs = live_observation()
+        first_info = {
+            "incomplete_episode": 0.0,
+            "inactive_steps": 74,
+            "mobile_stagnant_steps": 9_999,
+            "max_mobile_stagnant_steps": 10_000,
+            "continuous_progress_improved": False,
+            "mobile_stagnation_timer_advanced": True,
+            "inactivity_capable": True,
+            "inactivity_tile_unchanged": True,
+            "inactivity_velocity_inactive": True,
+            "inactivity_block_health_unchanged": True,
+            "inactivity_depth_unchanged": True,
+            "inactivity_timer_advanced": True,
+            "watchdog_failed": False,
+            "truncation_reason": None,
+        }
+        final_info = dict(first_info)
+        final_info.update({
+            "incomplete_episode": -10.0,
+            "mobile_stagnant_steps": 10_000,
+            "watchdog_failed": True,
+            "truncation_reason": "mobile_stagnation",
+        })
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trace.csv"
+            writer = EpisodeTrace.EpisodeTraceWriter(path)
+            writer.begin_episode(1, world_seed=7)
+            writer.record(74, action, obs, 74, 0.0, first_info, False, False)
+            writer.record(75, action, obs, 75, -10.0, final_info, True, False)
+            writer.finish_episode(complete=False)
+            writer.close()
+
+            with path.open(newline="", encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+
+            self.assertEqual(rows[-1]["reward_incomplete_episode"], "-10.0")
+            self.assertEqual(rows[-1]["reward_inactive_steps"], "74")
+            self.assertEqual(
+                rows[-1]["reward_mobile_stagnant_steps"], "10000"
+            )
+            self.assertEqual(
+                rows[-1]["reward_max_mobile_stagnant_steps"], "10000"
+            )
+            self.assertEqual(
+                rows[-1]["reward_continuous_progress_improved"], "False"
+            )
+            self.assertEqual(rows[-1]["reward_watchdog_failed"], "True")
+            self.assertEqual(
+                rows[-1]["reward_truncation_reason"], "mobile_stagnation"
+            )
+            self.assertEqual(rows[-1]["episode_complete"], "False")
+
+
+class SuccessEpisodeLengthTests(unittest.TestCase):
+    def test_success_mean_excludes_failures_from_terminal_window(self):
+        callback = Train.SuccessEpisodeLengthCallback(window_size=4)
+        callback.model = type("Model", (), {"num_timesteps": 123})()
+        callback.locals = {
+            "dones": [True, True, True],
+            "infos": [
+                {"episode_steps": 4_000, "watchdog_failed": False},
+                {"episode_steps": 500, "watchdog_failed": True},
+                {"episode_steps": 6_000, "watchdog_failed": False},
+            ],
+        }
+
+        self.assertTrue(callback._on_step())
+        self.assertEqual(callback.success_mean(), 5_000.0)
+
+    def test_window_is_last_terminal_episodes_not_last_successes(self):
+        callback = Train.SuccessEpisodeLengthCallback(window_size=2)
+        callback.model = type("Model", (), {"num_timesteps": 123})()
+        callback.locals = {
+            "dones": [True, True, True],
+            "infos": [
+                {"episode_steps": 9_000, "watchdog_failed": False},
+                {"episode_steps": 1_000, "watchdog_failed": True},
+                {"episode_steps": 5_000, "watchdog_failed": False},
+            ],
+        }
+
+        callback._on_step()
+        self.assertEqual(
+            [(length, succeeded) for length, succeeded, _ in callback.episodes],
+            [(1_000, False), (5_000, True)],
+        )
+        self.assertEqual(callback.success_mean(), 5_000.0)
+
+    def test_state_restores_only_episodes_at_or_before_checkpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            state_path.write_text(json.dumps({
+                "version": 1,
+                "window_size": 100,
+                "episodes": [
+                    {
+                        "length": 4_000,
+                        "succeeded": True,
+                        "terminal_global_step": 100,
+                    },
+                    {
+                        "length": 500,
+                        "succeeded": False,
+                        "terminal_global_step": 200,
+                    },
+                ],
+            }))
+            callback = Train.SuccessEpisodeLengthCallback(state_path=state_path)
+
+            class Model:
+                num_timesteps = 150
+
+            callback.model = Model()
+            callback._on_training_start()
+
+            self.assertEqual(callback.success_mean(), 4_000.0)
+            self.assertEqual(len(callback.episodes), 1)
+
 
 class RewardTests(unittest.TestCase):
     def test_only_new_deepest_progress_and_completion_pay(self):
@@ -292,11 +482,22 @@ class RewardTests(unittest.TestCase):
         Reward.Reset(state, obs)
         obs["LayerProgress"] = 0.2
         self.assertAlmostEqual(Reward.Reward(obs, None, state), 1.0)
+        self.assertEqual(state.last_reward_terms["incomplete_episode"], 0.0)
         obs["LayerProgress"] = 0.15
         self.assertEqual(Reward.Reward(obs, None, state), 0.0)
         obs["LayerProgress"] = 1.0
         self.assertAlmostEqual(Reward.Reward(obs, None, state), 18.0)
         self.assertEqual(Reward.Reward(obs, None, state), 0.0)
+
+    def test_incomplete_episode_penalty_updates_reward_terms(self):
+        class State:
+            pass
+
+        state = State()
+        state.last_reward_terms = {"progress": 0.25, "reward": 0.25}
+        self.assertEqual(Reward.ApplyIncompleteEpisodePenalty(state), -9.75)
+        self.assertEqual(state.last_reward_terms["incomplete_episode"], -10.0)
+        self.assertEqual(state.last_reward_terms["reward"], -9.75)
 
 
 class EncoderTests(unittest.TestCase):
@@ -332,8 +533,52 @@ class EncoderTests(unittest.TestCase):
 
 
 class TrainingProtocolTests(unittest.TestCase):
+    def test_resume_prefers_greatest_explicit_step_over_legacy_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            for name in (
+                "casu_ppo_cb1_vb1_30001444_steps.zip",
+                "casu_ppo_cb1_vb1_29995300_steps.zip",
+                "casu_ppo_cb1_vb1_500k.zip",
+            ):
+                with Train.zipfile.ZipFile(run_dir / name, "w") as archive:
+                    archive.writestr("valid", name)
+
+            selected = Train.FindResumeModel(run_dir)
+
+            self.assertEqual(
+                selected.name,
+                "casu_ppo_cb1_vb1_30001444_steps.zip",
+            )
+
+    def test_tensorboard_continuation_is_pinned_to_ppo_5(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            for run_id in range(5):
+                (run_dir / "tensorboard" / f"PPO_{run_id}").mkdir(
+                    parents=True,
+                )
+
+            Train.PrepareTensorboardContinuation(run_dir)
+
+            self.assertTrue((run_dir / "tensorboard" / "PPO_5").is_dir())
+
+    def test_tensorboard_continuation_rejects_newer_phase(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            (run_dir / "tensorboard" / "PPO_6").mkdir(parents=True)
+
+            with self.assertRaisesRegex(RuntimeError, "newer than PPO_5"):
+                Train.PrepareTensorboardContinuation(run_dir)
+
     def test_resume_requires_matching_cb1_manifest(self):
         class FakeEnv:
+            max_episode_steps = CasualtiesEnv.MAX_EPISODE_STEPS
+            max_stagnant_steps = CasualtiesEnv.MAX_STAGNANT_STEPS
+            max_inactive_steps = CasualtiesEnv.MAX_INACTIVE_STEPS
+            max_mobile_stagnant_steps = (
+                CasualtiesEnv.MAX_MOBILE_STAGNANT_STEPS
+            )
             action_space = gym.spaces.MultiDiscrete([3, 2, 3, 2, 9, 11, 2])
             observation_space = gym.spaces.Dict({
                 "general": gym.spaces.Box(-1.0, 1.0, (139,), np.float32),
@@ -361,9 +606,14 @@ class TrainingProtocolTests(unittest.TestCase):
             self.assertEqual(manifest["reward"], "VB1")
             self.assertEqual(manifest["protocol_version"], 1)
             self.assertEqual(manifest["gamma"], 0.99)
-            self.assertEqual(manifest["gae_lambda"], 0.95)
+            self.assertEqual(manifest["gae_lambda"], 0.98)
             self.assertEqual(manifest["n_steps"], 2048)
             self.assertEqual(manifest["model_schema_version"], 1)
+            self.assertEqual(manifest["max_episode_steps"], 100_000)
+            self.assertEqual(manifest["max_stagnant_steps"], 75_000)
+            self.assertEqual(manifest["max_inactive_steps"], 75)
+            self.assertEqual(manifest["max_mobile_stagnant_steps"], 10_000)
+            self.assertEqual(manifest["incomplete_episode_penalty"], -10.0)
             Train.ValidateOrWriteProtocolManifest(
                 run_dir, FakeEnv(), resuming=True
             )

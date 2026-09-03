@@ -1,25 +1,36 @@
 from stable_baselines3 import PPO
+from collections import deque
 import traceback
 from datetime import datetime
 from pathlib import Path
 import json
+import re
 import zipfile
 import sys
 import time
+import statistics
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 import ObservationEncoding
+import Reward
 import Types
 
 
-TARGET_TOTAL_TIMESTEPS = 10_000_000
+TARGET_TOTAL_TIMESTEPS = 60_000_000
 PPO_GAMMA = 0.99
-PPO_GAE_LAMBDA = 0.95
+PPO_GAE_LAMBDA = 0.98
 PPO_N_STEPS = 2048
 PPO_LEARNING_RATE = 1e-4
 PPO_BATCH_SIZE = 256
 PPO_N_EPOCHS = 4
 PPO_TARGET_KL = 0.05
+# A full CB1 checkpoint is approximately 200 MB. Saving every five PPO
+# updates produced one checkpoint per 10,240 steps and exhausted the training
+# filesystem. Keep saves on complete update boundaries, but retain only a
+# coarse recovery cadence; training completion still writes an explicit final
+# checkpoint.
+CB1_CHECKPOINT_UPDATES_PER_SAVE = 100
 CB1_MODEL_SCHEMA_VERSION = 1
+CB1_TENSORBOARD_RUN_ID = 5
 PROTOCOL_MANIFEST_NAME = f"protocol_{Types.CHECKPOINT_NAME.lower()}.json"
 
 
@@ -33,6 +44,11 @@ def ProtocolManifest(env):
         "render_independent_gameplay": True,
         "policy_hz": 5,
         "physics_ticks_per_action": Types.POLICY_PHYSICS_TICKS,
+        "max_episode_steps": env.max_episode_steps,
+        "max_stagnant_steps": env.max_stagnant_steps,
+        "max_inactive_steps": env.max_inactive_steps,
+        "max_mobile_stagnant_steps": env.max_mobile_stagnant_steps,
+        "incomplete_episode_penalty": Reward.INCOMPLETE_EPISODE_PENALTY,
         "model_schema_version": CB1_MODEL_SCHEMA_VERSION,
         "gamma": PPO_GAMMA,
         "gae_lambda": PPO_GAE_LAMBDA,
@@ -64,6 +80,28 @@ def ValidateOrWriteProtocolManifest(run_dir, env, resuming):
         path.write_text(
             json.dumps(expected, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
+        )
+
+
+def PrepareTensorboardContinuation(run_dir):
+    """Pin this intervention to PPO_5 while preserving SB3 resume semantics."""
+    tensorboard_dir = run_dir / "tensorboard"
+    tensorboard_dir.mkdir(parents=True, exist_ok=True)
+    target = tensorboard_dir / f"PPO_{CB1_TENSORBOARD_RUN_ID}"
+    target.mkdir(exist_ok=True)
+
+    newer = []
+    for path in tensorboard_dir.glob("PPO_*"):
+        try:
+            run_id = int(path.name.rsplit("_", 1)[1])
+        except ValueError:
+            continue
+        if run_id > CB1_TENSORBOARD_RUN_ID:
+            newer.append(path.name)
+    if newer:
+        raise RuntimeError(
+            "Refusing ambiguous TensorBoard continuation: found runs newer "
+            f"than PPO_{CB1_TENSORBOARD_RUN_ID}: {sorted(newer)}"
         )
 
 
@@ -151,6 +189,89 @@ class TrainingProgressCallback(BaseCallback):
         sys.stderr.flush()
 
 
+class SuccessEpisodeLengthCallback(BaseCallback):
+    """Log completion speed without treating short failures as improvement."""
+
+    TAG = "rollout/success_ep_len_mean"
+    STATE_VERSION = 1
+
+    def __init__(self, window_size=100, state_path=None):
+        super().__init__(verbose=0)
+        self.episodes = deque(maxlen=int(window_size))
+        self.state_path = None if state_path is None else Path(state_path)
+
+    def _on_training_start(self):
+        if self.state_path is None or not self.state_path.is_file():
+            return
+        state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        if state.get("version") != self.STATE_VERSION:
+            raise RuntimeError(
+                f"Unsupported success episode state version in {self.state_path}"
+            )
+        restored = []
+        for item in state.get("episodes", []):
+            terminal_step = int(item["terminal_global_step"])
+            if terminal_step <= int(self.model.num_timesteps):
+                restored.append(
+                    (int(item["length"]), bool(item["succeeded"]), terminal_step)
+                )
+        self.episodes.extend(restored[-self.episodes.maxlen :])
+
+    def _on_step(self):
+        for done, info in zip(
+            self.locals.get("dones", ()),
+            self.locals.get("infos", ()),
+        ):
+            if not done or "episode_steps" not in info:
+                continue
+            succeeded = not bool(info.get("watchdog_failed", False))
+            succeeded = succeeded and not bool(
+                info.get("TimeLimit.truncated", False)
+            )
+            self.episodes.append(
+                (int(info["episode_steps"]), succeeded, int(self.model.num_timesteps))
+            )
+            self._save_state()
+        return True
+
+    def success_mean(self):
+        lengths = [
+            length for length, succeeded, _terminal_step in self.episodes
+            if succeeded
+        ]
+        if not lengths:
+            return None
+        return statistics.fmean(lengths)
+
+    def _save_state(self):
+        if self.state_path is None:
+            return
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.state_path.with_suffix(self.state_path.suffix + ".tmp")
+        payload = {
+            "version": self.STATE_VERSION,
+            "window_size": self.episodes.maxlen,
+            "episodes": [
+                {
+                    "length": length,
+                    "succeeded": succeeded,
+                    "terminal_global_step": terminal_step,
+                }
+                for length, succeeded, terminal_step in self.episodes
+            ],
+        }
+        temporary.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(self.state_path)
+
+    def _on_rollout_end(self):
+        mean = self.success_mean()
+        if mean is not None:
+            self.logger.record(self.TAG, mean)
+
+
 class RolloutCheckpointCallback(BaseCallback):
     """Save only after complete PPO updates, never midway through a rollout."""
 
@@ -190,18 +311,22 @@ class RolloutCheckpointCallback(BaseCallback):
         self.last_saved_timestep = timestep
 
 def FindResumeModel(run_dir):
-    """Select the newest completed PPO model in an existing run directory."""
-    candidates = sorted(
-        (
-            path
-            for path in run_dir.glob("casu_ppo*.zip")
-            if path.is_file() and zipfile.is_zipfile(path)
-        ),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
+    """Select the greatest explicit step checkpoint in a run directory."""
+    candidates = []
+    legacy_candidates = []
+    for path in run_dir.glob("casu_ppo*.zip"):
+        if not path.is_file() or not zipfile.is_zipfile(path):
+            continue
+        match = re.search(r"_(\d+)_steps\.zip$", path.name)
+        if match is None:
+            legacy_candidates.append(path)
+            continue
+        candidates.append((int(match.group(1)), path.stat().st_mtime, path))
+
     if candidates:
-        return candidates[0]
+        return max(candidates, key=lambda item: (item[0], item[1]))[2]
+    if legacy_candidates:
+        return max(legacy_candidates, key=lambda path: path.stat().st_mtime)
 
     raise FileNotFoundError(
         f"No resumable PPO model found in {run_dir}. Expected a "
@@ -235,7 +360,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
     checkpoint_callback = RolloutCheckpointCallback(
         save_path=str(run_dir),
         name_prefix="casu_ppo_cb1_vb1",
-        updates_per_save=5,
+        updates_per_save=CB1_CHECKPOINT_UPDATES_PER_SAVE,
     )
 
     try:
@@ -258,11 +383,11 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 tensorboard_log=str(run_dir / "tensorboard"),
                 pause_simulation=pause_simulation,
             )
-            final_model = run_dir / "casu_ppo_cb1_vb1_500k"
             reset_num_timesteps = True
             total_timesteps = TARGET_TOTAL_TIMESTEPS
         else:
             print(f"Resuming model: {resume_model}")
+            PrepareTensorboardContinuation(run_dir)
             model = PausingPPO.load(
                 str(resume_model),
                 env=env,
@@ -273,6 +398,8 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 tensorboard_log=str(run_dir / "tensorboard"),
                 custom_objects={
                     "learning_rate": PPO_LEARNING_RATE,
+                    "gamma": PPO_GAMMA,
+                    "gae_lambda": PPO_GAE_LAMBDA,
                     "batch_size": PPO_BATCH_SIZE,
                     "n_epochs": PPO_N_EPOCHS,
                     "target_kl": PPO_TARGET_KL,
@@ -283,7 +410,6 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 },
             )
             model._pause_simulation = pause_simulation
-            final_model = run_dir / "casu_ppo_cb1_vb1_500k"
             reset_num_timesteps = False
             total_timesteps = max(
                 0,
@@ -297,6 +423,9 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
 
         callback = CallbackList([
             checkpoint_callback,
+            SuccessEpisodeLengthCallback(
+                state_path=run_dir / "success_ep_len_state.json"
+            ),
             TrainingProgressCallback(),
         ])
 
@@ -306,7 +435,11 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
             reset_num_timesteps=reset_num_timesteps,
             tb_log_name="PPO",
         )
-        model.save(str(final_model))
+        final_model = run_dir / (
+            f"casu_ppo_cb1_vb1_{int(model.num_timesteps)}_steps"
+        )
+        if not final_model.with_suffix(".zip").is_file():
+            model.save(str(final_model))
         print(f"Final model saved to: {final_model}.zip")
         return model
     except Exception:

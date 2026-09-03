@@ -14,6 +14,11 @@ _observation_lock = None
 MAX_RESET_ATTEMPTS = 3
 MIN_WORLD_SEED = 0
 MAX_WORLD_SEED = np.iinfo(np.int32).max
+MAX_EPISODE_STEPS = 100_000
+MAX_STAGNANT_STEPS = 75_000
+MAX_INACTIVE_STEPS = 75
+MAX_MOBILE_STAGNANT_STEPS = 10_000
+INACTIVE_VELOCITY_EPSILON = 0.05
 
 # CB1 adds previous-action and absolute-position context and uses a
 # semantic encoder instead of flattening raw wire values.
@@ -34,6 +39,70 @@ def PreprocessObservation(obs):
         "general": GetGeneralValues(obs),
         "spatial": ObsNorm.encode_spatial(obs),
     }
+
+
+def TruncationReason(
+    episode_steps,
+    last_best_depth_step,
+    inactive_steps=0,
+    max_episode_steps=MAX_EPISODE_STEPS,
+    max_stagnant_steps=MAX_STAGNANT_STEPS,
+    max_inactive_steps=MAX_INACTIVE_STEPS,
+    mobile_stagnant_steps=0,
+    max_mobile_stagnant_steps=MAX_MOBILE_STAGNANT_STEPS,
+):
+    if episode_steps >= max_episode_steps:
+        return "max_episode_steps"
+    if episode_steps - last_best_depth_step >= max_stagnant_steps:
+        return "stagnant_best_depth"
+    if inactive_steps >= max_inactive_steps:
+        return "capable_inactivity"
+    if mobile_stagnant_steps >= max_mobile_stagnant_steps:
+        return "mobile_stagnation"
+    return None
+
+
+def AdvanceMobileStagnation(previous_steps, progress_delta):
+    """Reset only for genuine new continuous depth progress."""
+    if float(progress_delta) > 0.0:
+        return 0
+    return int(previous_steps) + 1
+
+
+def InactivityStatus(obs, previous_tile_position, previous_block_health):
+    """Return individually traceable gates for capable physical inactivity."""
+    capable = (
+        not bool(obs["PlayerDead"])
+        and float(obs["Consciousness"]) > 0.0
+        and float(obs["TimeRagdolled"]) <= 0.0
+    )
+    tile_position = (
+        int(obs["PlayerTilePosition"]["X"]),
+        int(obs["PlayerTilePosition"]["Y"]),
+    )
+    velocity_inactive = (
+        abs(float(obs["Velocity"]["X"])) <= INACTIVE_VELOCITY_EPSILON
+        and abs(float(obs["Velocity"]["Y"])) <= INACTIVE_VELOCITY_EPSILON
+    )
+    block_health_unchanged = np.array_equal(
+        obs["RelativeBlockMap"]["Health"],
+        previous_block_health,
+    )
+    return {
+        "capable": bool(capable),
+        "tile_unchanged": bool(tile_position == previous_tile_position),
+        "velocity_inactive": bool(velocity_inactive),
+        "block_health_unchanged": bool(block_health_unchanged),
+    }
+
+
+def CapableAndInactive(obs, previous_tile_position, previous_block_health):
+    """Return whether an actionable player produced no physical world change."""
+    return all(InactivityStatus(
+        obs,
+        previous_tile_position,
+        previous_block_health,
+    ).values())
 
 def Start(server):
     global _server, _observation_lock
@@ -154,10 +223,22 @@ class Env(gym.Env):
         self.previous_progress = None
         self.last_reward_terms = {}
 
-        # Ten million 5 Hz decisions is a multi-week technical watchdog, not
-        # a learning horizon. Normal episodes end only on layer completion.
-        self.max_episode_steps = 10_000_000
+        # Training episodes normally end on completion. These safeguards keep
+        # one pathological procedural cave from dominating PPO with hundreds
+        # of correlated rollouts. An incomplete watchdog ending is a genuine
+        # failure for this descent-only policy, so it terminates without value
+        # bootstrapping and receives Reward.INCOMPLETE_EPISODE_PENALTY.
+        self.max_episode_steps = MAX_EPISODE_STEPS
+        self.max_stagnant_steps = MAX_STAGNANT_STEPS
+        self.max_inactive_steps = MAX_INACTIVE_STEPS
+        self.max_mobile_stagnant_steps = MAX_MOBILE_STAGNANT_STEPS
         self.episode_steps = 0
+        self.best_layer_depth = None
+        self.last_best_depth_step = 0
+        self.inactive_steps = 0
+        self.mobile_stagnant_steps = 0
+        self.previous_tile_position = None
+        self.previous_block_health = None
         self.episode_number = 0
         self.reset_token = 0
         self.world_seed = None
@@ -216,6 +297,15 @@ class Env(gym.Env):
         _server.reset_requested.clear()
 
         self.last_consumed_observation_id = observation_id
+        self.best_layer_depth = int(obs["BestLayerDepth"])
+        self.last_best_depth_step = 0
+        self.inactive_steps = 0
+        self.mobile_stagnant_steps = 0
+        self.previous_tile_position = (
+            int(obs["PlayerTilePosition"]["X"]),
+            int(obs["PlayerTilePosition"]["Y"]),
+        )
+        self.previous_block_health = obs["RelativeBlockMap"]["Health"].copy()
         Reward.Reset(self, obs)
         processed = PreprocessObservation(obs)
         ProtocolValidation.validate_reset_observation(obs, processed)
@@ -261,10 +351,84 @@ class Env(gym.Env):
             action,
         )
         reward = Reward.Reward(obs, action, self)
-        terminated = obs["LayerProgress"] >= 1.0
-        truncated = self.episode_steps >= self.max_episode_steps
+        completed = bool(obs["LayerProgress"] >= 1.0)
+        continuous_progress_improved = (
+            float(self.last_reward_terms["progress_delta"]) > 0.0
+        )
+        self.mobile_stagnant_steps = AdvanceMobileStagnation(
+            self.mobile_stagnant_steps,
+            self.last_reward_terms["progress_delta"],
+        )
+
+        best_layer_depth = int(obs["BestLayerDepth"])
+        depth_improved = best_layer_depth > self.best_layer_depth
+        if depth_improved:
+            self.best_layer_depth = best_layer_depth
+            self.last_best_depth_step = self.episode_steps
+            self.inactive_steps = 0
+
+        inactivity_status = InactivityStatus(
+            obs,
+            self.previous_tile_position,
+            self.previous_block_health,
+        )
+        inactivity_timer_advanced = (
+            not depth_improved and all(inactivity_status.values())
+        )
+        if inactivity_timer_advanced:
+            self.inactive_steps += 1
+        else:
+            self.inactive_steps = 0
+        self.previous_tile_position = (
+            int(obs["PlayerTilePosition"]["X"]),
+            int(obs["PlayerTilePosition"]["Y"]),
+        )
+        self.previous_block_health = obs["RelativeBlockMap"]["Health"].copy()
+
+        steps_since_best_depth = self.episode_steps - self.last_best_depth_step
+        truncation_reason = None
+        if not completed:
+            truncation_reason = TruncationReason(
+                episode_steps=self.episode_steps,
+                last_best_depth_step=self.last_best_depth_step,
+                inactive_steps=self.inactive_steps,
+                max_episode_steps=self.max_episode_steps,
+                max_stagnant_steps=self.max_stagnant_steps,
+                max_inactive_steps=self.max_inactive_steps,
+                mobile_stagnant_steps=self.mobile_stagnant_steps,
+                max_mobile_stagnant_steps=self.max_mobile_stagnant_steps,
+            )
+        watchdog_failed = truncation_reason is not None
+        if watchdog_failed:
+            reward = Reward.ApplyIncompleteEpisodePenalty(self)
+
+        # A watchdog ending is endogenous task failure, not an exogenous time
+        # limit. Report it as terminal so SB3 cannot bootstrap through it.
+        terminated = completed or watchdog_failed
+        truncated = False
         info = self.last_reward_terms.copy()
         info.update(validation_info)
+        info.update({
+            "episode_steps": self.episode_steps,
+            "steps_since_best_depth": steps_since_best_depth,
+            "inactive_steps": self.inactive_steps,
+            "mobile_stagnant_steps": self.mobile_stagnant_steps,
+            "max_mobile_stagnant_steps": self.max_mobile_stagnant_steps,
+            "continuous_progress_improved": continuous_progress_improved,
+            "mobile_stagnation_timer_advanced": (
+                not continuous_progress_improved
+            ),
+            "inactivity_capable": inactivity_status["capable"],
+            "inactivity_tile_unchanged": inactivity_status["tile_unchanged"],
+            "inactivity_velocity_inactive": inactivity_status["velocity_inactive"],
+            "inactivity_block_health_unchanged": inactivity_status[
+                "block_health_unchanged"
+            ],
+            "inactivity_depth_unchanged": not depth_improved,
+            "inactivity_timer_advanced": inactivity_timer_advanced,
+            "watchdog_failed": watchdog_failed,
+            "truncation_reason": truncation_reason,
+        })
         self.episode_trace.record(
             self.episode_steps,
             action,
@@ -277,7 +441,7 @@ class Env(gym.Env):
         )
         if terminated or truncated:
             self.episode_trace.finish_episode(
-                complete=bool(terminated and not truncated)
+                complete=completed
             )
 
         return processed, reward, terminated, truncated, info
