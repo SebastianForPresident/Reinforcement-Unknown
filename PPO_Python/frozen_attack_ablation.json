@@ -1,0 +1,13 @@
+{
+  "checkpoints": {
+    "attacks_allowed": "../checkpoints/CB1_2026-08-08_02-13-52/casu_ppo_cb1_vb1_51843364_steps.zip",
+    "attacks_blocked": "../checkpoints/CB1_2026-08-08_02-13-52/casu_ppo_cb1_vb1_51843364_steps.zip"
+  },
+  "seeds": [1598550398, 1467276821, 20341057, 715902843, 183746205, 924617038, 1325087461, 482903716, 1706284395, 1103948276],
+  "action_seed": 20260905,
+  "deterministic": false,
+  "device": "cpu",
+  "block_attack_conditions": ["attacks_blocked"],
+  "max_steps": 10000,
+  "output": "evaluation_results/frozen_attack_ablation_51843364.csv"
+}

@@ -31,7 +31,7 @@ def observed_previous_action(obs):
     )
 
 
-def _validate_common(obs, processed):
+def _validate_common(obs, processed, natural_stamina=False):
     version = int(obs["ProtocolVersion"])
     if version != Types.PROTOCOL_VERSION:
         raise RuntimeError(
@@ -64,11 +64,12 @@ def _validate_common(obs, processed):
     godmode_minimums = {
         "BrainHealth": 99.0,
         "Consciousness": 99.0,
-        "Stamina": 99.0,
         "Energy": 99.0,
         "BloodOxygen": 99.0,
         "ClawHealth": 99.0,
     }
+    if not natural_stamina:
+        godmode_minimums["Stamina"] = 99.0
     for name, minimum in godmode_minimums.items():
         value = float(obs[name])
         if value < minimum:
@@ -84,8 +85,8 @@ def _validate_common(obs, processed):
         )
 
 
-def validate_reset_observation(obs, processed):
-    _validate_common(obs, processed)
+def validate_reset_observation(obs, processed, natural_stamina=False):
+    _validate_common(obs, processed, natural_stamina=natural_stamina)
     ticks = int(obs["MacrostepPhysicsTicks"])
     delta = float(obs["SimulationDeltaTime"])
     if ticks != 0 or abs(delta) > 1e-6:
@@ -94,8 +95,8 @@ def validate_reset_observation(obs, processed):
         )
 
 
-def validate_step_observation(obs, processed, action):
-    _validate_common(obs, processed)
+def validate_step_observation(obs, processed, action, natural_stamina=False):
+    _validate_common(obs, processed, natural_stamina=natural_stamina)
     ticks = int(obs["MacrostepPhysicsTicks"])
     if ticks != Types.POLICY_PHYSICS_TICKS:
         raise RuntimeError(

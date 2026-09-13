@@ -9,10 +9,19 @@ import zipfile
 import sys
 import time
 import statistics
+import numpy as np
+import torch as th
+import torch.nn.functional as F
+from gymnasium import spaces
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
+from stable_baselines3.common.utils import explained_variance
+import CasualtiesEnv
 import ObservationEncoding
 import Reward
 import Types
+import AttackPermission
+import ResourceBudget
+import os
 
 
 TARGET_TOTAL_TIMESTEPS = 60_000_000
@@ -27,15 +36,37 @@ PPO_TARGET_KL = 0.05
 # updates produced one checkpoint per 10,240 steps and exhausted the training
 # filesystem. Keep saves on complete update boundaries, but retain only a
 # coarse recovery cadence; training completion still writes an explicit final
-# checkpoint.
-CB1_CHECKPOINT_UPDATES_PER_SAVE = 100
+# checkpoint. PPO_6 keeps the 25-update cadence selected at its lineage
+# boundary: 51,200 decisions per complete post-optimizer checkpoint.
+CB1_CHECKPOINT_UPDATES_PER_SAVE = 25
 CB1_MODEL_SCHEMA_VERSION = 1
-CB1_TENSORBOARD_RUN_ID = 5
+CB1_TENSORBOARD_RUN_ID = 6
+CB1_INTERVENTION_SOURCE_STEP = 51_843_364
+ATTACK_PRIOR_TARGET = 0.25
+ATTACK_PRIOR_INITIAL_COEFFICIENT = 0.1
+ATTACK_PRIOR_ANNEAL_STEPS = 1_000_000
 PROTOCOL_MANIFEST_NAME = f"protocol_{Types.CHECKPOINT_NAME.lower()}.json"
+INTERVENTION_MANIFEST_NAME = "intervention_ppo6.json"
+
+
+def AttackPriorCoefficient(global_step):
+    elapsed = max(int(global_step) - CB1_INTERVENTION_SOURCE_STEP, 0)
+    remaining = max(1.0 - elapsed / ATTACK_PRIOR_ANNEAL_STEPS, 0.0)
+    return ATTACK_PRIOR_INITIAL_COEFFICIENT * remaining
+
+
+def AttackPriorLoss(distribution):
+    attack_probability = distribution.distribution[-1].probs[:, 1]
+    probability = attack_probability.clamp(1e-6, 1.0 - 1e-6)
+    target = th.full_like(probability, ATTACK_PRIOR_TARGET)
+    return (
+        F.binary_cross_entropy(probability, target),
+        attack_probability.mean(),
+    )
 
 
 def ProtocolManifest(env):
-    return {
+    result = {
         "checkpoint": Types.CHECKPOINT_NAME,
         "reward": Types.REWARD_NAME,
         "protocol_version": Types.PROTOCOL_VERSION,
@@ -59,6 +90,37 @@ def ProtocolManifest(env):
             for name, space in env.observation_space.spaces.items()
         },
     }
+    if getattr(env, "permission_mode", False):
+        result["model_schema_version"] = 2
+        result["attack_permission"] = AttackPermission.contract()
+    if getattr(env, "missed_attack_penalty_mode", False):
+        result["missed_attack_penalty"] = {
+            "scale": Reward.MISSED_ATTACK_PENALTY_SCALE,
+            "signal": (
+                "executed swing with zero macrostep claw-health loss"
+            ),
+        }
+    if getattr(env, "attack_prior_mode", False):
+        result["attack_logit_prior"] = {
+            "target_attack_probability": ATTACK_PRIOR_TARGET,
+            "initial_coefficient": ATTACK_PRIOR_INITIAL_COEFFICIENT,
+            "anneal_steps": ATTACK_PRIOR_ANNEAL_STEPS,
+            "scope": "attack categorical branch only",
+        }
+    if getattr(env, "natural_stamina_mode", False):
+        result["natural_stamina"] = {
+            "stamina_reset_by_functional_godmode": False,
+            "energy_reset_by_functional_godmode": True,
+            "incapacitated_inactivity_steps": env.max_inactive_steps,
+            "incapacitated_inactivity_simulated_seconds": (
+                env.max_inactive_steps / 5.0
+            ),
+            "terminal_penalty": Reward.INCOMPLETE_EPISODE_PENALTY,
+        }
+    if getattr(env, "attack_budget_mode", False):
+        result["model_schema_version"] = 2
+        result["attack_budget"] = ResourceBudget.contract()
+    return result
 
 
 def ValidateOrWriteProtocolManifest(run_dir, env, resuming):
@@ -83,8 +145,192 @@ def ValidateOrWriteProtocolManifest(run_dir, env, resuming):
         )
 
 
+def CheckpointStep(path):
+    match = re.search(r"_(\d+)_steps\.zip$", Path(path).name)
+    if match is None:
+        raise ValueError(f"Checkpoint has no explicit global step: {path}")
+    return int(match.group(1))
+
+
+def ValidateOrWriteInterventionManifest(run_dir, resume_model):
+    """Record the PPO_6 actual-swing/contact shadow experiment."""
+    path = run_dir / INTERVENTION_MANIFEST_NAME
+    expected = {
+        "phase": "PPO_6",
+        "source_checkpoint": (
+            f"casu_ppo_cb1_vb1_{CB1_INTERVENTION_SOURCE_STEP}_steps.zip"
+        ),
+        "source_step": CB1_INTERVENTION_SOURCE_STEP,
+        "experiment": "actual_swing_claw_contact_shadow",
+        "wire_protocol_version": Types.PROTOCOL_VERSION,
+        "policy_observation_shape_unchanged": True,
+        "functional_stamina_reset": True,
+        "capable_only_inactivity": True,
+        "actual_swing_signal": "attack_cooldown_increase",
+        "contact_signal": "pre_godmode_claw_health_loss",
+        "ineffective_swing_penalty_scale": (
+            Reward.INEFFECTIVE_SWING_PENALTY_SCALE
+        ),
+        "ineffective_swing_penalty_enabled": (
+            Reward.INEFFECTIVE_SWING_PENALTY_ENABLED
+        ),
+    }
+    if os.environ.get("PPO_ATTACK_BUDGET", "0") == "1":
+        expected = {
+            "phase": "PPO_6",
+            "source_checkpoint": (
+                f"casu_ppo_cb1_vb1_{CB1_INTERVENTION_SOURCE_STEP}_steps.zip"
+            ),
+            "source_step": CB1_INTERVENTION_SOURCE_STEP,
+            "experiment": "dense_budget_conditioned_resource_efficient_descent",
+            "wire_protocol_version": Types.PROTOCOL_VERSION,
+            "model_schema_version": 2,
+            "source_general_shape": 139,
+            "policy_general_shape": 140,
+            "zero_column_model_surgery": True,
+            "initial_policy_outputs_preserved": True,
+            "attack_budget": ResourceBudget.contract(),
+            "missed_attack_penalty": 0.0,
+            "unused_budget_reward": 0.0,
+            "immediate_swing_cost": "-10 / assigned episode budget",
+            "attack_logit_prior": {
+                "target_attack_probability": ATTACK_PRIOR_TARGET,
+                "initial_coefficient": ATTACK_PRIOR_INITIAL_COEFFICIENT,
+                "anneal_steps": ATTACK_PRIOR_ANNEAL_STEPS,
+            },
+        }
+    elif (
+        os.environ.get("PPO_ATTACK_LOGIT_PRIOR", "0") == "1"
+        and os.environ.get("PPO_MISSED_ATTACK_PENALTY", "0") == "1"
+        and os.environ.get("PPO_NATURAL_STAMINA", "0") != "1"
+    ):
+        expected = {
+            "phase": "PPO_6",
+            "source_checkpoint": (
+                f"casu_ppo_cb1_vb1_{CB1_INTERVENTION_SOURCE_STEP}_steps.zip"
+            ),
+            "source_step": CB1_INTERVENTION_SOURCE_STEP,
+            "experiment": "annealed_attack_prior_with_missed_swing_penalty",
+            "wire_protocol_version": Types.PROTOCOL_VERSION,
+            "model_schema_version": CB1_MODEL_SCHEMA_VERSION,
+            "policy_observation_shape_unchanged": True,
+            "functional_stamina_reset": True,
+            "sampling_or_action_override": False,
+            "target_attack_probability": ATTACK_PRIOR_TARGET,
+            "initial_prior_coefficient": ATTACK_PRIOR_INITIAL_COEFFICIENT,
+            "prior_anneal_steps": ATTACK_PRIOR_ANNEAL_STEPS,
+            "miss_definition": (
+                "game-confirmed executed swing with zero macrostep "
+                "pre-godmode claw-health loss"
+            ),
+            "missed_attack_penalty": -Reward.MISSED_ATTACK_PENALTY_SCALE,
+            "contact_penalty": 0.0,
+            "cooldown_hold_penalty": 0.0,
+            "attack_budget": False,
+            "natural_stamina": False,
+        }
+    elif (
+        os.environ.get("PPO_ATTACK_LOGIT_PRIOR", "0") == "1"
+        and os.environ.get("PPO_NATURAL_STAMINA", "0") == "1"
+    ):
+        expected = {
+            "phase": "PPO_6",
+            "source_checkpoint": (
+                f"casu_ppo_cb1_vb1_{CB1_INTERVENTION_SOURCE_STEP}_steps.zip"
+            ),
+            "source_step": CB1_INTERVENTION_SOURCE_STEP,
+            "experiment": "natural_exhaustion_with_annealed_attack_prior",
+            "wire_protocol_version": Types.PROTOCOL_VERSION,
+            "model_schema_version": CB1_MODEL_SCHEMA_VERSION,
+            "policy_observation_shape_unchanged": True,
+            "stamina_already_observable": True,
+            "stamina_reset_by_functional_godmode": False,
+            "energy_reset_by_functional_godmode": True,
+            "other_functional_godmode_repairs_retained": True,
+            "exhaustion_reward": 0.0,
+            "incapacitated_inactivity_steps": 75,
+            "incapacitated_inactivity_simulated_seconds": 15.0,
+            "incapacitated_inactivity_penalty": (
+                Reward.INCOMPLETE_EPISODE_PENALTY
+            ),
+            "target_attack_probability": ATTACK_PRIOR_TARGET,
+            "initial_prior_coefficient": ATTACK_PRIOR_INITIAL_COEFFICIENT,
+            "prior_anneal_steps": ATTACK_PRIOR_ANNEAL_STEPS,
+            "sampling_or_action_override": False,
+            "synthetic_attack_cost": 0.0,
+            "missed_attack_penalty": 0.0,
+            "attack_budget": False,
+        }
+    elif os.environ.get("PPO_ATTACK_LOGIT_PRIOR", "0") == "1":
+        expected = {
+            "phase": "PPO_6",
+            "source_checkpoint": (
+                f"casu_ppo_cb1_vb1_{CB1_INTERVENTION_SOURCE_STEP}_steps.zip"
+            ),
+            "source_step": CB1_INTERVENTION_SOURCE_STEP,
+            "experiment": "isolated_annealed_attack_logit_prior",
+            "wire_protocol_version": Types.PROTOCOL_VERSION,
+            "model_schema_version": CB1_MODEL_SCHEMA_VERSION,
+            "policy_observation_shape_unchanged": True,
+            "attack_action_unchanged": True,
+            "sampling_or_action_override": False,
+            "target_attack_probability": ATTACK_PRIOR_TARGET,
+            "initial_prior_coefficient": ATTACK_PRIOR_INITIAL_COEFFICIENT,
+            "prior_anneal_steps": ATTACK_PRIOR_ANNEAL_STEPS,
+            "prior_loss": "binary cross entropy on attack branch probability",
+            "missed_attack_penalty": 0.0,
+            "watchdog_penalty": Reward.INCOMPLETE_EPISODE_PENALTY,
+        }
+    elif os.environ.get("PPO_MISSED_ATTACK_PENALTY", "0") == "1":
+        expected = {
+            "phase": "PPO_6",
+            "source_checkpoint": (
+                f"casu_ppo_cb1_vb1_{CB1_INTERVENTION_SOURCE_STEP}_steps.zip"
+            ),
+            "source_step": CB1_INTERVENTION_SOURCE_STEP,
+            "experiment": "missed_executed_attack_penalty",
+            "wire_protocol_version": Types.PROTOCOL_VERSION,
+            "model_schema_version": CB1_MODEL_SCHEMA_VERSION,
+            "policy_observation_shape_unchanged": True,
+            "attack_action_unchanged": True,
+            "miss_definition": (
+                "executed swing with zero macrostep claw-health loss"
+            ),
+            "missed_attack_penalty": -Reward.MISSED_ATTACK_PENALTY_SCALE,
+            "contact_penalty": 0.0,
+            "cooldown_hold_penalty": 0.0,
+            "watchdog_penalty": Reward.INCOMPLETE_EPISODE_PENALTY,
+            "permission_or_phase_logic": False,
+        }
+    elif (
+        os.environ.get("PPO_ATTACK_PERMISSION", "0") == "1"
+        or os.environ.get("PPO_ATTACK_PENALTY", "0") == "1"
+        or os.environ.get("PPO_ATTACK_TERMINAL", "0") == "1"
+    ):
+        expected = AttackPermission.contract()
+    if path.is_file():
+        actual = json.loads(path.read_text(encoding="utf-8"))
+        if actual != expected:
+            raise RuntimeError(
+                f"Refusing PPO_6 continuation: {INTERVENTION_MANIFEST_NAME} "
+                "does not match the current intervention contract."
+            )
+        return
+
+    source_step = CheckpointStep(resume_model)
+    if source_step != CB1_INTERVENTION_SOURCE_STEP:
+        raise RuntimeError(
+            "Refusing to begin PPO_6 from an ambiguous checkpoint: expected "
+            f"{CB1_INTERVENTION_SOURCE_STEP}, selected {source_step}."
+        )
+    path.write_text(
+        json.dumps(expected, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def PrepareTensorboardContinuation(run_dir):
-    """Pin this intervention to PPO_5 while preserving SB3 resume semantics."""
+    """Pin this intervention to PPO_6 while preserving SB3 resume semantics."""
     tensorboard_dir = run_dir / "tensorboard"
     tensorboard_dir.mkdir(parents=True, exist_ok=True)
     target = tensorboard_dir / f"PPO_{CB1_TENSORBOARD_RUN_ID}"
@@ -128,7 +374,195 @@ class PausingPPO(PPO):
     def train(self):
         if self._pause_simulation is not None:
             self._pause_simulation()
-        return super().train()
+        result = super().train()
+        temperature = None
+        if isinstance(self.policy, AttackPermission.TerminalExplorationPolicy):
+            try:
+                curriculum_enabled = self.env.get_attr(
+                    "attack_curriculum_mode"
+                )[0]
+                if curriculum_enabled:
+                    temperature = self.env.get_attr(
+                        "attack_exploration_temperature"
+                    )[0]
+            except (AttributeError, IndexError):
+                pass
+        AttackPermission.configure_exploration(self, temperature)
+        if isinstance(self.policy, AttackPermission.TerminalExplorationPolicy):
+            try:
+                self.env.set_attr(
+                    "attack_exploration_temperature_applied",
+                    self.policy.attack_temperature,
+                )
+            except AttributeError:
+                pass
+            self.logger.record(
+                "train/prohibited_attack_temperature",
+                self.policy.attack_temperature,
+            )
+        return result
+
+
+class AttackPriorPPO(PausingPPO):
+    """PPO with an annealed, attack-branch-only probability prior."""
+
+    def attack_prior_coefficient(self):
+        return AttackPriorCoefficient(self.num_timesteps)
+
+    def evaluate_actions_with_prior(self, observations, actions):
+        """Evaluate PPO actions and prior from one shared feature pass."""
+        features = self.policy.extract_features(observations)
+        if self.policy.share_features_extractor:
+            latent_pi, latent_vf = self.policy.mlp_extractor(features)
+        else:
+            pi_features, vf_features = features
+            latent_pi = self.policy.mlp_extractor.forward_actor(pi_features)
+            latent_vf = self.policy.mlp_extractor.forward_critic(vf_features)
+        distribution = self.policy._get_action_dist_from_latent(latent_pi)
+        values = self.policy.value_net(latent_vf)
+        log_prob = distribution.log_prob(actions)
+        entropy = distribution.entropy()
+        prior_loss, attack_probability = AttackPriorLoss(distribution)
+        return values, log_prob, entropy, prior_loss, attack_probability
+
+    def train(self):
+        """Standard SB3 PPO update plus the annealed attack prior loss."""
+        if self._pause_simulation is not None:
+            self._pause_simulation()
+        self.policy.set_training_mode(True)
+        self._update_learning_rate(self.policy.optimizer)
+        clip_range = self.clip_range(self._current_progress_remaining)
+        if self.clip_range_vf is not None:
+            clip_range_vf = self.clip_range_vf(
+                self._current_progress_remaining
+            )
+
+        entropy_losses = []
+        pg_losses, value_losses = [], []
+        clip_fractions = []
+        prior_losses, attack_probabilities = [], []
+        prior_coefficient = self.attack_prior_coefficient()
+        continue_training = True
+        loss = None
+        approx_kl_divs = []
+
+        for epoch in range(self.n_epochs):
+            approx_kl_divs = []
+            for rollout_data in self.rollout_buffer.get(self.batch_size):
+                actions = rollout_data.actions
+                if isinstance(self.action_space, spaces.Discrete):
+                    actions = actions.long().flatten()
+
+                (
+                    values,
+                    log_prob,
+                    entropy,
+                    prior_loss,
+                    attack_probability,
+                ) = self.evaluate_actions_with_prior(
+                    rollout_data.observations, actions
+                )
+                values = values.flatten()
+                advantages = rollout_data.advantages
+                if self.normalize_advantage and len(advantages) > 1:
+                    advantages = (
+                        advantages - advantages.mean()
+                    ) / (advantages.std() + 1e-8)
+
+                ratio = th.exp(log_prob - rollout_data.old_log_prob)
+                policy_loss_1 = advantages * ratio
+                policy_loss_2 = advantages * th.clamp(
+                    ratio, 1 - clip_range, 1 + clip_range
+                )
+                policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()
+                pg_losses.append(policy_loss.item())
+                clip_fraction = th.mean(
+                    (th.abs(ratio - 1) > clip_range).float()
+                ).item()
+                clip_fractions.append(clip_fraction)
+
+                if self.clip_range_vf is None:
+                    values_pred = values
+                else:
+                    values_pred = rollout_data.old_values + th.clamp(
+                        values - rollout_data.old_values,
+                        -clip_range_vf,
+                        clip_range_vf,
+                    )
+                value_loss = F.mse_loss(rollout_data.returns, values_pred)
+                value_losses.append(value_loss.item())
+                if entropy is None:
+                    entropy_loss = -th.mean(-log_prob)
+                else:
+                    entropy_loss = -th.mean(entropy)
+                entropy_losses.append(entropy_loss.item())
+
+                prior_losses.append(prior_loss.item())
+                attack_probabilities.append(attack_probability.item())
+                loss = (
+                    policy_loss
+                    + self.ent_coef * entropy_loss
+                    + self.vf_coef * value_loss
+                    + prior_coefficient * prior_loss
+                )
+
+                with th.no_grad():
+                    log_ratio = log_prob - rollout_data.old_log_prob
+                    approx_kl_div = th.mean(
+                        (th.exp(log_ratio) - 1) - log_ratio
+                    ).cpu().numpy()
+                    approx_kl_divs.append(approx_kl_div)
+                if (
+                    self.target_kl is not None
+                    and approx_kl_div > 1.5 * self.target_kl
+                ):
+                    continue_training = False
+                    if self.verbose >= 1:
+                        print(
+                            "Early stopping due to reaching max KL: "
+                            f"{approx_kl_div:.2f}"
+                        )
+                    break
+
+                self.policy.optimizer.zero_grad()
+                loss.backward()
+                th.nn.utils.clip_grad_norm_(
+                    self.policy.parameters(), self.max_grad_norm
+                )
+                self.policy.optimizer.step()
+
+            self._n_updates += 1
+            if not continue_training:
+                break
+
+        explained_var = explained_variance(
+            self.rollout_buffer.values.flatten(),
+            self.rollout_buffer.returns.flatten(),
+        )
+        self.logger.record("train/entropy_loss", np.mean(entropy_losses))
+        self.logger.record("train/policy_gradient_loss", np.mean(pg_losses))
+        self.logger.record("train/value_loss", np.mean(value_losses))
+        self.logger.record("train/approx_kl", np.mean(approx_kl_divs))
+        self.logger.record("train/clip_fraction", np.mean(clip_fractions))
+        self.logger.record("train/loss", loss.item())
+        self.logger.record("train/explained_variance", explained_var)
+        self.logger.record("train/attack_prior_loss", np.mean(prior_losses))
+        self.logger.record(
+            "train/attack_probability", np.mean(attack_probabilities)
+        )
+        self.logger.record(
+            "train/attack_prior_coefficient", prior_coefficient
+        )
+        if hasattr(self.policy, "log_std"):
+            self.logger.record(
+                "train/std", th.exp(self.policy.log_std).mean().item()
+            )
+        self.logger.record(
+            "train/n_updates", self._n_updates, exclude="tensorboard"
+        )
+        self.logger.record("train/clip_range", clip_range)
+        if self.clip_range_vf is not None:
+            self.logger.record("train/clip_range_vf", clip_range_vf)
 
 
 class TrainingProgressCallback(BaseCallback):
@@ -272,6 +706,47 @@ class SuccessEpisodeLengthCallback(BaseCallback):
             self.logger.record(self.TAG, mean)
 
 
+class AttackBudgetCallback(BaseCallback):
+    """Log whether constrained episodes finish within their assigned budget."""
+
+    def __init__(self, window_size=100):
+        super().__init__(verbose=0)
+        self.outcomes = deque(maxlen=int(window_size))
+
+    def _on_step(self):
+        for done, info in zip(
+            self.locals.get("dones", ()), self.locals.get("infos", ())
+        ):
+            if not done or "attack_budget" not in info:
+                continue
+            budget = max(int(info["attack_budget"]), 1)
+            used = int(info["attack_budget_used"])
+            exceeded = bool(info["attack_budget_exceeded"])
+            succeeded = not bool(info.get("watchdog_failed", False))
+            self.outcomes.append((used / budget, exceeded, succeeded))
+        return True
+
+    def _on_rollout_end(self):
+        if not self.outcomes:
+            return
+        self.logger.record(
+            "rollout/attack_budget_utilization_mean",
+            statistics.fmean(value for value, _, _ in self.outcomes),
+        )
+        self.logger.record(
+            "rollout/attack_budget_exceeded_rate",
+            statistics.fmean(float(value) for _, value, _ in self.outcomes),
+        )
+        successful = [
+            value for value, _, succeeded in self.outcomes if succeeded
+        ]
+        if successful:
+            self.logger.record(
+                "rollout/success_attack_budget_utilization_mean",
+                statistics.fmean(successful),
+            )
+
+
 class RolloutCheckpointCallback(BaseCallback):
     """Save only after complete PPO updates, never midway through a rollout."""
 
@@ -388,7 +863,13 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
         else:
             print(f"Resuming model: {resume_model}")
             PrepareTensorboardContinuation(run_dir)
-            model = PausingPPO.load(
+            ValidateOrWriteInterventionManifest(run_dir, resume_model)
+            model_class = (
+                AttackPriorPPO
+                if getattr(env, "attack_prior_mode", False)
+                else PausingPPO
+            )
+            model = model_class.load(
                 str(resume_model),
                 env=env,
                 policy_kwargs={
@@ -410,6 +891,21 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
                 },
             )
             model._pause_simulation = pause_simulation
+            env.ConfigureAttackCurriculum(run_dir)
+            AttackPermission.configure_exploration(
+                model,
+                env.attack_exploration_temperature
+                if env.attack_curriculum_mode
+                else None,
+            )
+            env.attack_exploration_temperature_applied = (
+                model.policy.attack_temperature
+                if isinstance(
+                    model.policy,
+                    AttackPermission.TerminalExplorationPolicy,
+                )
+                else 1.0
+            )
             reset_num_timesteps = False
             total_timesteps = max(
                 0,
@@ -426,6 +922,7 @@ def Begin_Training(env, pause_simulation=None, resume_dir=None):
             SuccessEpisodeLengthCallback(
                 state_path=run_dir / "success_ep_len_state.json"
             ),
+            AttackBudgetCallback(),
             TrainingProgressCallback(),
         ])
 

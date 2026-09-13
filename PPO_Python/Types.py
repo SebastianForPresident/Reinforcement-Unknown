@@ -3,7 +3,7 @@ import numpy as np
 # CB1/VB1 experiment lineage and fixed binary observation protocol.
 CHECKPOINT_NAME = "CB1"
 REWARD_NAME = "VB1"
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
 POLICY_PHYSICS_TICKS = 10
 MAX_NEARBY_BUILDINGS = 16
 MAX_NEARBY_ITEMS = 16 # 16
@@ -195,6 +195,8 @@ OBSERVATION_DTYPE = np.dtype([
     ("CanWalljumpLeft", BOOL_DTYPE),
     ("CanWalljumpRight", BOOL_DTYPE),
     ("AttackCooldown", FLOAT_DTYPE),
+    ("AttackSwingsExecuted", USHORT_DTYPE),
+    ("AttackContactClawHealthLoss", FLOAT_DTYPE),
     ("CrouchAmount", FLOAT_DTYPE),
     ("Crouching", BOOL_DTYPE),
     ("IsClimbing", BOOL_DTYPE),

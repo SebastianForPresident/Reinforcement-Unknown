@@ -15,7 +15,7 @@ class CasualtiesFeatureExtractor(BaseFeaturesExtractor):
         super().__init__(observation_space, features_dim=features_dim)
 
         self.general_encoder = Encoders.GeneralEncoder(
-            CasualtiesEnv._general_input_dim,
+            observation_space["general"].shape[0],
             Encoders.GENERAL_EMBEDDING_DIM,
         )
         self.spatial_encoder = Encoders.SpatialEncoder(

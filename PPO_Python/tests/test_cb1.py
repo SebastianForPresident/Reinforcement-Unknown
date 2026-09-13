@@ -3,8 +3,11 @@ import sys
 import tempfile
 import unittest
 import json
+import os
 import threading
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import gymnasium as gym
 import numpy as np
@@ -22,6 +25,7 @@ import ObservationEncoding
 import ObservationNormalization as Normalization
 import ProtocolValidation
 import Reward
+import ResourceBudget
 import Train
 import Types
 
@@ -85,6 +89,10 @@ class NormalizationTests(unittest.TestCase):
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_v2_reduced_wire_payload_size(self):
+        self.assertEqual(Types.PROTOCOL_VERSION, 2)
+        self.assertEqual(Types.OBSERVATION_DTYPE.itemsize, 42_004)
+
     def test_training_truncation_limits_are_part_of_environment_contract(self):
         self.assertIsNone(CasualtiesEnv.TruncationReason(99_999, 25_000))
         self.assertEqual(
@@ -119,7 +127,7 @@ class ProtocolTests(unittest.TestCase):
         )
         self.assertEqual(CasualtiesEnv.AdvanceMobileStagnation(9_999, 0.001), 0)
 
-    def test_capable_inactivity_requires_static_player_and_block_health(self):
+    def test_capable_inactivity_exempts_incapacity(self):
         obs = live_observation()
         previous_position = (256, 400)
         previous_health = obs["RelativeBlockMap"]["Health"].copy()
@@ -134,24 +142,69 @@ class ProtocolTests(unittest.TestCase):
                 "block_health_unchanged": True,
             },
         )
-        self.assertTrue(CasualtiesEnv.CapableAndInactive(
+        status = CasualtiesEnv.InactivityStatus(
             obs, previous_position, previous_health
-        ))
+        )
+        self.assertTrue(CasualtiesEnv.PhysicallyInactive(status))
 
         obs["Velocity"]["X"] = 0.1
-        self.assertFalse(CasualtiesEnv.CapableAndInactive(
+        status = CasualtiesEnv.InactivityStatus(
             obs, previous_position, previous_health
-        ))
+        )
+        self.assertFalse(CasualtiesEnv.PhysicallyInactive(status))
         obs["Velocity"]["X"] = 0.0
         obs["RelativeBlockMap"]["Health"][0, 0] = 1.0
-        self.assertFalse(CasualtiesEnv.CapableAndInactive(
+        status = CasualtiesEnv.InactivityStatus(
             obs, previous_position, previous_health
-        ))
+        )
+        self.assertFalse(CasualtiesEnv.PhysicallyInactive(status))
         obs["RelativeBlockMap"]["Health"][0, 0] = 0.0
-        obs["TimeRagdolled"] = 1.0
-        self.assertFalse(CasualtiesEnv.CapableAndInactive(
-            obs, previous_position, previous_health
-        ))
+        for field, value in (
+            ("TimeRagdolled", 1.0),
+            ("Consciousness", 0.0),
+            ("PlayerDead", True),
+        ):
+            incapacitated = live_observation()
+            incapacitated[field] = value
+            status = CasualtiesEnv.InactivityStatus(
+                incapacitated, previous_position, previous_health
+            )
+            self.assertFalse(status["capable"])
+            self.assertTrue(CasualtiesEnv.PhysicallyInactive(status))
+            self.assertEqual(
+                CasualtiesEnv.AdvanceInactivity(74, status, False),
+                0,
+            )
+            self.assertEqual(
+                CasualtiesEnv.AdvanceInactivity(
+                    74, status, False, count_incapacity=True
+                ),
+                75,
+            )
+
+        self.assertEqual(
+            CasualtiesEnv.AdvanceInactivity(74, status, True),
+            0,
+        )
+
+        jittering = live_observation()
+        jittering["TimeRagdolled"] = 1.0
+        jittering["Velocity"]["X"] = 1.0
+        jittering["PlayerTilePosition"]["X"] += 1
+        jittering["RelativeBlockMap"]["Health"][0, 0] = 1.0
+        jittering_status = CasualtiesEnv.InactivityStatus(
+            jittering, previous_position, previous_health
+        )
+        self.assertFalse(CasualtiesEnv.PhysicallyInactive(jittering_status))
+        self.assertEqual(
+            CasualtiesEnv.AdvanceInactivity(74, jittering_status, True),
+            0,
+        )
+
+        capable = CasualtiesEnv.InactivityStatus(
+            live_observation(), previous_position, previous_health
+        )
+        self.assertEqual(CasualtiesEnv.AdvanceInactivity(74, capable, True), 0)
 
     def test_absolute_position_uses_zero_based_world_bounds(self):
         obs = live_observation()
@@ -220,6 +273,17 @@ class ProtocolTests(unittest.TestCase):
         obs = live_observation()
         processed = CasualtiesEnv.PreprocessObservation(obs)
         ProtocolValidation.validate_reset_observation(obs, processed)
+
+    def test_functional_godmode_requires_restored_stamina(self):
+        obs = live_observation()
+        obs["Stamina"] = 0.0
+        processed = CasualtiesEnv.PreprocessObservation(obs)
+        with self.assertRaisesRegex(RuntimeError, "Stamina=0.000"):
+            ProtocolValidation.validate_reset_observation(obs, processed)
+
+        ProtocolValidation.validate_reset_observation(
+            obs, processed, natural_stamina=True
+        )
 
     def test_player_dead_is_an_invariant_failure(self):
         obs = live_observation()
@@ -360,11 +424,15 @@ class TraceTests(unittest.TestCase):
             "continuous_progress_improved": False,
             "mobile_stagnation_timer_advanced": True,
             "inactivity_capable": True,
+            "inactivity_incapacitated": False,
+            "inactivity_physical_gates_met": True,
             "inactivity_tile_unchanged": True,
             "inactivity_velocity_inactive": True,
             "inactivity_block_health_unchanged": True,
             "inactivity_depth_unchanged": True,
             "inactivity_timer_advanced": True,
+            "inactivity_timer_mode": "physical",
+            "inactivity_timer_advanced_while_incapacitated": False,
             "watchdog_failed": False,
             "truncation_reason": None,
         }
@@ -478,15 +546,97 @@ class RewardTests(unittest.TestCase):
             pass
 
         state = State()
-        obs = {"LayerProgress": 0.1}
+        obs = np.frombuffer(live_observation().tobytes(), dtype=Types.OBSERVATION_DTYPE)[0].copy()
+        obs["LayerProgress"] = 0.125
         Reward.Reset(state, obs)
-        obs["LayerProgress"] = 0.2
-        self.assertAlmostEqual(Reward.Reward(obs, None, state), 1.0)
+        obs["LayerProgress"] = 0.25
+        self.assertAlmostEqual(Reward.Reward(obs, None, state), 1.25)
         self.assertEqual(state.last_reward_terms["incomplete_episode"], 0.0)
         obs["LayerProgress"] = 0.15
         self.assertEqual(Reward.Reward(obs, None, state), 0.0)
         obs["LayerProgress"] = 1.0
-        self.assertAlmostEqual(Reward.Reward(obs, None, state), 18.0)
+        self.assertAlmostEqual(Reward.Reward(obs, None, state), 17.5)
+        self.assertEqual(Reward.Reward(obs, None, state), 0.0)
+
+    def test_ineffective_swing_penalty_is_shadow_only(self):
+        class State:
+            pass
+
+        state = State()
+        obs = np.frombuffer(live_observation().tobytes(), dtype=Types.OBSERVATION_DTYPE)[0].copy()
+        self.assertIsInstance(obs, np.void)
+        obs["LayerProgress"] = 0.25
+        obs["AttackSwingsExecuted"] = 1
+        obs["AttackContactClawHealthLoss"] = 0.0
+        Reward.Reset(state, obs)
+
+        self.assertEqual(Reward.Reward(obs, None, state), 0.0)
+        self.assertEqual(state.last_reward_terms["ineffective_swings"], 1)
+        self.assertEqual(
+            state.last_reward_terms["ineffective_swing_penalty_shadow"],
+            -0.0001,
+        )
+        self.assertEqual(
+            state.last_reward_terms["ineffective_swing_penalty"], 0.0
+        )
+
+    def test_claw_contact_exempts_executed_swing_from_shadow_miss(self):
+        class State:
+            pass
+
+        state = State()
+        obs = np.frombuffer(live_observation().tobytes(), dtype=Types.OBSERVATION_DTYPE)[0].copy()
+        obs["LayerProgress"] = 0.25
+        obs["AttackSwingsExecuted"] = 1
+        obs["AttackContactClawHealthLoss"] = 0.01
+        Reward.Reset(state, obs)
+
+        self.assertEqual(Reward.Reward(obs, None, state), 0.0)
+        self.assertEqual(state.last_reward_terms["ineffective_swings"], 0)
+        self.assertEqual(
+            state.last_reward_terms["ineffective_swing_penalty_shadow"], 0.0
+        )
+
+    def test_missed_attack_mode_penalizes_only_executed_noncontacts(self):
+        class State:
+            missed_attack_penalty_mode = True
+
+        state = State()
+        obs = np.frombuffer(
+            live_observation().tobytes(), dtype=Types.OBSERVATION_DTYPE
+        )[0].copy()
+        obs["LayerProgress"] = 0.25
+        Reward.Reset(state, obs)
+
+        obs["AttackSwingsExecuted"] = 1
+        obs["AttackContactClawHealthLoss"] = 0.0
+        self.assertEqual(Reward.Reward(obs, None, state), -0.005)
+        self.assertEqual(state.last_reward_terms["ineffective_swings"], 1)
+
+        obs["AttackContactClawHealthLoss"] = 0.3
+        self.assertEqual(Reward.Reward(obs, None, state), 0.0)
+        self.assertEqual(state.last_reward_terms["ineffective_swings"], 0)
+
+        obs["AttackSwingsExecuted"] = 0
+        obs["AttackContactClawHealthLoss"] = 0.0
+        self.assertEqual(Reward.Reward(obs, None, state), 0.0)
+
+    def test_attack_budget_charges_every_executed_swing_immediately(self):
+        class State:
+            attack_budget_mode = True
+            attack_budget = 2_000
+
+        state = State()
+        obs = np.frombuffer(
+            live_observation().tobytes(), dtype=Types.OBSERVATION_DTYPE
+        )[0].copy()
+        obs["LayerProgress"] = 0.25
+        Reward.Reset(state, obs)
+        obs["AttackSwingsExecuted"] = 1
+        obs["AttackContactClawHealthLoss"] = 1.0
+        self.assertEqual(Reward.Reward(obs, None, state), -0.005)
+        self.assertEqual(state.last_reward_terms["attack_budget_penalty"], -0.005)
+        obs["AttackSwingsExecuted"] = 0
         self.assertEqual(Reward.Reward(obs, None, state), 0.0)
 
     def test_incomplete_episode_penalty_updates_reward_terms(self):
@@ -533,6 +683,46 @@ class EncoderTests(unittest.TestCase):
 
 
 class TrainingProtocolTests(unittest.TestCase):
+    def test_attack_budget_contract_and_normalization(self):
+        rng = np.random.default_rng(90210)
+        samples = [ResourceBudget.sample_budget(rng) for _ in range(100)]
+        self.assertTrue(all(1_500 <= value <= 3_000 for value in samples))
+        self.assertEqual(ResourceBudget.normalize_remaining(3_000), 1.0)
+        self.assertEqual(ResourceBudget.normalize_remaining(1_500), 0.5)
+        self.assertEqual(ResourceBudget.normalize_remaining(-1), 0.0)
+        self.assertFalse(ResourceBudget.exceeded(1_500, 1_500))
+        self.assertTrue(ResourceBudget.exceeded(1_501, 1_500))
+        self.assertEqual(ResourceBudget.immediate_cost(1, 2_000), -0.005)
+        self.assertEqual(ResourceBudget.immediate_cost(2_000, 2_000), -10.0)
+
+    def test_attack_prior_pressure_and_annealing(self):
+        self.assertEqual(
+            Train.AttackPriorCoefficient(Train.CB1_INTERVENTION_SOURCE_STEP),
+            0.1,
+        )
+        self.assertAlmostEqual(
+            Train.AttackPriorCoefficient(
+                Train.CB1_INTERVENTION_SOURCE_STEP + 500_000
+            ),
+            0.05,
+        )
+        self.assertEqual(
+            Train.AttackPriorCoefficient(
+                Train.CB1_INTERVENTION_SOURCE_STEP + 1_000_000
+            ),
+            0.0,
+        )
+
+        logits = torch.tensor([[0.0, 7.0]], requires_grad=True)
+        distribution = SimpleNamespace(distribution=[
+            torch.distributions.Categorical(logits=logits)
+        ])
+        loss, probability = Train.AttackPriorLoss(distribution)
+        loss.backward()
+        self.assertGreater(float(probability.detach()), 0.99)
+        # Gradient descent subtracts this positive attack-logit gradient.
+        self.assertGreater(float(logits.grad[0, 1]), 0.0)
+
     def test_resume_prefers_greatest_explicit_step_over_legacy_name(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
@@ -551,25 +741,227 @@ class TrainingProtocolTests(unittest.TestCase):
                 "casu_ppo_cb1_vb1_30001444_steps.zip",
             )
 
-    def test_tensorboard_continuation_is_pinned_to_ppo_5(self):
+    def test_tensorboard_continuation_is_pinned_to_ppo_6(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
-            for run_id in range(5):
+            for run_id in range(6):
                 (run_dir / "tensorboard" / f"PPO_{run_id}").mkdir(
                     parents=True,
                 )
 
             Train.PrepareTensorboardContinuation(run_dir)
 
-            self.assertTrue((run_dir / "tensorboard" / "PPO_5").is_dir())
+            self.assertTrue((run_dir / "tensorboard" / "PPO_6").is_dir())
 
     def test_tensorboard_continuation_rejects_newer_phase(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
-            (run_dir / "tensorboard" / "PPO_6").mkdir(parents=True)
+            (run_dir / "tensorboard" / "PPO_7").mkdir(parents=True)
 
-            with self.assertRaisesRegex(RuntimeError, "newer than PPO_5"):
+            with self.assertRaisesRegex(RuntimeError, "newer than PPO_6"):
                 Train.PrepareTensorboardContinuation(run_dir)
+
+    def test_ppo6_intervention_manifest_pins_source_and_semantics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            resume_model = (
+                run_dir / "casu_ppo_cb1_vb1_51843364_steps.zip"
+            )
+            Train.ValidateOrWriteInterventionManifest(
+                run_dir, resume_model
+            )
+            manifest = json.loads(
+                (run_dir / Train.INTERVENTION_MANIFEST_NAME).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(manifest["phase"], "PPO_6")
+            self.assertEqual(manifest["source_step"], 51_843_364)
+            self.assertEqual(
+                manifest["experiment"],
+                "actual_swing_claw_contact_shadow",
+            )
+            self.assertTrue(manifest["functional_stamina_reset"])
+            self.assertTrue(manifest["capable_only_inactivity"])
+            self.assertFalse(manifest["ineffective_swing_penalty_enabled"])
+            self.assertEqual(
+                manifest["ineffective_swing_penalty_scale"], 0.0001
+            )
+
+            Train.ValidateOrWriteInterventionManifest(
+                run_dir, resume_model
+            )
+
+    def test_ppo6_missed_attack_manifest_pins_fixed_penalty(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            resume_model = (
+                run_dir / "casu_ppo_cb1_vb1_51843364_steps.zip"
+            )
+            with patch.dict(
+                os.environ, {"PPO_MISSED_ATTACK_PENALTY": "1"}, clear=False
+            ):
+                Train.ValidateOrWriteInterventionManifest(
+                    run_dir, resume_model
+                )
+            manifest = json.loads(
+                (run_dir / Train.INTERVENTION_MANIFEST_NAME).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(
+                manifest["experiment"], "missed_executed_attack_penalty"
+            )
+            self.assertEqual(manifest["missed_attack_penalty"], -0.005)
+            self.assertEqual(manifest["contact_penalty"], 0.0)
+            self.assertEqual(manifest["cooldown_hold_penalty"], 0.0)
+            self.assertFalse(manifest["permission_or_phase_logic"])
+
+    def test_ppo6_attack_prior_manifest_records_optimizer_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            resume_model = (
+                run_dir / "casu_ppo_cb1_vb1_51843364_steps.zip"
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "PPO_MISSED_ATTACK_PENALTY": "0",
+                    "PPO_ATTACK_LOGIT_PRIOR": "1",
+                },
+                clear=False,
+            ):
+                Train.ValidateOrWriteInterventionManifest(
+                    run_dir, resume_model
+                )
+            manifest = json.loads(
+                (run_dir / Train.INTERVENTION_MANIFEST_NAME).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(
+                manifest["experiment"],
+                "isolated_annealed_attack_logit_prior",
+            )
+            self.assertEqual(manifest["target_attack_probability"], 0.25)
+            self.assertEqual(manifest["initial_prior_coefficient"], 0.1)
+            self.assertEqual(manifest["prior_anneal_steps"], 1_000_000)
+            self.assertFalse(manifest["sampling_or_action_override"])
+            self.assertEqual(manifest["missed_attack_penalty"], 0.0)
+
+    def test_ppo6_natural_exhaustion_prior_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            resume_model = (
+                run_dir / "casu_ppo_cb1_vb1_51843364_steps.zip"
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "PPO_ATTACK_BUDGET": "0",
+                    "PPO_ATTACK_LOGIT_PRIOR": "1",
+                    "PPO_NATURAL_STAMINA": "1",
+                    "PPO_MISSED_ATTACK_PENALTY": "0",
+                },
+                clear=False,
+            ):
+                env = CasualtiesEnv.Env()
+                manifest = Train.ProtocolManifest(env)
+                Train.ValidateOrWriteInterventionManifest(
+                    run_dir, resume_model
+                )
+                env.close()
+            intervention = json.loads(
+                (run_dir / Train.INTERVENTION_MANIFEST_NAME).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(
+                intervention["experiment"],
+                "natural_exhaustion_with_annealed_attack_prior",
+            )
+            self.assertEqual(
+                intervention["target_attack_probability"], 0.25
+            )
+            self.assertFalse(intervention["stamina_reset_by_functional_godmode"])
+            self.assertEqual(
+                intervention["incapacitated_inactivity_penalty"], -10.0
+            )
+            self.assertFalse(intervention["attack_budget"])
+            self.assertIn("natural_stamina", manifest)
+
+    def test_ppo6_prior_and_missed_attack_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            resume_model = (
+                run_dir / "casu_ppo_cb1_vb1_51843364_steps.zip"
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "PPO_NATURAL_STAMINA": "0",
+                    "PPO_ATTACK_LOGIT_PRIOR": "1",
+                    "PPO_MISSED_ATTACK_PENALTY": "1",
+                    "PPO_ATTACK_BUDGET": "0",
+                },
+                clear=False,
+            ):
+                Train.ValidateOrWriteInterventionManifest(
+                    run_dir, resume_model
+                )
+            manifest = json.loads(
+                (run_dir / Train.INTERVENTION_MANIFEST_NAME).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(
+                manifest["experiment"],
+                "annealed_attack_prior_with_missed_swing_penalty",
+            )
+            self.assertEqual(manifest["target_attack_probability"], 0.25)
+            self.assertEqual(manifest["missed_attack_penalty"], -0.005)
+            self.assertEqual(manifest["contact_penalty"], 0.0)
+            self.assertEqual(manifest["cooldown_hold_penalty"], 0.0)
+            self.assertTrue(manifest["functional_stamina_reset"])
+            self.assertFalse(manifest["natural_stamina"])
+
+    def test_ppo6_resource_budget_manifest_records_hard_constraint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            resume_model = (
+                run_dir / "casu_ppo_cb1_vb1_51843364_steps.zip"
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "PPO_ATTACK_BUDGET": "1",
+                    "PPO_ATTACK_LOGIT_PRIOR": "1",
+                    "PPO_MISSED_ATTACK_PENALTY": "0",
+                },
+                clear=False,
+            ):
+                Train.ValidateOrWriteInterventionManifest(
+                    run_dir, resume_model
+                )
+            manifest = json.loads(
+                (run_dir / Train.INTERVENTION_MANIFEST_NAME).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(
+                manifest["experiment"],
+                "dense_budget_conditioned_resource_efficient_descent",
+            )
+            self.assertEqual(manifest["policy_general_shape"], 140)
+            self.assertEqual(manifest["missed_attack_penalty"], 0.0)
+            self.assertEqual(manifest["attack_budget"]["minimum_budget"], 1500)
+            self.assertEqual(manifest["attack_budget"]["maximum_budget"], 3000)
+            self.assertTrue(manifest["attack_budget"]["termination"])
+            self.assertEqual(manifest["unused_budget_reward"], 0.0)
+            self.assertEqual(
+                manifest["immediate_swing_cost"],
+                "-10 / assigned episode budget",
+            )
 
     def test_resume_requires_matching_cb1_manifest(self):
         class FakeEnv:
@@ -604,7 +996,7 @@ class TrainingProtocolTests(unittest.TestCase):
             )
             self.assertEqual(manifest["checkpoint"], "CB1")
             self.assertEqual(manifest["reward"], "VB1")
-            self.assertEqual(manifest["protocol_version"], 1)
+            self.assertEqual(manifest["protocol_version"], 2)
             self.assertEqual(manifest["gamma"], 0.99)
             self.assertEqual(manifest["gae_lambda"], 0.98)
             self.assertEqual(manifest["n_steps"], 2048)

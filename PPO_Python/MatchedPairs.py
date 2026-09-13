@@ -83,9 +83,14 @@ def Run(env, config_path, speed_label):
     result_speed = str(config.get("result_speed", speed_label))
 
     models = {
-        name: PPO.load(path, env=env, device="auto")
+        name: PPO.load(path, env=env, device=config.get("device", "auto"))
         for name, path in config["checkpoints"].items()
     }
+    blocked = set(config.get("block_attack_conditions", []))
+    if not blocked.issubset(models):
+        raise ValueError("Unknown blocked-attack condition")
+    if blocked and env.permission_mode:
+        raise ValueError("Frozen attack ablation requires PPO_ATTACK_PERMISSION=0")
     completed = _completed_keys(output_path)
 
     try:
@@ -101,6 +106,12 @@ def Run(env, config_path, speed_label):
             torch.manual_seed(action_seed)
 
             obs, reset_info = env.reset(options={"world_seed": world_seed})
+            env.evaluation_context = {
+                "evaluation_condition": model_name,
+                "evaluation_world_seed": world_seed,
+                "evaluation_action_seed": action_seed,
+                "evaluation_attack_blocked": model_name in blocked,
+            }
             if int(reset_info["world_seed"]) != world_seed:
                 raise RuntimeError("Unity applied the wrong matched-pair seed")
 
@@ -113,6 +124,10 @@ def Run(env, config_path, speed_label):
                 action, _ = models[model_name].predict(
                     obs, deterministic=config["deterministic"]
                 )
+                env.evaluation_context["evaluation_proposed_attack"] = int(action[6])
+                if model_name in blocked:
+                    action = np.array(action, copy=True)
+                    action[6] = 0
                 obs, _, terminated, truncated, info = env.step(action)
                 raw = env.latest_obs
                 final_progress = float(raw["LayerProgress"])

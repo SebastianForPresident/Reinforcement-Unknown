@@ -416,9 +416,9 @@ class BinaryObservationWriter
 {
     // The full observation payload and the temporary reduced payload both
     // keep the little-endian uint64 observation ID at the end.
-    public const int FullExpectedSize = 1031544;
-    public const int ReducedExpectedSize = 42006;
-    public const int LimbsExpectedSize = 42666;
+    public const int FullExpectedSize = 1031550;
+    public const int ReducedExpectedSize = 42012;
+    public const int LimbsExpectedSize = 42672;
     public static int ExpectedSize => PPOBridge.IncludeUnusedObservations
         ? FullExpectedSize
         : PPOBridge.IncludeLimbObservations
@@ -821,7 +821,7 @@ public class SoundObservation
 
 public class Observation
 {
-    public const byte PROTOCOL_VERSION = 1;
+    public const byte PROTOCOL_VERSION = 2;
     public const byte POLICY_PHYSICS_TICKS = 10;
     public const int MAX_NEARBY_BUILDINGS = 16;
     public const int MAX_NEARBY_ITEMS = 16; // 16
@@ -878,6 +878,8 @@ public class Observation
 
     // Attacking
     public float AttackCooldown;
+    public ushort AttackSwingsExecuted;
+    public float AttackContactClawHealthLoss;
 
     // Crouching
     public float CrouchAmount;
@@ -1185,6 +1187,10 @@ public static class PPOBridge
     public const float GameplayUpdateDeltaTime = 1f / GameplayUpdateRate;
     public static readonly float TrainingTimeScale = ConfiguredTrainingTimeScale();
     public static readonly bool ForceBodyUpdatePerPhysicsTick = ConfiguredForceBodyUpdate();
+    public static readonly bool NaturalStamina = ConfiguredBoolean(
+        "PPO_NATURAL_STAMINA",
+        false
+    );
 
     [ThreadStatic]
     static bool manualBodyUpdateActive;
@@ -1211,9 +1217,14 @@ public static class PPOBridge
 
     static bool ConfiguredForceBodyUpdate()
     {
-        string configured = Environment.GetEnvironmentVariable("PPO_FORCE_BODY_UPDATE");
+        return ConfiguredBoolean("PPO_FORCE_BODY_UPDATE", true);
+    }
+
+    static bool ConfiguredBoolean(string name, bool fallback)
+    {
+        string configured = Environment.GetEnvironmentVariable(name);
         if (string.IsNullOrWhiteSpace(configured))
-            return true;
+            return fallback;
         return
             string.Equals(configured, "1", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(configured, "true", StringComparison.OrdinalIgnoreCase) ||
@@ -1415,6 +1426,8 @@ public static class PPOBridge
 
     static ulong nextObservationId = 0;
     static int macrostepPhysicsTicks;
+    static ushort macrostepAttackSwingsExecuted;
+    static float macrostepAttackContactClawHealthLoss;
     static float macrostepSimulationDeltaTime;
     static float macrostepDeepestLayerProgress;
     static bool awaitingPolicyAction = true;
@@ -2062,6 +2075,8 @@ public static class PPOBridge
 
         // Attacking
         obs.AttackCooldown = body.attackCooldown;
+        obs.AttackSwingsExecuted = macrostepAttackSwingsExecuted;
+        obs.AttackContactClawHealthLoss = macrostepAttackContactClawHealthLoss;
 
         // Crouching
         obs.CrouchAmount = body.crouchAmount;
@@ -2461,6 +2476,8 @@ public static class PPOBridge
 
         // Attacking
         writer.Write(obs.AttackCooldown);
+        writer.Write(obs.AttackSwingsExecuted);
+        writer.Write(obs.AttackContactClawHealthLoss);
 
         // Crouching
         writer.Write(obs.CrouchAmount);
@@ -2758,6 +2775,8 @@ public static class PPOBridge
                 initialObservationPending = true;
                 awaitingPolicyAction = true;
                 macrostepPhysicsTicks = 0;
+                macrostepAttackSwingsExecuted = 0;
+                macrostepAttackContactClawHealthLoss = 0f;
                 macrostepSimulationDeltaTime = 0f;
                 macrostepDeepestLayerProgress = 0f;
                 lock (ActionLock)
@@ -2817,6 +2836,8 @@ public static class PPOBridge
         {
             initialObservationPending = false;
             macrostepPhysicsTicks = 0;
+            macrostepAttackSwingsExecuted = 0;
+            macrostepAttackContactClawHealthLoss = 0f;
             macrostepSimulationDeltaTime = 0f;
             macrostepDeepestLayerProgress = CurrentLayerProgress();
             PublishCurrentObservation();
@@ -2976,11 +2997,19 @@ public static class PPOBridge
         // Repair lasting pathology after the ordinary game simulation has
         // processed this frame. Rigidbody velocity, collision response,
         // recoil, falling, and standing/ragdoll state are intentionally left
-        // untouched.
+        // untouched. Capture claw contact before repairing it so PPO_6 can
+        // audit actual swing misses without exposing medical damage.
+        macrostepAttackContactClawHealthLoss += Mathf.Max(
+            0f,
+            100f - body.clawHealth
+        );
         body.brainHealth = 100f;
         body.consciousness = 100f;
         body.shock = 0f;
-        body.stamina = 100f;
+        // PPO_6 may deliberately restore the game's ordinary stamina
+        // depletion/recovery loop while retaining every other godmode repair.
+        if (!NaturalStamina)
+            body.stamina = 100f;
         body.energy = 100f;
         body.hunger = 100f;
         body.thirst = 100f;
@@ -3365,6 +3394,8 @@ public static class PPOBridge
         macrostepPhysicsTicks = 0;
         macrostepSimulationDeltaTime = 0f;
         macrostepDeepestLayerProgress = CurrentLayerProgress();
+        macrostepAttackSwingsExecuted = 0;
+        macrostepAttackContactClawHealthLoss = 0f;
         awaitingPolicyAction = false;
         newMacrostepAction = true;
 
@@ -3376,6 +3407,14 @@ public static class PPOBridge
         policyBoundaryPaused = false;
 
         return true;
+    }
+
+    static void UseItemInHandAndRecordSwing(Body body)
+    {
+        float cooldownBefore = body.attackCooldown;
+        body.UseItemInHand();
+        if (body.attackCooldown > cooldownBefore + 0.0001f)
+            macrostepAttackSwingsExecuted++;
     }
 
     static void ConsumeLatchedPolicyEdges()
@@ -3463,13 +3502,13 @@ public static class PPOBridge
         Item item = body.GetItem(body.handSlot);
 		if (CurrentAction.Attack == 1 && (!item || !item.Stats.usableWithLMB || item.Stats.autoAttack) && !MinigameBase.main.currentMinigame)
 		{
-			body.UseItemInHand();
+			UseItemInHandAndRecordSwing(body);
 		}
 		else if (CurrentAction.Attack == 1 && LastAction.Attack == 0 && (!item || !item.Stats.usableWithLMB || !item.Stats.autoAttack) && !MinigameBase.main.currentMinigame)
 		{
 			if (body.allowUseItem)
 			{
-				body.UseItemInHand();
+				UseItemInHandAndRecordSwing(body);
 			}
 			else
 			{
@@ -3932,6 +3971,8 @@ public static class PPOBridge
 
         resetComplete = false;
 		macrostepPhysicsTicks = 0;
+		macrostepAttackSwingsExecuted = 0;
+		macrostepAttackContactClawHealthLoss = 0f;
 		macrostepSimulationDeltaTime = 0f;
 		macrostepDeepestLayerProgress = 0f;
 		awaitingPolicyAction = true;
