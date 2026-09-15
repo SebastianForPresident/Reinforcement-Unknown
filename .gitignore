@@ -1,9 +1,21 @@
 # Generated and runtime data
+.notion_api_key
+.counterfactual-tools/
 checkpoints/
 tensorboard/
 inference_debug.log
 PPO_Python/episode_traces/
 PPO_Python/profiles/
+counterfactual_diagnostics/
+counterfactual_*_diagnostics/
+counterfactual_prefix_*/
+counterfactual_prefix_baseline_latest_path.txt
+counterfactual_startup_smoke*/
+counterfactual_startup_smoke_latest_path.txt
+counterfactual_batch_progress.jsonl
+counterfactual_autostart_status.json
+counterfactual_autostart_unity.log
+extract.log
 __pycache__/
 *.pyc
 bin/

@@ -16,6 +16,7 @@ using System.Reflection.Emit;
 using UnityEngine.SceneManagement;
 using UnityEngine.LowLevel;
 using Stopwatch = System.Diagnostics.Stopwatch;
+using CB1.Counterfactual;
 
 [BepInPlugin("sebastian.ppoharness", "PPO Harness", "1.0.0")]
 public class PPO_Harness : BaseUnityPlugin
@@ -31,6 +32,8 @@ public class PPO_Harness : BaseUnityPlugin
 
         PPOPhysicsBoundaryLoop.Install();
         PPOBridge.EnsureTrainingFrameCap();
+        if (PPOBridge.AutoStartEnabled)
+            StartCoroutine(PPOBridge.RunAutoStart());
         Logger.LogInfo(
             $"Patches applied; timeScale={PPOBridge.TrainingTimeScale:0.##}, " +
             $"fixed gameplay={PPOBridge.ForceBodyUpdatePerPhysicsTick}, " +
@@ -40,6 +43,11 @@ public class PPO_Harness : BaseUnityPlugin
         Application.quitting += PPOBridge.Shutdown;
         Application.logMessageReceived += HandleUnityLogMessage;
         SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void Update()
+    {
+        PPOBridge.RecordAutoStartHeartbeat();
     }
 
     private void HandleUnityLogMessage(
@@ -85,6 +93,7 @@ public class PPO_Harness : BaseUnityPlugin
 static class PPOPhysicsBoundaryLoop
 {
     sealed class PostPhysics2DBoundaryMarker {}
+    sealed class RenderedFrameMarker {}
 
     static PlayerLoopSystem originalLoop;
     static bool installed;
@@ -101,6 +110,11 @@ static class PPOPhysicsBoundaryLoop
             type = typeof(PostPhysics2DBoundaryMarker),
             updateDelegate = PPOBridge.PostPhysicsStep
         };
+        PlayerLoopSystem renderedFrame = new PlayerLoopSystem
+        {
+            type = typeof(RenderedFrameMarker),
+            updateDelegate = PPOBridge.RecordRenderedFrame
+        };
 
         if (!InsertAfter(ref modifiedLoop, typeof(UnityEngine.PlayerLoop.FixedUpdate.Physics2DFixedUpdate), boundary))
         {
@@ -108,6 +122,9 @@ static class PPOPhysicsBoundaryLoop
                 "Could not insert the PPO boundary after Physics2DFixedUpdate."
             );
         }
+
+        if (!InsertAfter(ref modifiedLoop, typeof(UnityEngine.PlayerLoop.PostLateUpdate.PresentAfterDraw), renderedFrame))
+            Debug.LogWarning("Could not install counterfactual rendered-frame timing marker.");
 
         PlayerLoop.SetPlayerLoop(modifiedLoop);
         installed = true;
@@ -294,6 +311,32 @@ public static class PPOBodyUpdateDeltaTimePatch
     }
 }
 
+[HarmonyPatch(typeof(Body), "HandleBodyTemperature")]
+public static class PPOBodyTemperatureClockPatch
+{
+    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        System.Reflection.MethodInfo timeGetter =
+            AccessTools.PropertyGetter(typeof(Time), nameof(Time.time));
+        System.Reflection.MethodInfo replacement =
+            AccessTools.Method(typeof(PPOBridge), nameof(PPOBridge.BodyTemperatureClock));
+
+        foreach (CodeInstruction instruction in instructions)
+        {
+            if (instruction.Calls(timeGetter))
+            {
+                // The replacement receives the Body instance so non-player
+                // bodies and normal non-counterfactual runs retain Unity's
+                // ordinary absolute clock.
+                yield return new CodeInstruction(OpCodes.Ldarg_0);
+                instruction.opcode = OpCodes.Call;
+                instruction.operand = replacement;
+            }
+            yield return instruction;
+        }
+    }
+}
+
 [HarmonyPatch(typeof(Limb), "Update")]
 public static class PPOLimbUpdatePerformancePatch
 {
@@ -432,6 +475,14 @@ class BinaryObservationWriter
     public void Reset()
     {
         BytesWritten = 0;
+    }
+
+    public void LoadSerialized(byte[] bytes)
+    {
+        if (bytes == null || bytes.Length > Buffer.Length)
+            throw new InvalidDataException("Serialized observation exceeds the writer buffer.");
+        Array.Copy(bytes, Buffer, bytes.Length);
+        BytesWritten = bytes.Length;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1120,7 +1171,7 @@ public class Action
     public int PullLiquidFromWorld;
 }
 
-public static class PPOBridge
+public static partial class PPOBridge
 {
     // Temporary protocol experiment: keep the full observation model and
     // serializers intact, but omit fields that the current policy does not
@@ -1129,8 +1180,8 @@ public static class PPOBridge
     public static bool IncludeLimbObservations = false;
 
     const string TcpHost = "127.0.0.1";
-    const int ObservationPort = 45701;
-    const int ActionPort = 45702;
+    static readonly int ObservationPort = ConfiguredPort("PPO_OBS_PORT", 45701);
+    static readonly int ActionPort = ConfiguredPort("PPO_ACTION_PORT", 45702);
 
     public static readonly string[] WearableSlots =
     {
@@ -1231,9 +1282,27 @@ public static class PPOBridge
             string.Equals(configured, "yes", StringComparison.OrdinalIgnoreCase);
     }
 
+    static int ConfiguredPort(string name, int fallback)
+    {
+        string configured = Environment.GetEnvironmentVariable(name);
+        if (int.TryParse(configured, out int port) && port >= 1024 && port <= 65535)
+            return port;
+        if (!string.IsNullOrWhiteSpace(configured))
+            throw new InvalidOperationException($"{name} must be a TCP port in [1024,65535]");
+        return fallback;
+    }
+
     public static float BodyUpdateDeltaTime()
     {
         return manualBodyUpdateActive ? GameplayUpdateDeltaTime : Time.deltaTime;
+    }
+
+    public static float BodyTemperatureClock(Body body)
+    {
+        if (!CounterfactualMode || !counterfactualBodyClockInitialized ||
+            body == null || PlayerCamera.main == null || PlayerCamera.main.body != body)
+            return Time.time;
+        return counterfactualBodyClock;
     }
 
     public static bool ShouldReplacePlayerBodyUpdate(Body body)
@@ -1341,6 +1410,9 @@ public static class PPOBridge
 
         return TrainingTimeScale;
     }
+    // Legacy compatibility slot. Source audit: this field is declared but has
+    // no readers. It is not the published observation and is excluded from
+    // counterfactual managed coverage.
     public static Observation CurrentObservation = new Observation();
 
     static TcpClient obsClient;
@@ -1434,6 +1506,8 @@ public static class PPOBridge
     static bool initialObservationPending;
     static bool policyBoundaryPaused;
     static float policyResumeTimeScale = 1f;
+    static float counterfactualBodyClock;
+    static bool counterfactualBodyClockInitialized;
     static bool newMacrostepAction;
 
     static readonly object ActionLock = new object();
@@ -1448,6 +1522,9 @@ public static class PPOBridge
 
     static List<string> SoundNameList = new();
 
+    // Derived observation DTO scratch. It is populated once for the disabled
+    // IncludeUnusedObservations branch and is excluded from CB1 snapshots;
+    // the active serialized observation path does not consume it.
     static RecipeObservation[] RecipeDatabase;
 
     static bool StartRan = false;
@@ -1465,6 +1542,9 @@ public static class PPOBridge
     static readonly Dictionary<Vector2Int, BlockDamage> BlockDamageByPosition =
         new Dictionary<Vector2Int, BlockDamage>(256);
 
+    // Reconstructable observation-builder scratch. CollectObservations writes
+    // the active fields, then WriteObservation reads them to produce the wire
+    // packet; no simulation system consumes this DTO after the boundary.
     static Observation obs = new();
 
     static volatile bool resetComplete = true;
@@ -1524,6 +1604,113 @@ public static class PPOBridge
             $"WorldGeneration.Start: world={seededWorldInstanceId}, " +
             $"scene={SceneManager.GetActiveScene().name}."
         );
+    }
+
+    public static void ReapplyWorldSeedBeforeGeneration(WorldGeneration world)
+    {
+        if (world == null || seededWorldInstanceId == 0 ||
+            seededWorldInstanceId != world.GetInstanceID() ||
+            appliedWorldSeed != activeWorldSeed)
+            return;
+
+        // WorldGeneration.Start starts its coroutine, but the coroutine does
+        // not execute until a later player-loop turn. Re-seed at that exact
+        // boundary so unrelated Start/Update work between those points cannot
+        // consume the generation stream first.
+        UnityEngine.Random.InitState(activeWorldSeed);
+        Debug.Log(
+            $"PPO reapplied world seed {activeWorldSeed} before generation: " +
+            $"world={world.GetInstanceID()}, scene={SceneManager.GetActiveScene().name}."
+        );
+    }
+
+    public static IEnumerator IsolateGenerationRandom(WorldGeneration world, IEnumerator generation)
+    {
+        if (generation == null || world == null || seededWorldInstanceId == 0 ||
+            seededWorldInstanceId != world.GetInstanceID() ||
+            appliedWorldSeed != activeWorldSeed)
+            return generation;
+
+        // World generation is a tree of yielding IEnumerators. Unity resumes
+        // that tree between ordinary Update calls, so the process-global RNG
+        // can otherwise be consumed by unrelated callbacks between two
+        // generation segments. Flatten the tree here and bracket every
+        // segment with the generation RNG state. This does not omit or replace
+        // any generated state; it only prevents frame scheduling from changing
+        // the order of the generation stream.
+        return IsolatedGenerationEnumerator(generation);
+    }
+
+    static IEnumerator IsolatedGenerationEnumerator(IEnumerator generation)
+    {
+        var stack = new Stack<IEnumerator>();
+        stack.Push(generation);
+        UnityEngine.Random.State generationState = UnityEngine.Random.state;
+        UnityEngine.Random.State externalState = generationState;
+
+        while (stack.Count > 0)
+        {
+            IEnumerator current = stack.Peek();
+            externalState = UnityEngine.Random.state;
+            UnityEngine.Random.state = generationState;
+            bool hasNext;
+            try
+            {
+                hasNext = current.MoveNext();
+            }
+            finally
+            {
+                generationState = UnityEngine.Random.state;
+                UnityEngine.Random.state = externalState;
+            }
+
+            if (!hasNext)
+            {
+                stack.Pop();
+                continue;
+            }
+
+            IEnumerator nested = current.Current as IEnumerator;
+            if (nested != null)
+            {
+                stack.Push(nested);
+                continue;
+            }
+
+            yield return current.Current;
+        }
+
+        // Continue ordinary game randomness from the deterministic stream
+        // consumed by generation, not from frame-count-dependent callbacks.
+        UnityEngine.Random.state = generationState;
+    }
+
+    public struct GenerationUpdateRandomScope
+    {
+        public bool Active;
+        public UnityEngine.Random.State State;
+    }
+
+    public static GenerationUpdateRandomScope BeginGenerationUpdateRandomIsolation(WorldGeneration world)
+    {
+        // WorldGeneration.Update uses Random.Range only for loading-screen
+        // animation while a world is being instantiated/generated. Once the
+        // normal earthquake timer has elapsed, leave the RNG untouched so a
+        // genuine gameplay random event is never hidden by this diagnostic
+        // boundary.
+        bool active = CounterfactualMode && world != null &&
+            world.generatingWorld &&
+            world.earthquakeDelay > 0f;
+        return new GenerationUpdateRandomScope {
+            Active = active,
+            State = active ? UnityEngine.Random.state : default(UnityEngine.Random.State)
+        };
+    }
+
+    public static void EndGenerationUpdateRandomIsolation(GenerationUpdateRandomScope scope)
+    {
+        if (scope.Active)
+            UnityEngine.Random.state = scope.State;
     }
 
     public static void RecordSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -1968,6 +2155,10 @@ public static class PPOBridge
 
     static void UpdateCraftableRecipes(Body body)
     {
+        // CB1 disables this observation branch. Keeping the guard here makes
+        // the scratch classification true even if a future caller bypasses
+        // CollectObservations' IncludeUnusedObservations check.
+        if (!IncludeUnusedObservations) return;
         List<Item> candidates = BuildRecipeCandidateItems(body);
         List<Item> exclusions = new List<Item>();
 
@@ -2672,6 +2863,8 @@ public static class PPOBridge
         generationFinishedWorldInstanceId = 0;
         resetStartedRealtime = Time.realtimeSinceStartup;
         resetLastDiagnosticRealtime = resetStartedRealtime;
+        policyResumeTimeScale = TrainingTimeScale;
+        counterfactualBodyClockInitialized = false;
 
         Debug.Log(
             $"PPO reset started: sourceWorld={resetSourceWorldInstanceId}, " +
@@ -2687,9 +2880,26 @@ public static class PPOBridge
     public static void PostPhysicsStep()
     {
         Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
+        if (CounterfactualMode && counterfactualBodyClockInitialized &&
+            resetComplete && !awaitingPolicyAction)
+            counterfactualBodyClock += Time.fixedDeltaTime;
         RunManualBodyUpdates(body);
         ReapplyHeldActionForNextPhysicsTick(body);
         Tick(body);
+    }
+
+    // Runs once at the end of the rendered-frame player-loop path. It is
+    // intentionally separate from the post-physics boundary so a blocking
+    // counterfactual command appears as a wall-clock frame gap.
+    public static void RecordRenderedFrame()
+    {
+        CounterfactualTiming.RenderedFrame();
+        if (CounterfactualMode && Time.timeScale == 0f &&
+            (!resetComplete || initialObservationPending))
+        {
+            Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
+            Tick(body);
+        }
     }
 
     static void ReapplyHeldActionForNextPhysicsTick(Body body)
@@ -2725,6 +2935,7 @@ public static class PPOBridge
         if (shutdownRequested)
         {
             shutdownRequested = false;
+            PPOBridge.CaptureCounterfactualStartupDiagnostics("before_shutdown");
             Application.Quit();
             return;
         }
@@ -2773,6 +2984,22 @@ public static class PPOBridge
             {
                 resetComplete = true;
                 initialObservationPending = true;
+                // The first policy boundary must be quiescent. The game can
+                // restore timeScale from a loading/clock update after the
+                // scene is ready; allowing even one variable wall-clock
+                // frame here changes physics/contact state before decision 0.
+                if (CounterfactualMode)
+                {
+                    policyBoundaryPaused = true;
+                    Time.timeScale = 0f;
+                    // Body.tempCheckTime is stored in Unity's absolute clock.
+                    // Fresh processes reach this point after different menu /
+                    // generation wall times, so use the captured player timer
+                    // as the deterministic origin and advance it only on the
+                    // harness fixed-step schedule.
+                    counterfactualBodyClock = currentBody.tempCheckTime;
+                    counterfactualBodyClockInitialized = true;
+                }
                 awaitingPolicyAction = true;
                 macrostepPhysicsTicks = 0;
                 macrostepAttackSwingsExecuted = 0;
@@ -2826,6 +3053,13 @@ public static class PPOBridge
 
         EnsureCompletionProtocol();
 
+        // Procedural generation runs on Unity's main thread. Do not open the
+        // diagnostic connection or enter the blocking policy wait until the
+        // generated world is complete; otherwise the boundary itself can
+        // deadlock generation before CF_HELLO is safe to process.
+        if (CounterfactualMode && !CounterfactualRuntimeReadyToConnect(body))
+            return;
+
         EnsureConnections();
         if (!connected || !actionConnected)
             return;
@@ -2846,7 +3080,16 @@ public static class PPOBridge
         }
 
         if (awaitingPolicyAction)
+        {
+            // A diagnostic session must be able to establish its handshake
+            // before the first post-reset observation has been published.
+            // Ordinary PPO reaches this state through RESET, whereas the
+            // standalone counterfactual client starts from the already-live
+            // world and issues CF_RESET at this quiescent boundary.
+            if (CounterfactualMode)
+                WaitAtPolicyBoundary(body);
             return;
+        }
 
         macrostepPhysicsTicks++;
         macrostepSimulationDeltaTime += Time.fixedDeltaTime;
@@ -2883,7 +3126,9 @@ public static class PPOBridge
         }
 
         PPOPerformanceInstrumentation.AddObservationEncode(encodeStartedAt);
-        obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten);
+        long observationSendStartedAt = CounterfactualTiming.Start();
+        try { obsPipe.Write(bufferWriter.Buffer, 0, bufferWriter.BytesWritten); }
+        finally { CounterfactualTiming.End("socket.observation_send", observationSendStartedAt); }
         PPOPerformanceInstrumentation.AddObservationPublish(publishStartedAt);
 
         if (resetObservationAcknowledgementPending)
@@ -2915,7 +3160,14 @@ public static class PPOBridge
             {
                 Debug.Log("Connecting observation TCP stream...");
                 obsClient = new TcpClient();
-                bufferWriter = new BinaryObservationWriter();
+                // A transport reattach must not discard the serialized
+                // observation held at the policy boundary.  The writer is
+                // process-local protocol state, and recreating it here would
+                // make post-attach CF_STATE report an empty observation even
+                // though gameplay state was unchanged.  A fresh process still
+                // gets a new writer because the field starts null.
+                if (bufferWriter == null)
+                    bufferWriter = new BinaryObservationWriter();
                 obsClient.Connect(TcpHost, ObservationPort);
                 obsPipe = obsClient.GetStream();
                 connected = true;
@@ -2957,6 +3209,38 @@ public static class PPOBridge
                 );
             }
         }
+    }
+
+    static void DetachCounterfactualConnections()
+    {
+        // The caller has already sent the CF_DETACH acknowledgement. Closing
+        // both accepted streams is transport-only; the main thread remains in
+        // WaitAtPolicyBoundary with timeScale=0.
+        counterfactualTransportDetached = true;
+        connected = false;
+        actionConnected = false;
+        Thread oldActionThread = actionThread;
+
+        try { obsPipe?.Close(); } catch {}
+        try { obsClient?.Close(); } catch {}
+        try { actionReader?.Close(); } catch {}
+        try { actionPipe?.Close(); } catch {}
+        try { actionClient?.Close(); } catch {}
+
+        if (oldActionThread != null && oldActionThread != Thread.CurrentThread)
+        {
+            try { oldActionThread.Join(1000); } catch {}
+        }
+
+        obsPipe = null;
+        obsClient = null;
+        actionReader = null;
+        actionPipe = null;
+        actionClient = null;
+        actionThread = null;
+        actionReaderFailed = false;
+        actionReaderFailureMessage = null;
+        Debug.Log("CF_DETACH transport hold active; both TCP channels closed.");
     }
 
     static void EnsureCompletionProtocol()
@@ -3168,17 +3452,20 @@ public static class PPOBridge
     {
         actionReaderFailed = false;
         actionReaderFailureMessage = null;
+        StreamReader reader = actionReader;
         actionThread = new Thread(() =>
         {
             while (!shuttingDown)
             {
                 try
                 {
-                    string line = actionReader.ReadLine();
+                    string line = reader.ReadLine();
                     if (line == null)
                         throw new EndOfStreamException("PPO action stream closed.");
                     if (!string.IsNullOrEmpty(line))
                     {
+                        if (CounterfactualOwnsConnection(line))
+                            continue;
                         if (line == "RESET" || line.StartsWith("RESET ", StringComparison.Ordinal))
                         {
                             requestedResetToken = 0;
@@ -3269,6 +3556,8 @@ public static class PPOBridge
                 }
                 catch (Exception ex)
                 {
+                    if (counterfactualTransportDetached)
+                        break;
                     actionReaderFailureMessage = ex.ToString();
                     actionReaderFailed = true;
                     SignalActionWaiters();
@@ -3288,17 +3577,36 @@ public static class PPOBridge
 
     static void WaitAtPolicyBoundary(Body body)
     {
+        counterfactualInsideBoundary = true;
+        try
+        {
+        if (CounterfactualMode)
+        {
+            policyBoundaryPaused = true;
+            Time.timeScale = 0f;
+        }
+        if (CounterfactualMode && !CounterfactualRuntimeReadyToConnect(body))
+            return;
         long waitStartedAt = Stopwatch.GetTimestamp();
         long nextDiagnosticAt = waitStartedAt + Stopwatch.Frequency * 10;
 
         while (true)
         {
+            if (counterfactualTransportDetached &&
+                !CounterfactualFinalDetach &&
+                Stopwatch.GetTimestamp() >= counterfactualReconnectNotBefore &&
+                (!connected || !actionConnected))
+            {
+                EnsureConnections();
+            }
+            ProcessCounterfactualCommands();
             if (shuttingDown)
                 return;
 
             if (shutdownRequested)
             {
                 shutdownRequested = false;
+                PPOBridge.CaptureCounterfactualStartupDiagnostics("before_shutdown");
                 Application.Quit();
                 return;
             }
@@ -3374,6 +3682,8 @@ public static class PPOBridge
                 nextDiagnosticAt = now + Stopwatch.Frequency * 10;
             }
         }
+        }
+        finally { counterfactualInsideBoundary = false; }
     }
 
     static bool TryLatchPolicyAction()
@@ -3432,9 +3742,28 @@ public static class PPOBridge
         if (TryStartPendingReset(body))
             return;
 
-        if (policyBoundaryPaused || ppoPauseRequested || ppoPaused)
+        if (CounterfactualMode && !resetComplete && resetSourceWorldInstanceId != 0)
+            Time.timeScale = 0f;
+        else if (policyBoundaryPaused || ppoPauseRequested || ppoPaused)
             Time.timeScale = 0f;
     }
+
+    // Unity's unscaled Update paths continue to mutate timers while
+    // timeScale=0. Before the first counterfactual action that would make
+    // the policy-boundary state depend on how long scene generation took.
+    // Keep the causal simulation updates quiescent until the action latch;
+    // ordinary updates resume for the actual rollout.
+    public static bool CounterfactualStartupQuiescing =>
+        CounterfactualMode && (!resetComplete || initialObservationPending || policyBoundaryPaused);
+
+    public static bool CounterfactualModeEnabled => CounterfactualMode;
+
+    // WorldGeneration.Update is also the host for the loading/generation UI
+    // and must continue running until resetComplete.  After that point its
+    // unscaled clock/physics-side maintenance is paused at the policy
+    // boundary just like the other per-frame paths.
+    public static bool CounterfactualPolicyBoundaryQuiescing =>
+        CounterfactualMode && resetComplete && (initialObservationPending || policyBoundaryPaused);
 
     public static void ApplyPPOActions(PlayerCamera playerCamera)
     {
@@ -3802,6 +4131,7 @@ public static class PPOBridge
 
     static void SendActionAcknowledgement(string message)
     {
+        long acknowledgementStartedAt = CounterfactualTiming.Start();
         try
         {
             byte[] bytes = Encoding.ASCII.GetBytes(message + "\n");
@@ -3810,6 +4140,10 @@ public static class PPOBridge
         catch (Exception ex)
         {
             Debug.LogWarning($"Failed to acknowledge PPO pause state: {ex.Message}");
+        }
+        finally
+        {
+            CounterfactualTiming.End("socket.ack_send", acknowledgementStartedAt);
         }
     }
 
@@ -4047,7 +4381,7 @@ public static class PPOBridge
             $"PPO reset Clear() completed after " +
             $"{Time.realtimeSinceStartup - resetCoroutineStartedRealtime:F2}s."
         );
-		Time.timeScale = 1f;
+		Time.timeScale = CounterfactualMode ? 0f : 1f;
 
         try
         {
@@ -4104,6 +4438,64 @@ public static class WorldGenerationSeedPatch
     }
 }
 
+[HarmonyPatch(typeof(PreRunScript), "Start")]
+public static class CounterfactualResetPausePatch
+{
+    static void Postfix()
+    {
+        // PreRunScript.Start restores the ordinary menu time scale after a
+        // scene load. During a seeded counterfactual reset, immediately
+        // reassert the paused pre-boundary state; normal runs are untouched.
+        PPOBridge.MaintainPolicyPause();
+    }
+}
+
+[HarmonyPatch(typeof(WorldGeneration), "GenerateWorld")]
+public static class WorldGenerationGenerateSeedPatch
+{
+    static void Prefix(WorldGeneration __instance)
+    {
+        PPOBridge.ReapplyWorldSeedBeforeGeneration(__instance);
+    }
+
+    static void Postfix(WorldGeneration __instance, ref IEnumerator __result)
+    {
+        // World generation yields across player-loop turns. Keep its seeded
+        // stream isolated from unrelated Start/Update callbacks for the
+        // entire returned coroutine, including nested IEnumerator segments.
+        // The reset pause prevents physics from advancing while it yields.
+        if (__result != null)
+            __result = PPOBridge.IsolateGenerationRandom(__instance, __result);
+    }
+}
+
+[HarmonyPatch(typeof(WorldGeneration), "Update")]
+public static class WorldGenerationPresentationRandomPatch
+{
+    static bool Prefix(WorldGeneration __instance, out PPOBridge.GenerationUpdateRandomScope __state)
+    {
+        __state = PPOBridge.BeginGenerationUpdateRandomIsolation(__instance);
+        if (PPOBridge.CounterfactualPolicyBoundaryQuiescing)
+        {
+            __state.Active = false;
+            // Once the world has reached the initial policy boundary, this
+            // method would continue advancing unscaled clocks and could
+            // reassert Time.timeScale while Python is only inspecting state.
+            return false;
+        }
+        return true;
+    }
+
+    static void Postfix(PPOBridge.GenerationUpdateRandomScope __state)
+    {
+        PPOBridge.EndGenerationUpdateRandomIsolation(__state);
+        // WorldGeneration.Update can change the clock while loading. Keep
+        // the counterfactual reset/initial-boundary pause authoritative; the
+        // action latch is the only path that releases this pause.
+        PPOBridge.MaintainPolicyPause();
+    }
+}
+
 [HarmonyPatch(typeof(WorldGeneration), "FinishWorldGeneration")]
 public static class FinishWorldGenerationPatch
 {
@@ -4137,6 +4529,11 @@ public static class PPoPausePatch
 [HarmonyPatch(typeof(Body), "Update")]
 public static class BodyGodModeUpdatePatch
 {
+    static bool Prefix()
+    {
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+
     static void Postfix(Body __instance)
     {
         PPOBridge.ApplyFunctionalGodMode(__instance);
@@ -4147,11 +4544,91 @@ public static class BodyGodModeUpdatePatch
 [HarmonyPatch(typeof(PlayerCamera), "Update")]
 public static class PlayerCameraGodModeUpdatePatch
 {
-    static void Prefix(PlayerCamera __instance)
+    static bool Prefix(PlayerCamera __instance)
     {
         PPOBridge.EnsureTrainingFrameCap();
         PPOBridge.ApplyFunctionalGodMode(__instance.body);
         PPOBridge.MaintainPolicyPause();
+        // PlayerCamera.Update advances several unscaled presentation timers
+        // (radiation, alerts, zoom and pinned-recipe refresh).  During a
+        // counterfactual policy boundary there is no simulation step, so let
+        // the boundary remain independent of how long the next CF_STATE
+        // request takes.  The ordinary Update resumes when the action latch
+        // releases the pause.
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+}
+
+[HarmonyPatch(typeof(Talker), "Update")]
+public static class TalkerCounterfactualBoundaryPatch
+{
+    static bool Prefix()
+    {
+        // Talker.Update uses unscaled time and can both mutate dialogue
+        // progress and invoke gameplay-adjacent talk callbacks.  Preserve
+        // its full state in fingerprints; only stop it while the simulation
+        // is intentionally held at a policy boundary.
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+}
+
+[HarmonyPatch(typeof(MoodleManager), "Update")]
+public static class MoodleManagerCounterfactualBoundaryPatch
+{
+    static bool Prefix()
+    {
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+}
+
+[HarmonyPatch(typeof(MusicManager), "Update")]
+public static class MusicManagerCounterfactualBoundaryPatch
+{
+    static bool Prefix()
+    {
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+}
+
+[HarmonyPatch(typeof(FluidManager), "Update")]
+public static class FluidManagerCounterfactualBoundaryPatch
+{
+    static bool Prefix()
+    {
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+}
+
+[HarmonyPatch(typeof(RPCManager), "Update")]
+public static class RPCManagerCounterfactualBoundaryPatch
+{
+    static bool Prefix()
+    {
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+}
+
+[HarmonyPatch(typeof(Observer), "Update")]
+public static class ObserverCounterfactualBoundaryPatch
+{
+    static bool Prefix()
+    {
+        return !PPOBridge.CounterfactualStartupQuiescing;
+    }
+}
+
+[HarmonyPatch(typeof(LookTarget), "OnWillRenderObject")]
+public static class LookTargetCounterfactualRenderPatch
+{
+    static bool Prefix()
+    {
+        // OnWillRenderObject is a camera/render callback.  In this game it
+        // only refreshes Body.overrideLookTime/overrideLookPos for
+        // FacialExpression and visual look placement; it has no gameplay or
+        // physics reader.  Rendering cadence differs between independent
+        // Proton processes, so do not let this presentation callback alter
+        // the causal boundary state during counterfactual runs.
+        return !PPOBridge.CounterfactualModeEnabled;
     }
 }
 
