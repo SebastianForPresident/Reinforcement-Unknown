@@ -12,7 +12,6 @@ import os
 from pathlib import Path
 import pickle
 import platform
-import resource
 import statistics
 import subprocess
 import sys
@@ -43,12 +42,6 @@ def proc_memory_mib():
     except OSError:
         pass
     return values
-
-
-def peak_rss_mib():
-    value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    # Linux reports KiB; macOS reports bytes.
-    return value / (1024.0 if sys.platform.startswith("linux") else 1024.0 ** 2)
 
 
 def gpu_snapshot():
@@ -167,7 +160,6 @@ def benchmark_single(kind, warmup, samples):
         "simulation_seconds_per_wall_second": tick_rate * FIXED_DT,
         "process_cpu_core_percent_during_measurement": cpu / wall * 100.0 if wall else 0,
         "steady_process_memory_mib": proc_memory_mib(),
-        "process_peak_rss_mib": peak_rss_mib(),
         "grid_arrays_bytes": int(s.blocks.nbytes + s.fluids.nbytes),
         "execution": "NumPy/Python CPU; no Isaac Kit/physics started; sequential single world",
     }
@@ -196,7 +188,6 @@ def benchmark_snapshot(samples):
         "restore_latency_ns": {"median": int(statistics.median(restore)),
                                "p95": pct(restore, 0.95), "p99": pct(restore, 0.99)},
         "steady_process_memory_mib": proc_memory_mib(),
-        "process_peak_rss_mib": peak_rss_mib(),
     }
 
 
@@ -242,7 +233,6 @@ def multi_worker(count, warmup, samples):
         "simulation_seconds_per_wall_second_per_environment": aggregate_rate / count * FIXED_DT,
         "process_cpu_core_percent_during_measurement": cpu / wall * 100.0 if wall else 0,
         "steady_process_memory_mib": proc_memory_mib(),
-        "process_peak_rss_mib": peak_rss_mib(),
         "grid_arrays_bytes_all_worlds": sum(s.blocks.nbytes + s.fluids.nbytes for s in worlds),
         "execution": "sequential worlds in one Python process; NumPy/CPU; no Isaac runtime",
     }
