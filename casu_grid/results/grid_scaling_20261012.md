@@ -1,6 +1,6 @@
 # CasU grid-state full-world baseline
 
-Run: 2026-10-12, revision `631bcec6aad44749e29069c514d57c06aa1ac38a` on
+Run: 2026-10-12, benchmark revision `337e8b4c83c6803848437e1ef5add316f4568521` on
 `isaac-lab`. Full raw samples and setup metadata are in
 [`grid_scaling_20261012.json`](grid_scaling_20261012.json).
 
@@ -41,7 +41,7 @@ source contract; they are not yet executable-versus-surrogate parity tests.
 - This used the Isaac-bundled Python 3.10 interpreter, but did **not** start
   Isaac Kit, Torch, or CUDA. Transition loops and arrays ran on CPU in one
   Python thread. Process CPU use was about 99.8% of one logical core.
-- `nvidia-smi` samples were 28% GPU / 456 MiB before and 31% / 456 MiB after.
+- `nvidia-smi` samples were 33% GPU / 456 MiB before and 32% / 457 MiB after.
   The benchmark code did not submit GPU work; those point samples are
   device-wide and do not attribute activity to this process.
 - Raw per-tick and per-cycle nanosecond samples, memory readings, allocation
@@ -56,14 +56,14 @@ listed in the workload name/definition.
 
 | Workload | Fluid density (world; initial band) | Solid density | ticks/s | 10-tick macrosteps/s | median / p95 / p99 ms |
 |---|---:|---:|---:|---:|---:|
-| Empty | 0%; 0% | 0% | 503.65 | 50.37 | 1.905 / 2.757 / 3.156 |
-| Static terrain | 0%; 0% | 25% | 502.60 | 50.26 | 1.886 / 2.667 / 3.052 |
-| Sparse, shielded fluids | 0.0916%; 0.1953% | 0.275% | 511.29 | 51.13 | 1.884 / 2.326 / 3.173 |
-| Moderate, dynamic fluids | 11.1546%; 10.2539% → 18.3105% | 0% | 398.80 | 39.88 | 2.434 / 3.112 / 3.631 |
-| Dense fluid ID 3 | 100%; 100% | 0% | 89.59 | 8.96 | 11.166 / 11.721 / 11.989 |
-| Stable mixed grid | 25%; 25% | 75% | 185.57 | 18.56 | 5.320 / 5.972 / 6.172 |
-| Partial damage | 0%; 0% | one block | 518.44 | 51.84 | 1.884 / 2.176 / 2.220 |
-| Repeated destruction | 0%; 0% | 20 transient blocks/tick | 483.13 | 48.31 | 2.056 / 2.328 / 2.500 |
+| Empty | 0%; 0% | 0% | 499.77 | 49.98 | 1.880 / 2.805 / 3.422 |
+| Static terrain | 0%; 0% | 25% | 521.69 | 52.17 | 1.879 / 2.135 / 2.668 |
+| Sparse, shielded fluids | 0.0916%; 0.1953% | 0.275% | 508.10 | 50.81 | 1.952 / 2.191 / 2.297 |
+| Moderate, dynamic fluids | 11.1546%; 10.2539% → 18.3105% | 0% | 402.30 | 40.23 | 2.419 / 3.033 / 3.601 |
+| Dense fluid ID 3 | 100%; 100% | 0% | 89.53 | 8.95 | 11.173 / 11.886 / 12.270 |
+| Stable mixed grid | 25%; 25% | 75% | 188.19 | 18.82 | 5.307 / 5.658 / 5.777 |
+| Partial damage | 0%; 0% | one block | 520.34 | 52.03 | 1.892 / 2.152 / 2.333 |
+| Repeated destruction | 0%; 0% | 20 transient blocks/tick | 488.92 | 48.89 | 2.034 / 2.246 / 2.379 |
 
 Workload construction details: sparse fluids are isolated by surrounding blocks;
 the moderate case places ID 3 on every third x and y index in empty terrain; the
@@ -88,13 +88,13 @@ capacity.
 
 | Worlds | Aggregate ticks/s | Aggregate 10-tick macrosteps/s | ticks/s per world | Raw grid arrays | Process VmRSS / VmHWM |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 187.44 | 18.74 | 187.44 | 3 MiB | 39.3 / 39.3 MiB |
-| 2 | 186.32 | 18.63 | 93.16 | 6 MiB | 42.2 / 42.2 MiB |
-| 4 | 187.83 | 18.78 | 46.96 | 12 MiB | 48.2 / 48.2 MiB |
-| 8 | 188.18 | 18.82 | 23.52 | 24 MiB | 60.3 / 60.3 MiB |
-| 16 | 187.59 | 18.76 | 11.72 | 48 MiB | 84.3 / 84.3 MiB |
-| 32 | 188.02 | 18.80 | 5.88 | 96 MiB | 132.4 / 132.4 MiB |
-| 64 | 189.30 | 18.93 | 2.96 | 192 MiB | 228.5 / 228.4 MiB |
+| 1 | 188.88 | 18.89 | 188.88 | 3 MiB | 39.2 / 39.2 MiB |
+| 2 | 189.63 | 18.96 | 94.81 | 6 MiB | 42.2 / 42.2 MiB |
+| 4 | 185.91 | 18.59 | 46.48 | 12 MiB | 48.2 / 48.2 MiB |
+| 8 | 185.04 | 18.50 | 23.13 | 24 MiB | 60.2 / 60.2 MiB |
+| 16 | 188.17 | 18.82 | 11.76 | 48 MiB | 84.2 / 84.2 MiB |
+| 32 | 188.64 | 18.86 | 5.89 | 96 MiB | 132.4 / 132.4 MiB |
+| 64 | 188.39 | 18.84 | 2.94 | 192 MiB | 228.5 / 228.5 MiB |
 
 VmRSS is the process resident memory after world allocation/setup; VmHWM is
 the kernel's process high-water reading. The 64-world raw arrays account for exactly 192 MiB;
@@ -106,9 +106,9 @@ stopped at 64 worlds, well below the configured 512 MiB raw-array guard.
 - One world’s two arrays use **3,145,728 bytes (3 MiB)**. A snapshot copies
   those arrays and serializes to 3,146,222 bytes with Python pickle protocol 5.
 - Across 51 capture/restore samples: capture median / p95 / p99 was
-  **0.094 / 0.168 / 0.884 ms**; restore was **0.097 / 0.182 / 0.243 ms**.
+  **0.092 / 0.130 / 0.723 ms**; restore was **0.095 / 0.135 / 0.232 ms**.
   The p99 capture value is a single high outlier; raw samples are retained.
-- Snapshot-run process RSS/high-water reached about **49.3 MiB**. These figures
+- Snapshot-run process RSS/high-water reached about **49.2 MiB**. These figures
   include interpreter and NumPy overhead.
 - No grid state was allocated on GPU. The 8 GB RTX 3070 was only observed via
   device-wide `nvidia-smi` samples; its utilization was nonzero, so those
@@ -125,8 +125,8 @@ little relative to the scan. Snapshot copies are small and fast compared with
 the 5–11 ms occupied-fluid ticks.
 
 Against the stated approximate 50-tick/s CasU real-time baseline, the measured
-core-only ratios range from **1.79×** (dense fluid) to **10.37×** (partial
-damage). This is a ratio to a nominal game rate, not an end-to-end speedup:
+core-only ratios range from **1.79×** (dense fluid) to **10.43×** (static
+terrain). This is a ratio to a nominal game rate, not an end-to-end speedup:
 Unity rendering, physics, collider updates, audio, and game scripts are absent.
 All tested single-world cases exceeded 50 core ticks/s, but that does not prove
 the complete surrogate will run faster than CasU.
