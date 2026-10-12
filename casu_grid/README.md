@@ -70,3 +70,32 @@ measurements to `casu_grid/results/grid_scaling_20261012.json`:
 Options `--warmup`, `--samples`, `--multi-samples`, and `--skip-multi` control
 run length; see `benchmark.py --help`. Multi-world scaling is isolated in a
 fresh process for each count to report independent resident/peak memory.
+
+## Canonical Layer 1 reference
+
+The approved full-world fixture is
+`fixtures/casu-layer1-seed-391728405-v1/`. It contains the verified binary
+arrays, a versioned canonical manifest, and the captured collision-component
+metadata. `reference.py` verifies manifest identity and payload checksums,
+then loads arrays in CLR-compatible `[x,y]` order. `new_state()` produces an
+independent mutable simulation initialized with seed-world arrays, camera,
+fluid scheduler, and empty damage list. The captured `checkTime` value remains
+metadata because V0 advances by explicit integer ticks.
+
+Run the complete portable regression suite, including full-array equality
+between the importer and fixture payloads, with:
+
+```bash
+"$ISAAC_SIM/python.sh" -m unittest discover -s casu_grid/tests -v
+```
+
+Run the bounded grid and snapshot-replay smoke under the pinned Isaac Kit
+runtime with the environment setup above:
+
+```bash
+"$ISAAC_SIM/python.sh" "$PWD/casu_grid/isaac_reference_smoke.py" --headless
+```
+
+This proves array loading and discrete stepping inside the Isaac-launched
+process. It does not create terrain geometry, rendering, player physics, or
+PhysX colliders. See `COLLISION_HANDOFF.md` for the next measurement campaign.

@@ -1,0 +1,164 @@
+{
+  "canonical": true,
+  "collision_metadata": {
+    "file": "collision_metadata.json",
+    "known_summary": {
+      "chunk_array_shape": "0:16,0:16",
+      "composite_collider_component_count": 256,
+      "native_tile_geometry_and_ignore_collision_pairs_exported": false,
+      "source_detail_contains_component_properties": true,
+      "tilemap_collider_component_count": 256
+    },
+    "sha256": "81971a7bfe8d415cc83d9216639c8304b84337cca277f708d7c65cec81f46f33",
+    "unresolved": [
+      "tile asset collider shapes",
+      "effective CompositeCollider2D paths and composition behavior",
+      "Physics2D.IgnoreCollision exceptions",
+      "collider refresh timing and post-destruction behavior",
+      "physics material parameters",
+      "CasU 2D-to-Isaac planar geometry mapping",
+      "Isaac collider mutation/update strategy",
+      "memory and rebuild costs"
+    ]
+  },
+  "content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "content_id_algorithm": "sha256(canonical JSON of manifest excluding content_id; sorted keys, compact separators, UTF-8)",
+  "fixture_id": "casu-layer1-seed-391728405-v1",
+  "fixture_version": 1,
+  "generation_settings": {
+    "ambientlight": 0,
+    "attackdamage": 1.0,
+    "baselootdensity": 1.0,
+    "basetrapdensity": 1.0,
+    "bleedrate": 1.0,
+    "bonuslimbarmor": 0.0,
+    "braindamagefx": true,
+    "debugworld": false,
+    "disfigurement": true,
+    "encumbrancecap": 1.0,
+    "fibrillationrate": 1.0,
+    "forcesleep": true,
+    "fracturepain": 1.0,
+    "healingrate": 1.0,
+    "infectionchance": 1.0,
+    "infectionspeed": 1.0,
+    "infinitelaststand": false,
+    "itemdecayrate": 1.0,
+    "layermodifierchance": 40.0,
+    "liquidpushing": true,
+    "lockpickprecision": 1.0,
+    "lootmultiplier": 1.0,
+    "lowmoodevents": true,
+    "metabolismrate": 1.0,
+    "minigamehandshake": 1.0,
+    "moodnormalizationrate": 1.0,
+    "nosleeprestrictions": false,
+    "oreamount": 1.0,
+    "sleepcyclespeed": 1.0,
+    "staminaregen": 1.0,
+    "startingsupplies": 1,
+    "strokes": true,
+    "temperatureoffset": 0.0,
+    "timebetweenearthquakes": 1.0,
+    "timelimit": 60.0,
+    "traderchance": 33.0,
+    "traderitemamount": 1.0,
+    "traderrepoffset": 0.0,
+    "trapincrease": 0.0,
+    "unchipped": false,
+    "xpgain": 1.0
+  },
+  "payloads": {
+    "fluid": {
+      "axis_order": "x,y",
+      "bytes": 1048576,
+      "dtype": "u1",
+      "file": "fluid_u8_x_y.bin",
+      "order": "C",
+      "sha256": "451f5e991debcb30cc88d3bf0a7e56aaf7b6c01b5555ee9902a98dacae1b6dc7",
+      "shape": [
+        1024,
+        1024
+      ],
+      "source_dtype": "System.Byte"
+    },
+    "terrain": {
+      "axis_order": "x,y",
+      "bytes": 2097152,
+      "dtype": "<u2",
+      "file": "terrain_u16le_x_y.bin",
+      "order": "C",
+      "sha256": "9c98fb3d9d80b693b7733e6157d8d295f4ab9026e7054b4d86fb839207b4d5c6",
+      "shape": [
+        1024,
+        1024
+      ],
+      "source_dtype": "System.UInt16"
+    }
+  },
+  "provenance": {
+    "export_tool": "ExportLayer1Reference.py schema 1",
+    "game_assembly_sha256": "fd0ad2851f6bae4ab2589634643b92e16696c0e36f090bdd3f4c41e8f1c97095",
+    "game_assembly_version": "Assembly-CSharp 0.0.0.0",
+    "harness_sha256": "7135205047c598595acb128e5f64fc9f9b0c35bd2d03eab7e1510ec7f64c4d49",
+    "harness_version": "PPO_Harness 1.0.0.0",
+    "historical_verifier": "PPO_Python/VerifyLayer1Reference.py",
+    "independent_replication_export_b": "mission9-seed-391728405-final-b",
+    "original_export_a": "mission9-seed-391728405-final-a",
+    "replication_verified_byte_identical": true,
+    "source_capture_boundary": "CF_RESET acknowledged; initial CF_STATE_DETAIL; timeScale=0 before first policy action",
+    "source_export_schema": "casu.layer1-reference.v1",
+    "source_snapshot_scientifically_validated": false,
+    "source_state_sha256": "5caad9017268a9745707e0779b1b075014e94b8207507c4a0c62d701f907072d",
+    "unity_player_sha256": "dc005461655b67912029eea6bcc303fe244c3a336e2046107f934b901ab9ce2b",
+    "unity_version": "2022.3.62f3 (96770f904ca7)"
+  },
+  "runtime": {
+    "camera_world_xy": [
+      0.0,
+      508.0
+    ],
+    "fluid_scheduler": {
+      "checkTime": 0.0,
+      "simIndex": 0,
+      "tileCooldown": 0
+    },
+    "player_mass": 49.279998779296875,
+    "player_rotation_xyzw": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "player_spawn_grid_xy": [
+      512,
+      1020
+    ],
+    "player_standing": true,
+    "player_temperature": 37.0,
+    "player_world_position_xy": [
+      0.0,
+      508.0
+    ],
+    "terrain_damage_entries": []
+  },
+  "schema": "casu.canonical-layer1.v1",
+  "seed": 391728405,
+  "world": {
+    "array_order": "x-first; flat C-order; y fastest",
+    "boundary_basis": "complete bounded grid for the initial generated world at biomeDepth=0; no inferred vertical y-slice",
+    "chunk_columns": 16,
+    "chunk_rows": 16,
+    "chunk_size": 64,
+    "coordinate_transform": {
+      "source_method": "WorldGeneration.BlockToWorldPos(Vector2Int)",
+      "unity_world_units_per_cell": 1.0,
+      "world_to_grid": "truncate(world_x + width/2), truncate(world_y + height/2)",
+      "world_x_cell_center": "grid_x - width/2 + 0.5",
+      "world_y_cell_center": "grid_y - height/2 + 0.5"
+    },
+    "height": 1024,
+    "transition_y_exclusive": -508.9,
+    "width": 1024
+  }
+}
