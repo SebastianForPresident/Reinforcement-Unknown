@@ -49,3 +49,24 @@ in `ISAAC_LAB_SETUP.md` (set its environment variables, then invoke):
 The smoke initializes Kit, advances the grid testbed alongside Kit updates,
 and checks its tick count. It does not instantiate a DirectRLEnv or physics
 scene because no player/action contract exists in this milestone.
+
+## Full-world validation and benchmark
+
+Run the full-world correctness fixtures with the same bundled interpreter:
+
+```bash
+"$ISAAC_SIM/python.sh" -m unittest discover -s casu_grid/tests -v
+```
+
+The standalone benchmark does **not** start Isaac Kit or use CUDA for grid
+updates. It runs the Python/NumPy core on CPU, measures the source-equivalent
+128×16 scan bands and sequential multi-world stepping, and writes raw per-step
+measurements to `casu_grid/results/grid_scaling_20261012.json`:
+
+```bash
+"$ISAAC_SIM/python.sh" casu_grid/benchmark.py
+```
+
+Options `--warmup`, `--samples`, `--multi-samples`, and `--skip-multi` control
+run length; see `benchmark.py --help`. Multi-world scaling is isolated in a
+fresh process for each count to report independent resident/peak memory.
