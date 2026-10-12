@@ -1,4 +1,10 @@
 """Source-derived 1024x1024 world correctness and scaling fixtures."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 import unittest
 
 import numpy as np
@@ -153,6 +159,32 @@ class FullWorldTests(unittest.TestCase):
                 env.simulation_step()
         for env in multi:
             self.assertTrue(solo.snapshots_equal(solo.snapshot(), env.snapshot()))
+
+    def test_identical_tape_matches_across_fresh_processes(self):
+        root = Path(__file__).resolve().parents[2]
+        code = r'''import hashlib, json, sys
+sys.path.insert(0, sys.argv[1])
+from casu_grid import CasUGridState
+s = CasUGridState(1024, 1024, camera_x=512, camera_y=512,
+                  decisions=[False, True] * 1000)
+s.set_block(512, 519, 1)
+s.set_liquid(512, 520, 3)
+s.set_block(400, 400, 27)
+for _ in range(14): s.simulation_step()
+s.damage_block(400, 400, 50)
+snap = s.snapshot()
+h = hashlib.sha256(snap['blocks'].tobytes() + snap['fluids'].tobytes() +
+                   json.dumps({k: v for k, v in snap.items() if k not in ('blocks','fluids')},
+                              sort_keys=True).encode()).hexdigest()
+print(h)
+'''
+        fingerprints = []
+        for _ in range(2):
+            run = subprocess.run([sys.executable, "-c", code, str(root)],
+                                 cwd=root, env=os.environ.copy(), check=True,
+                                 text=True, capture_output=True)
+            fingerprints.append(run.stdout.strip())
+        self.assertEqual(fingerprints[0], fingerprints[1])
 
     def test_65x64_case_embedded_in_full_world(self):
         small = CasUGridState(65, 64, camera_x=32, camera_y=64,

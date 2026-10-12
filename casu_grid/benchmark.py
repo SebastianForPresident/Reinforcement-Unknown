@@ -158,6 +158,7 @@ def benchmark_single(kind, warmup, samples):
         "measured_ticks": samples,
         "allocation_and_setup_ms": allocation_ns / 1e6,
         "density_at_measurement_start": density,
+        "density_after_measurement": density_info(s),
         "latency_ns_raw": latencies,
         "step_latency_ns": {"median": int(statistics.median(latencies)),
                             "p95": pct(latencies, 0.95), "p99": pct(latencies, 0.99)},
