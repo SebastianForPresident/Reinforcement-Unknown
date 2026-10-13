@@ -28,6 +28,7 @@
 - A three-step real replay of the single-process smoke wrote CSV/plot/summary and reported `deterministic=true`, exact config hash match and layout match `[1]` in `/tmp/casu-integration-single-2/replay`.
 - A three-step real replay of the sharded smoke wrote CSV/plot/summary and reported `deterministic=true`, exact config hash match and layout match `[1,1]` in `/tmp/casu-integration-sharded-2/replay`.
 - A conflicting `CASU_NUM_WORKERS=1` request for the sharded run was rejected by CLI preflight with the recorded `[1,1]` versus requested `[2]` layout message before Isaac startup.
+- CLI comparison of the real single/sharded runs reported matching reward contracts and surfaced the environment-count and terrain-mode differences in `/tmp/casu-integration-comparison.json`. The actual sharded metrics plot was generated under Isaac Lab Python at `/tmp/casu-integration-sharded-2-metrics.png` (system Python lacks Matplotlib).
 - A prior Isaac engineering smoke artifact at `/tmp/casu-gui-isaac-smoke-20261013` is discoverable and reports completed, with checkpoint and metrics.
 - The local Isaac runtime required the install-provided `compat-libs/usr/lib64`, `isaaclab-deps`, and Isaac Lab source paths. Short idle windows were used for live runs. An optimizer-owned GPU benchmark later ran concurrently with one short replay despite a prior idle check; the replay completed, but its timing is not performance evidence. The optimizer benchmark was not interrupted.
 

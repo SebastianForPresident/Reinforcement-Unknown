@@ -17,6 +17,7 @@ The workbench now records the execution layout reported by a live environment, p
 - Sharded replay: three recorded steps replayed with zero pose/velocity deviation, matching config hash and `[1,1]` partition; CSV, plot and summary were written. Evidence: `/tmp/casu-integration-sharded-2/replay/summary.json`.
 - Replay-layout conflict: a request for one worker against the recorded two-worker sharded run was rejected during CLI preflight before Isaac startup.
 - Checkpoint resume: one additional PPO update completed in a new folder with the original 2-environment, 2-worker layout and a lineage link to the source checkpoint. Evidence: `/tmp/casu-integration-sharded-resume`.
+- Run comparison identified the reward contracts as matching and displayed environment-count/terrain differences in `/tmp/casu-integration-comparison.json`. A plot of actual sharded-run metrics was generated with the bundled runtime at `/tmp/casu-integration-sharded-2-metrics.png`.
 - Older GUI acceptance smoke artifact discovery: `/tmp/casu-gui-isaac-smoke-20261013`.
 - Active performance backend settings are `CASU_BACKEND=auto|numba|reference-python` and `CASU_NUM_WORKERS=N|auto`. The requested values and live effective backend/layout are recorded separately.
 - Failure records carry exception type, message and traceback. A pre-launch manifest and streamed `launcher.log` preserve failures that occur before `AppLauncher` can enter the trainer's handler. A nonzero trainer exit cannot receive a completion marker. Cancellation targets the dedicated launcher process group.
