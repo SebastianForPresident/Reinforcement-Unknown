@@ -301,6 +301,48 @@ def replay_layout_matches(recorded: list[int] | None, current: list[int]) -> boo
     return recorded is None or list(recorded) == list(current)
 
 
+def _replay_requested_layout(num_envs: int, requested: str | None,
+                            recorded: list[int] | None) -> list[int]:
+    """Resolve replay's effective world partition without importing Isaac/Kit."""
+    if requested is None:
+        if recorded:
+            return list(recorded)
+        workers = 1
+    elif requested.strip().lower() == "auto":
+        workers = max(1, min(4, (os.cpu_count() or 4) // 4, num_envs // 4))
+    else:
+        try:
+            workers = int(requested)
+        except ValueError as exc:
+            raise ValueError(f"CASU_NUM_WORKERS must be a positive integer or 'auto', got {requested!r}") from exc
+        if workers <= 0:
+            raise ValueError("CASU_NUM_WORKERS must be positive")
+    workers = max(1, min(workers, num_envs))
+    base, extra = divmod(num_envs, workers)
+    return [base + (1 if i < extra else 0) for i in range(workers)]
+
+
+def _resume_execution_args(manifest: dict[str, Any], environment_manifest: dict[str, Any]) -> list[str]:
+    """Restore original world count, sampling seed, terrain, backend and worker request."""
+    environment = manifest.get("environment") or {}
+    execution = environment_manifest.get("execution") or {}
+    terrain = environment.get("terrain_mode", "shared")
+    if terrain not in {"shared", "independent"}:
+        terrain = "shared"
+    args = ["--num-envs", str(environment.get("num_envs", 1)),
+            "--terrain-mode", str(terrain),
+            "--seed", str(manifest.get("seed", 391728405))]
+    backend = execution.get("requested_backend")
+    workers = execution.get("requested_workers")
+    if backend:
+        args += ["--backend", str(backend)]
+    if workers:
+        args += ["--workers", str(workers)]
+    if environment.get("episode_steps"):
+        args += ["--episode-steps", str(environment["episode_steps"])]
+    return args
+
+
 def compare_runs(paths: list[Path]) -> dict[str, Any]:
     if len(paths) < 2: raise ValueError("Compare requires at least two run IDs or paths")
     runs, manifests, metric_rows = [], [], []
@@ -476,6 +518,8 @@ def build_parser() -> argparse.ArgumentParser:
     launch = sub.add_parser("launch", help="preview or launch the existing Isaac PPO trainer")
     launch.add_argument("config", type=Path); launch.add_argument("--run-dir", type=Path); launch.add_argument("--updates", type=int, default=100)
     launch.add_argument("--num-envs", type=int, default=1); launch.add_argument("--episode-steps", type=int); launch.add_argument("--terrain-mode", choices=("shared", "independent"), default="shared")
+    launch.add_argument("--backend", choices=("auto", "numba", "reference-python"), help="execution backend request (default: CASU_BACKEND or auto)")
+    launch.add_argument("--workers", help="process workers request: positive integer or auto (default: CASU_NUM_WORKERS or 1)")
     launch.add_argument("--seed", type=int, default=391728405, help="PPO policy/sampling RNG seed; the world fixture remains canonical seed 391728405"); launch.add_argument("--resume", type=Path); launch.add_argument("--preview", action="store_true"); launch.add_argument("--engineering-smoke", action="store_true", help="explicitly label the engineering-only template")
     runs = sub.add_parser("runs", help="discover runs and classify status from artifacts")
     runs.add_argument("--json", action="store_true")
@@ -526,6 +570,11 @@ def main(argv: list[str] | None = None) -> int:
                 print("NOTE: this validates declared contracts, not runtime callback outputs. Isaac initialization is separate.")
         elif args.command == "launch":
             cfg, _ = _load_config(args.config)
+            if args.workers is not None and args.workers.strip().lower() != "auto":
+                try:
+                    if int(args.workers) <= 0: raise ValueError
+                except ValueError as exc:
+                    raise ValueError("--workers must be a positive integer or 'auto'") from exc
             python_cmd = _isaac_python_command(preview=args.preview)
             if args.resume and importlib.util.find_spec("isaaclab") is None:
                 raise ValueError("Checkpoint fingerprint inspection requires the Isaac bundled Python (torch). Use the configured python.sh interpreter.")
@@ -553,6 +602,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.engineering_smoke: print("MODE: explicitly labeled ENGINEERING SMOKE; this is not an approved Timmy research experiment.")
             else: print("MODE: researcher-configured PPO training. Verify your scientific contracts before launch.")
             print("Effective launch: " + _display_command(cmd))
+            print(f"Execution request: CASU_BACKEND={args.backend or os.environ.get('CASU_BACKEND', 'auto')} CASU_NUM_WORKERS={args.workers or os.environ.get('CASU_NUM_WORKERS', '1')}")
             print(f"Run output: {run_dir}")
             if args.preview: return 0
             if not args.engineering_smoke and Path(args.config).resolve() == TEMPLATE.resolve(): raise ValueError("Refusing to launch engineering_smoke.py as a research run without --engineering-smoke")
@@ -569,14 +619,18 @@ def main(argv: list[str] | None = None) -> int:
                 "environment": {"num_envs": args.num_envs, "geometry_scope": "full",
                     "terrain_mode": args.terrain_mode if args.num_envs > 1 else "single",
                     "physics_dt": 0.02, "action_decimation": 10},
-                "execution_requested": {"backend": os.environ.get("CASU_BACKEND", "auto"),
-                    "workers": os.environ.get("CASU_NUM_WORKERS", "1")},
+                "execution_requested": {"backend": args.backend or os.environ.get("CASU_BACKEND", "auto"),
+                    "workers": args.workers or os.environ.get("CASU_NUM_WORKERS", "1")},
             }
             (run_dir / "config.json").write_text(json.dumps(initial_manifest, indent=2) + "\n", encoding="utf-8")
             marker = run_dir / "RUNNING"
             marker.write_text(f"{os.getpid()}\n", encoding="utf-8")
             try:
                 child_env = os.environ.copy()
+                if args.backend:
+                    child_env["CASU_BACKEND"] = args.backend
+                if args.workers:
+                    child_env["CASU_NUM_WORKERS"] = args.workers
                 child_env["CASU_WORKBENCH_LAUNCHER_PID"] = str(os.getpid())
                 child_env["CASU_WORKBENCH_RESUME_FROM"] = str(args.resume.resolve()) if args.resume else ""
                 child_env["CASU_WORKBENCH_RUN_KIND"] = "engineering_smoke" if args.engineering_smoke else "research_training"
@@ -699,6 +753,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Wrote { _metric_plot(run, output) }")
         elif args.command == "replay":
             run = _find_run(args.run, root); config = _resolve_config_for_run(run, args.config)
+            environment_path = run / "environment.json"
+            environment_record = _json(environment_path) if environment_path.is_file() else {}
+            recorded_layout = (environment_record.get("execution") or {}).get("worlds_per_worker")
+            num_envs = int((_json(run / "config.json").get("environment") or {}).get("num_envs", 1))
+            replay_layout = _replay_requested_layout(num_envs, os.environ.get("CASU_NUM_WORKERS"), recorded_layout)
+            if not replay_layout_matches(recorded_layout, replay_layout):
+                raise ValueError(f"Replay worker-layout mismatch before Isaac startup: run used worlds_per_worker={recorded_layout}; requested layout resolves to {replay_layout}. Unset CASU_NUM_WORKERS to restore the recorded layout or set it to {len(recorded_layout)}.")
             if importlib.util.find_spec("isaaclab") is None:
                 raise ValueError("Deterministic replay requires Isaac Lab Python. Use the configured Isaac Sim python.sh interpreter (see ISAAC_LAB_SETUP.md).")
             trajectory = run / "trajectories.jsonl"
@@ -713,7 +774,10 @@ def main(argv: list[str] | None = None) -> int:
             _isaac_python_command()
             result = subprocess.run(cmd, cwd=ROOT)
             summary_path = run / "replay" / "summary.json"
-            if result.returncode == 0 and summary_path.is_file():
+            if result.returncode == 0 and not summary_path.is_file():
+                print(f"Replay process exited successfully but did not write its required summary: {summary_path}. The replay is incomplete; inspect the simulator output and retry.", file=sys.stderr)
+                return 1
+            if result.returncode == 0:
                 summary = _json(summary_path)
                 if not summary.get("deterministic", False):
                     print(f"REPLAY DIVERGED: first divergence={summary.get('first_divergence')}; full report={summary_path}", file=sys.stderr)
@@ -736,6 +800,8 @@ def main(argv: list[str] | None = None) -> int:
             python_cmd = _isaac_python_command(preview=args.preview)
             cmd = [python_cmd, "-m", "casu_grid.workbench.lab", "--experiments", str(root), "launch", str(config), "--run-dir", str(output), "--updates", str(args.updates), "--resume", str(checkpoint)]
             source_manifest = _json(source / "config.json")
+            source_environment = _json(source / "environment.json") if (source / "environment.json").is_file() else {}
+            cmd += _resume_execution_args(source_manifest, source_environment)
             experiment_meta = source_manifest.get("experiment") or {}
             is_engineering = (source_manifest.get("run_kind") == "engineering_smoke"
                               or "engineering-only" in json.dumps(experiment_meta).lower()

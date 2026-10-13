@@ -216,10 +216,25 @@ class LabUsabilityTests(unittest.TestCase):
                 os.chdir(old_cwd)
 
     def test_replay_layout_contract_detects_recorded_partition_mismatch(self):
-        from .lab import replay_layout_matches
+        from .lab import replay_layout_matches, _replay_requested_layout
         self.assertTrue(replay_layout_matches([2, 2], [2, 2]))
         self.assertFalse(replay_layout_matches([2, 2], [4]))
         self.assertTrue(replay_layout_matches(None, [4]))
+        self.assertEqual(_replay_requested_layout(4, None, [2, 2]), [2, 2])
+        self.assertEqual(_replay_requested_layout(4, "1", [2, 2]), [4])
+
+    def test_resume_restores_recorded_execution_and_environment_request(self):
+        options = lab._resume_execution_args(
+            {"seed": 123, "environment": {"num_envs": 8, "terrain_mode": "independent", "episode_steps": 40}},
+            {"execution": {"requested_backend": "numba", "requested_workers": "auto"}},
+        )
+        self.assertIn("--num-envs", options)
+        self.assertEqual(options[options.index("--num-envs") + 1], "8")
+        self.assertEqual(options[options.index("--terrain-mode") + 1], "independent")
+        self.assertEqual(options[options.index("--seed") + 1], "123")
+        self.assertEqual(options[options.index("--backend") + 1], "numba")
+        self.assertEqual(options[options.index("--workers") + 1], "auto")
+        self.assertEqual(options[options.index("--episode-steps") + 1], "40")
 
 
 if __name__ == "__main__":

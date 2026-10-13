@@ -117,7 +117,9 @@ python -m casu_grid.workbench.lab resume navigation-idea --updates 100
 ```
 
 Never overwrite the source run to continue it; a resumed run links to the source
-checkpoint through its invocation and has its own output folder.
+checkpoint through its invocation and has its own output folder. Resume restores
+the source run's environment count, terrain mode, policy sampling seed, requested
+backend and worker count, and episode length from recorded metadata.
 
 ## Inspect and compare
 
@@ -175,6 +177,10 @@ whether it is within tolerance; the detailed CSV has step/world and pose fields.
 A path plot is a trajectory projection, not source-game visualization. For
 CasU-versus-Isaac comparisons and fidelity caveats, see
 [`../ACCEPTANCE_REPORT.md`](../ACCEPTANCE_REPORT.md).
+Replay restores a recorded worker request when `CASU_NUM_WORKERS` is unset. An
+explicit request that resolves to a different world partition is rejected by
+the CLI before Isaac startup. The command requires `summary.json`; a simulator
+process that exits without producing it is reported as a failed replay.
 
 `config.json` records config hash, source revision/working-tree status, seed,
 environment settings, and contract snapshot; `latest.pt` embeds the learning

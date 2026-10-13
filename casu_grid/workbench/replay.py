@@ -26,7 +26,8 @@ p.add_argument('--max-steps', type=int, default=None, help='replay only the firs
 p.add_argument('--tolerance', type=float, default=1e-4, help='allowed |replayed - logged| for the determinism check')
 AppLauncher.add_app_launcher_args(p)
 args = p.parse_args(); args.headless = True
-app = AppLauncher(args).app
+launcher = AppLauncher(args)
+app = launcher.app
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import numpy as np
 from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig, IsaacLayer1NavigationEnv
@@ -56,13 +57,12 @@ def main():
                 raise ValueError(f"Replay worker-layout mismatch: run used {len(recorded_layout)} workers with worlds_per_worker={recorded_layout}; CASU_NUM_WORKERS requests {requested_count}. Set CASU_NUM_WORKERS to the recorded worker count for layout-matched replay.")
         elif normalized == 'auto' and recorded_layout:
             from casu_grid.isaac_sharded_env import resolve_worker_count, shard_sizes
-            from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig
             replay_config = IsaacLayer1EnvConfig(num_envs=count, num_workers=0)
             replay_layout = shard_sizes(count, resolve_worker_count(replay_config))
             if replay_layout != recorded_layout:
                 raise ValueError(f"Replay worker-layout mismatch: run used worlds_per_worker={recorded_layout}; CASU_NUM_WORKERS=auto resolves to {replay_layout}. Set CASU_NUM_WORKERS to the recorded worker count for layout-matched replay.")
     elif recorded_layout and len(recorded_layout) > 1:
-        os.environ['CASU_NUM_WORKERS'] = str(len(recorded_layout))
+            os.environ['CASU_NUM_WORKERS'] = str(len(recorded_layout))
     kwargs = {'episode_length_steps': environment['episode_steps']} if environment.get('episode_steps') else {}
     cfg = IsaacLayer1EnvConfig(seed=391728405, num_envs=count, spawn_mode='canonical',
                                geometry_scope=environment['geometry_scope'], **kwargs)

@@ -7,11 +7,15 @@ The workbench now records the execution layout reported by a live environment, p
 ## Verified
 
 - GUI and CLI share configuration and run services. Offscreen GUI construction, safe experiment discovery, typed model/PPO controls and plotting-view behavior are covered by automated tests. A manual desktop usability review remains necessary.
-- Workbench tests: `python -m unittest discover -s casu_grid -p 'test_*.py'` — 26 passed, including injected early-launcher failure/log preservation.
+- Workbench tests: `python -m unittest discover -s casu_grid -p 'test_*.py'` — 27 passed, including injected early-launcher failure/log preservation, replay partition preflight and resume execution restoration.
 - Simulator/workbench Python regressions: 114 passed under the bundled Isaac Lab Python (`"$ISAAC_LAB/isaaclab.sh" -p -m unittest discover -s casu_grid/tests -p 'test_*.py'`). This does not launch Kit.
 - Syntax: `python -m compileall -q casu_grid/workbench` — passed.
 - Formatting check: `git diff --check` — passed.
 - Single-process CLI lifecycle: engineering smoke configuration, one PPO update, 32 environment decisions, real metrics, checkpoint, trajectories, completed status and inspectable environment metadata. Evidence: `/tmp/casu-integration-single-2`.
+- Sharded CLI lifecycle: two workers and two environments completed one engineering-only PPO update (64 aggregate decisions), wrote checkpoint/metrics/trajectories, and recorded `worlds_per_worker=[1,1]` plus the effective `reference-python` backend. Evidence: `/tmp/casu-integration-sharded-2`.
+- Single-process replay: three recorded steps replayed with zero pose/velocity deviation, matching config hash and `[1]` partition; CSV, plot and summary were written. Evidence: `/tmp/casu-integration-single-2/replay/summary.json`.
+- Replay-layout conflict: a request for one worker against the recorded two-worker sharded run was rejected during CLI preflight before Isaac startup.
+- Resume preview: reproduced the source run's environment count, terrain, sampling seed, backend/worker request and episode length in a new output folder. Actual resume remains unverified.
 - Older GUI acceptance smoke artifact discovery: `/tmp/casu-gui-isaac-smoke-20261013`.
 - Active performance backend settings are `CASU_BACKEND=auto|numba|reference-python` and `CASU_NUM_WORKERS=N|auto`. The requested values and live effective backend/layout are recorded separately.
 - Failure records carry exception type, message and traceback. A pre-launch manifest and streamed `launcher.log` preserve failures that occur before `AppLauncher` can enter the trainer's handler. A nonzero trainer exit cannot receive a completion marker. Cancellation targets the dedicated launcher process group.
@@ -19,9 +23,11 @@ The workbench now records the execution layout reported by a live environment, p
 
 ## Not verified in this environment
 
-An optimizer-owned simulator process was running while the live smoke was completed. To avoid simulator/GPU contention, this campaign did not run a second concurrent simulator job. Sharded PPO training, worker crash recovery, repeated cancellation/restart, resume, deterministic replay, explicit replay mismatch, injected Kit initialization failure, and GUI-launched training/replay therefore remain unverified live. Automated coverage is not a substitute for those runtime checks.
+Sharded replay, actual checkpoint resume, worker crash recovery, repeated cancellation/restart, actual Kit initialization failure injection, and GUI-launched training/replay remain unverified live. Automated coverage is not a substitute for those runtime checks. One short replay overlapped with an optimizer-owned GPU benchmark that started after an idle check; the replay completed and is not treated as performance evidence. The optimizer benchmark was left undisturbed.
 
-The bounded smoke used a single process. Its run manifest and metrics were produced by the real trainer. During that run, inspection found that the single-environment adapter lacked `performance_info()` and the launcher could leave a stale `RUNNING` marker; code fixes now address both. The already-created smoke's environment report was updated manually for accurate inspection after the evidence was captured. Re-run the smoke on an idle host to verify the new metadata path end to end.
+The single-process bounded smoke's manifest and metrics were produced by the real trainer. During that run, inspection found that the single-environment adapter lacked `performance_info()` and the launcher could leave a stale `RUNNING` marker; code fixes now address both. The already-created smoke's environment report was updated manually for accurate inspection after evidence capture. The separate two-worker run exercised the new metadata path end to end.
+
+Replay testing exposed a local-import scoping error that caused an early Python exit without artifacts. The CLI now requires `replay/summary.json` before returning success, and the corrected single-process replay produced a deterministic summary.
 
 ## Run and inspect
 
