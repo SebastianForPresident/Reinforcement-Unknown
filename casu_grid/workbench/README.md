@@ -2,6 +2,41 @@
 
 ## Start here
 
+### Graphical Research Studio
+
+Install PySide6 in the ordinary project Python environment, then start the
+local desktop application:
+
+```bash
+python -m pip install PySide6
+python -m casu_grid.workbench.gui
+```
+
+The GUI remains separate from Isaac Sim. It uses the same workbench CLI and
+services for contract preflight, run discovery, launch previews, metrics,
+comparison, resume and replay. Configure `ISAAC_SIM` to the Isaac Sim
+`python.sh` path in the launching shell before starting training. Creating,
+editing, browsing and comparing saved artifacts do not initialize Isaac.
+Training requires the Isaac bundled runtime and asks for confirmation after
+showing the effective CLI launch. Runs are written to a new output directory.
+Choose the output root from Environment settings, or set
+`CASU_STUDIO_RUN_ROOT` before launch. The Training page can refresh run metrics
+while a session runs; supervision remains active when metric polling is off.
+
+The experiment editor preserves Python as the research source of truth and
+checks the source hash before saving. Its save action shows a source diff and
+requires explicit confirmation. The Components view discovers adjacent JSON
+metadata without importing Python; selected source imports occur in a
+short-lived worker. See [the reward component contract](REWARD_COMPONENTS.md).
+Synthetic component validation is not a live Isaac compatibility probe.
+The editor also provides typed model and PPO controls; action/observation
+definitions and custom callbacks remain explicit Python research code.
+
+The GUI's experiment browser is currently scoped to
+`casu_grid/workbench/experiments`; the run output root is configurable.
+Configuration files outside that library can be opened explicitly through the
+editor or training file picker.
+
 One entry point provides commands and a guided menu:
 
 ```bash
@@ -115,6 +150,16 @@ reported when episodes actually finish; a training reward is not evidence of
 task success.
 
 ## Replay and reproducibility
+
+The Experiment Editor also offers an explicit bounded observation probe. It
+uses Isaac to perform one canonical reset, one policy decision (ten physics
+ticks), and a second reset, then checks configured field batch shapes and
+finite values and reports reward callback output. The probe is a contract
+check, not an evaluation of task quality:
+
+```bash
+python -m casu_grid.workbench.lab observation-probe path/to/experiment.py
+```
 
 ```bash
 python -m casu_grid.workbench.lab replay navigation-idea --preview

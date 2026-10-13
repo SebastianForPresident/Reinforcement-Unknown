@@ -14,6 +14,7 @@ the trainer's reset rules, and writes under ``<run-dir>/replay/``:
 from __future__ import annotations
 import argparse, csv, importlib.util, json, sys
 import hashlib
+import os
 from pathlib import Path
 
 from isaaclab.app import AppLauncher
@@ -35,13 +36,39 @@ def main():
     spec = importlib.util.spec_from_file_location('research_config', args.config)
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
     run = json.loads((args.run_dir / 'config.json').read_text())
+    component_snapshot=args.run_dir/'research_component.json'
+    if component_snapshot.is_file():
+        module.REWARD_COMPONENT_REF=json.loads(component_snapshot.read_text())
     current_config_sha256 = hashlib.sha256(Path(args.config).read_bytes()).hexdigest()
     environment = run['environment']
     count = int(environment['num_envs'])
+    recorded = {}
+    environment_path = args.run_dir / 'environment.json'
+    if environment_path.is_file():
+        recorded = json.loads(environment_path.read_text()).get('execution', {})
+    recorded_layout = recorded.get('worlds_per_worker')
+    requested_workers = os.environ.get('CASU_NUM_WORKERS')
+    if requested_workers is not None:
+        normalized = requested_workers.strip().lower()
+        if normalized != 'auto' and normalized.isdigit():
+            requested_count = max(1, min(int(normalized), count))
+            if recorded_layout and requested_count != len(recorded_layout):
+                raise ValueError(f"Replay worker-layout mismatch: run used {len(recorded_layout)} workers with worlds_per_worker={recorded_layout}; CASU_NUM_WORKERS requests {requested_count}. Set CASU_NUM_WORKERS to the recorded worker count for layout-matched replay.")
+        elif normalized == 'auto' and recorded_layout:
+            from casu_grid.isaac_sharded_env import resolve_worker_count, shard_sizes
+            from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig
+            replay_config = IsaacLayer1EnvConfig(num_envs=count, num_workers=0)
+            replay_layout = shard_sizes(count, resolve_worker_count(replay_config))
+            if replay_layout != recorded_layout:
+                raise ValueError(f"Replay worker-layout mismatch: run used worlds_per_worker={recorded_layout}; CASU_NUM_WORKERS=auto resolves to {replay_layout}. Set CASU_NUM_WORKERS to the recorded worker count for layout-matched replay.")
+    elif recorded_layout and len(recorded_layout) > 1:
+        os.environ['CASU_NUM_WORKERS'] = str(len(recorded_layout))
     kwargs = {'episode_length_steps': environment['episode_steps']} if environment.get('episode_steps') else {}
     cfg = IsaacLayer1EnvConfig(seed=391728405, num_envs=count, spawn_mode='canonical',
                                geometry_scope=environment['geometry_scope'], **kwargs)
     callbacks = module.callbacks() if hasattr(module, 'callbacks') else (None, None, None)
+    from casu_grid.workbench.components import resolve_reward_reference
+    callbacks = resolve_reward_reference(module, Path(args.config), callbacks)
     if count == 1:
         env = IsaacLayer1NavigationEnv(cfg, action_decoder=callbacks[0], observation_encoder=callbacks[1],
                                        reward_function=callbacks[2])
@@ -110,14 +137,20 @@ def main():
                     else:
                         env.reset()
                 steps += 1
+        replay_performance = env.performance_info() if callable(getattr(env, 'performance_info', None)) else None
+        replay_layout = replay_performance.get('worlds_per_worker') if replay_performance else [count]
+        layout_matches = not recorded_layout or replay_layout == recorded_layout
         summary = {'schema': 'casu.replay-summary.v1', 'replayed_steps': steps, 'num_envs': count,
+                   'recorded_worlds_per_worker': recorded_layout, 'replay_worlds_per_worker': replay_layout,
+                   'layout_matches_recorded': layout_matches,
                    'episodes_ended': episodes_ended, 'max_abs_pose_velocity_deviation': worst,
                    'worst_deviation': worst_detail, 'first_divergence': first_divergence,
                    'run_source_revision': run.get('git_revision'),
                    'run_config_sha256': run.get('config_sha256'),
                    'replay_config_sha256': current_config_sha256,
                    'config_matches_recorded': not run.get('config_sha256') or current_config_sha256 == run.get('config_sha256'),
-                   'tolerance': args.tolerance, 'deterministic': bool(worst <= args.tolerance)}
+                   'tolerance': args.tolerance,
+                   'deterministic': bool(worst <= args.tolerance and layout_matches)}
         (out_dir / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         try:
             import matplotlib

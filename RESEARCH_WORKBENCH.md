@@ -2,8 +2,9 @@
 
 ## Current Layer 1 research
 
-Start with the [five-minute quick start](casu_grid/workbench/README.md), then use
-`python -m casu_grid.workbench.lab --help` or its guided menu. New Isaac Layer 1
+Start the graphical studio with `python -m casu_grid.workbench.gui`, or read the
+[five-minute quick start](casu_grid/workbench/README.md). The original CLI remains
+available through `python -m casu_grid.workbench.lab --help` or its guided menu. New Isaac Layer 1
 experiments use `casu_grid/workbench/` and the canonical seed 391728405. Read
 [`casu_grid/ACCEPTANCE_REPORT.md`](casu_grid/ACCEPTANCE_REPORT.md) for measured
 source fidelity and known limitations.

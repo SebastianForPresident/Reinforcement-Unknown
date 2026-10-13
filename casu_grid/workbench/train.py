@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse, importlib.util, json, subprocess, time, traceback
 import os
 import hashlib
-from dataclasses import replace
 from pathlib import Path
 import sys
 import numpy as np
@@ -31,12 +30,22 @@ from casu_grid.workbench.contracts import validate_contracts
 from casu_grid.workbench.runtime_validation import checked_callbacks
 from gymnasium import spaces
 
+active_run_dir: Path | None = None
+
 def main():
+    global active_run_dir
     print("CASU_TRAIN_MAIN",flush=True)
     spec=importlib.util.spec_from_file_location('research_config',args.config)
     module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
     print("CASU_TRAIN_CONFIG_LOADED",flush=True)
     config=module
+    if args.resume:
+        component_manifest=args.resume.expanduser().resolve().parent/'research_component.json'
+        if component_manifest.is_file():
+            component_reference=json.loads(component_manifest.read_text())
+            if component_reference.get('snapshot_source'):
+                component_reference['snapshot_source']=str(args.resume.expanduser().resolve().parent/component_reference['snapshot_source'])
+            config.REWARD_COMPONENT_REF=component_reference
     validate_contracts(config.ACTION,config.OBSERVATION,config.REWARD,config.MODEL,config.PPO)
     config_source=Path(args.config).resolve().read_bytes()
     print("CASU_TRAIN_CONTRACTS_VALID",flush=True)
@@ -47,6 +56,7 @@ def main():
     if args.geometry_scope == 'spawn_chunk':
         raise ValueError('spawn_chunk is a diagnostic-only geometry scope; PPO training requires full canonical terrain')
     run_dir=args.run_dir or Path('experiments')/time.strftime('%Y%m%d-%H%M%S')
+    active_run_dir = run_dir
     # The researcher CLI reserves the directory and writes a RUNNING marker;
     # direct legacy invocations retain the original create-if-absent behavior.
     run_dir.mkdir(parents=True,exist_ok=os.environ.get('CASU_WORKBENCH_LAUNCHER_PID') is not None)
@@ -72,7 +82,17 @@ def main():
         'run_kind':os.environ.get('CASU_WORKBENCH_RUN_KIND') or 'direct_training',
         'config_source_sha256':hashlib.sha256(config_source).hexdigest()},indent=2)+'\n')
     (run_dir/'research_config.py').write_bytes(config_source)
+    reward_reference=getattr(config,'REWARD_COMPONENT_REF',None)
+    if reward_reference:
+        from casu_grid.workbench.components import snapshot_reward_reference
+        reward_reference=snapshot_reward_reference(reward_reference,Path(args.config),run_dir)
+        (run_dir/'research_component.json').write_text(json.dumps(reward_reference,indent=2)+'\n')
+        runtime_reference=dict(reward_reference)
+        runtime_reference['snapshot_source']=str(run_dir/reward_reference['snapshot_source'])
+        config.REWARD_COMPONENT_REF=runtime_reference
     callbacks=config.callbacks() if hasattr(config,'callbacks') else (None,None,None)
+    from casu_grid.workbench.components import resolve_reward_reference
+    callbacks=resolve_reward_reference(config,Path(args.config),callbacks)
     callbacks=checked_callbacks(callbacks,config.OBSERVATION,config.REWARD)
     env=trainer=None
     try:
@@ -99,7 +119,17 @@ def main():
         trainer=PPOTrainer(env,config.ACTION,config.OBSERVATION,config.MODEL,config.PPO,
                            device='cpu',seed=args.seed,log_dir=run_dir/'tensorboard')
         if args.resume: trainer.load(args.resume)
+        performance = env.performance_info() if callable(getattr(env, 'performance_info', None)) else {
+            'backend': {'requested': os.environ.get('CASU_BACKEND', 'auto'), 'active': 'unknown'},
+            'num_workers': 1, 'worlds': args.num_envs, 'worlds_per_worker': [args.num_envs]}
         environment_manifest={
+            'performance': performance,
+            'execution': {'requested_backend': os.environ.get('CASU_BACKEND', 'auto'),
+                          'effective_backend': performance.get('backend'),
+                          'requested_workers': os.environ.get('CASU_NUM_WORKERS', '1'),
+                          'effective_workers': performance.get('num_workers'),
+                          'num_envs': args.num_envs,
+                          'worlds_per_worker': performance.get('worlds_per_worker', [args.num_envs])},
             'canonical_fixture_id':env.reference.manifest['fixture_id'],
             'canonical_content_id':env.reference.manifest['content_id'],
             'geometry':env.geometry_by_env if hasattr(env,'geometry_by_env') else env.geometry_info,
@@ -116,17 +146,49 @@ def main():
             trainer.save(run_dir/'latest.pt',metadata={'source_revision':source,'run_dir':str(run_dir)})
             print(json.dumps(metrics,sort_keys=True),flush=True)
         (run_dir/'COMPLETE').write_text(time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+'\n')
+        (run_dir/'failure.json').unlink(missing_ok=True)
+        (run_dir/'INTERRUPTED').unlink(missing_ok=True)
     finally:
-        if trainer is not None: trainer.close(); trainer.env=None
-        if env is not None: env.close()
-        app.close()
+        pending_exception = sys.exc_info()[0] is not None
+        for close in ((trainer.close if trainer is not None else None),
+                      (env.close if env is not None else None)):
+            if close is None:
+                continue
+            try:
+                close()
+            except BaseException:
+                if not pending_exception:
+                    raise
+                traceback.print_exc()
+        if trainer is not None:
+            trainer.env = None
 
 try:
     main()
-except BaseException:
+except KeyboardInterrupt:
+    run_dir = active_run_dir
+    if run_dir is not None:
+        try:
+            (run_dir/'INTERRUPTED').write_text(time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+'\n')
+        except OSError:
+            pass
     traceback.print_exc()
+    raise SystemExit(130)
+except BaseException as exc:
+    traceback.print_exc()
+    run_dir = active_run_dir
+    if run_dir is not None:
+        try:
+            (run_dir/'failure.json').write_text(json.dumps({
+                'status':'failed','error_type':type(exc).__name__,'message':str(exc),
+                'finished_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
+                'traceback':traceback.format_exc()},indent=2)+'\n')
+            (run_dir/'COMPLETE').unlink(missing_ok=True)
+        except OSError:
+            traceback.print_exc()
+    raise SystemExit(1)
+finally:
     try:
         app.close()
     except BaseException:
-        pass
-    raise SystemExit(1)
+        traceback.print_exc()

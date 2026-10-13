@@ -74,6 +74,7 @@ class LabUsabilityTests(unittest.TestCase):
             self.assertEqual(by_name["done"]["environment_steps"], 64)
             self.assertIn("incomplete/corrupt", by_name["done"]["metrics_warning"])
             self.assertTrue(by_name["done"]["latest_checkpoint"].endswith("latest.pt"))
+            self.assertIsNone(by_name["done"]["experiment_id"])
 
     def test_comparison_reports_contract_differences_and_step_metrics(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -99,6 +100,34 @@ class LabUsabilityTests(unittest.TestCase):
             self.assertEqual(lab.main(["--experiments", str(root), "runs", "--json"]), 0)
             self.assertEqual(lab.main(["--experiments", str(root), "status", "missing"]), 2)
 
+    def test_configs_empty_message_points_to_configuration_creation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from contextlib import redirect_stdout
+            from io import StringIO
+            output = StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(lab.main(["configs", "--directory", str(Path(tmp) / "configs")]), 0)
+            self.assertIn("No experiment configurations found", output.getvalue())
+            self.assertIn("lab new", output.getvalue())
+
+    def test_run_failure_evidence_overrides_stale_complete_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = self._run(Path(tmp), "broken", [{"update": 1}], complete=True)
+            (run / "failure.json").write_text(json.dumps({"status": "failed", "message": "worker crashed"}))
+            report = lab._summary(run)
+            self.assertEqual(report["status"], "failed")
+            self.assertEqual(report["failure"]["message"], "worker crashed")
+
+    def test_summary_exposes_reproducibility_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = self._run(Path(tmp), "sharded", [{"update": 1}], complete=True)
+            (run / "environment.json").write_text(json.dumps({"execution": {
+                "requested_workers": "auto", "effective_workers": 2,
+                "worlds_per_worker": [2, 2], "effective_backend": {"active": "numba"}}}))
+            report = lab._summary(run)
+            self.assertEqual(report["execution"]["worlds_per_worker"], [2, 2])
+            self.assertEqual(report["execution"]["effective_backend"]["active"], "numba")
+
     def test_launch_preview_works_without_isaac_and_uses_shell_quoted_paths(self):
         with tempfile.TemporaryDirectory(prefix="path with spaces ") as tmp:
             config = Path(tmp) / "template copy.py"
@@ -107,6 +136,20 @@ class LabUsabilityTests(unittest.TestCase):
             self.assertEqual(lab.main(["launch", str(config), "--preview", "--engineering-smoke",
                                        "--run-dir", str(run_dir), "--updates", "2"]), 0)
             self.assertFalse(run_dir.exists())
+
+    def test_isaac_python_setting_accepts_directory_or_explicit_python_sh(self):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);sim=root/"isaac-sim";sim.mkdir();launcher=sim/"python.sh";launcher.write_text("#!/bin/sh\n")
+            old=os.environ.get("ISAAC_SIM")
+            try:
+                os.environ["ISAAC_SIM"]=str(sim)
+                self.assertEqual(lab._isaac_python_command(preview=True),str(sim/"python.sh"))
+                os.environ["ISAAC_SIM"]=str(launcher)
+                self.assertEqual(lab._isaac_python_command(preview=True),str(launcher.resolve()))
+            finally:
+                if old is None:os.environ.pop("ISAAC_SIM",None)
+                else:os.environ["ISAAC_SIM"]=old
 
     def test_historical_files_are_not_touched(self):
         # Scaffold operates only on its explicit destination; this fixture models
@@ -147,6 +190,12 @@ class LabUsabilityTests(unittest.TestCase):
                 self.assertEqual(lab._find_run("runs/sample", Path("other-root").resolve()), run.resolve())
             finally:
                 os.chdir(old_cwd)
+
+    def test_replay_layout_contract_detects_recorded_partition_mismatch(self):
+        from .lab import replay_layout_matches
+        self.assertTrue(replay_layout_matches([2, 2], [2, 2]))
+        self.assertFalse(replay_layout_matches([2, 2], [4]))
+        self.assertTrue(replay_layout_matches(None, [4]))
 
 
 if __name__ == "__main__":

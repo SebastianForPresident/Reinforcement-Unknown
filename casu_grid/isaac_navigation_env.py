@@ -216,6 +216,12 @@ class IsaacLayer1NavigationEnv(gym.Env):
     def episode_step_seconds(self):
         return self.cfg.physics_dt * self.cfg.action_decimation
 
+    def performance_info(self) -> dict:
+        """Execution backend/layout for reproducible training metadata."""
+        from . import backend
+        return {"backend": backend.describe(), "num_workers": 1, "worlds": 1,
+                "compiled_controller": False, "terrain_mode": "single", "worlds_per_worker": [1]}
+
     # ------------------------------------------------------------ construction
     def _construct_simulation(self):
         import isaaclab.sim as sim_utils

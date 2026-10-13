@@ -11,6 +11,7 @@ import importlib.util
 import json
 import math
 import os
+import signal
 import re
 import shlex
 from pathlib import Path
@@ -119,6 +120,14 @@ def inspect_config(path: Path) -> dict[str, Any]:
         "observations": [{"name": f["name"], "shape": f["shape"], "source": f["source"],
                            "normalization": f["normalization"], "mask": f["mask"]}
                           for f in observations["spatial"] + observations["scalar"]],
+        "observation_sources": {
+            "built_in_adapter": [{"name": "player_state", "shape": [8],
+                                  "producer": "IsaacLayer1NavigationEnv._default_observation",
+                                  "availability": "built-in default adapter only"}],
+            "configured_fields": [f["name"] for f in observations["spatial"] + observations["scalar"]],
+            "custom_callback_sources": "Code-defined observation_encoder callbacks are opaque to static inspection; live probe required.",
+            "encoded_input_shapes": {f["name"]: f["shape"] for f in observations["spatial"] + observations["scalar"]},
+        },
         "coordinate_convention": observations["coordinate_convention"],
         "reward_terms": rewards["terms"],
         "model": model, "parameter_count": params, "parameter_count_note": parameter_note, "ppo": ppo,
@@ -198,7 +207,9 @@ def discover_runs(root: Path = DEFAULT_EXPERIMENTS) -> list[dict[str, Any]]:
         env = manifest.get("environment", {})
         latest = run / "latest.pt"
         runs.append({
-            "run_id": run.name, "experiment_name": (manifest.get("experiment") or {}).get("name"), "path": str(run), "created": manifest.get("created_utc") or
+            "run_id": run.name, "experiment_name": (manifest.get("experiment") or {}).get("name"),
+            "experiment_id": (manifest.get("experiment") or {}).get("id"),
+            "config_path": manifest.get("config_path"), "path": str(run), "created": manifest.get("created_utc") or
                 datetime.fromtimestamp(run.stat().st_mtime, timezone.utc).isoformat(),
             "status": _status(run, manifest, rows), "revision": manifest.get("git_revision"),
             "config_sha256": manifest.get("config_sha256"), "num_envs": env.get("num_envs"),
@@ -246,7 +257,11 @@ def _isaac_python_command(*, preview: bool = False) -> str:
         return sys.executable
     sim_root = os.environ.get("ISAAC_SIM")
     if sim_root:
-        return str(Path(sim_root).expanduser() / "python.sh")
+        candidate=Path(sim_root).expanduser()
+        if candidate.is_file():
+            if candidate.name!="python.sh":raise ValueError(f"ISAAC_SIM file must be named python.sh: {candidate}")
+            return str(candidate.resolve())
+        return str(candidate / "python.sh")
     if preview:
         return "$ISAAC_SIM/python.sh"
     raise ValueError("This operation requires Isaac Lab Python. Set ISAAC_SIM to the Isaac Sim directory and use \"$ISAAC_SIM/python.sh\" (see ISAAC_LAB_SETUP.md).")
@@ -265,6 +280,11 @@ def _flatten(value: Any, prefix="") -> dict[str, Any]:
         for i, item in enumerate(value): out.update(_flatten(item, f"{prefix}[{i}]"))
     else: out[prefix] = value
     return out
+
+
+def replay_layout_matches(recorded: list[int] | None, current: list[int]) -> bool:
+    """Whether replay used the same per-worker environment partition."""
+    return recorded is None or list(recorded) == list(current)
 
 
 def compare_runs(paths: list[Path]) -> dict[str, Any]:
@@ -349,8 +369,15 @@ def _summary(run: Path) -> dict:
     except (TypeError, ValueError):
         elapsed_seconds = None
     checkpoint_age_seconds = max(0.0, time.time() - checkpoint.stat().st_mtime) if checkpoint.is_file() else None
+    env_manifest_path = run / "environment.json"
+    try:
+        environment_manifest = _json(env_manifest_path) if env_manifest_path.is_file() else {}
+    except ValueError as exc:
+        environment_manifest = {"metadata_error": str(exc)}
     return {"run_id": run.name, "path": str(run), "status": _status(run, manifest, rows),
             "revision": manifest.get("git_revision"), "config_sha256": manifest.get("config_sha256"),
+            "experiment": manifest.get("experiment"), "environment": manifest.get("environment"),
+            "execution": environment_manifest.get("execution"),
             "resume_from": manifest.get("resume_from"),
             "elapsed_seconds_since_creation": elapsed_seconds,
             "checkpoint_age_seconds": checkpoint_age_seconds,
@@ -448,6 +475,8 @@ def build_parser() -> argparse.ArgumentParser:
     plot.add_argument("run"); plot.add_argument("--output", type=Path)
     replay = sub.add_parser("replay", help="replay a run's stored actions and export CSV/plots")
     replay.add_argument("run"); replay.add_argument("--config"); replay.add_argument("--max-steps", type=int); replay.add_argument("--tolerance", type=float, default=1e-4); replay.add_argument("--preview", action="store_true")
+    probe = sub.add_parser("observation-probe", help="run one bounded Isaac reset/step/reset observation and reward check")
+    probe.add_argument("config", type=Path)
     resume = sub.add_parser("resume", help="preview or continue a compatible checkpoint in a new run folder")
     resume.add_argument("run"); resume.add_argument("--updates", type=int, default=100); resume.add_argument("--output", type=Path); resume.add_argument("--preview", action="store_true")
     tb = sub.add_parser("tensorboard", help="open TensorBoard for a run (requires tensorboard in the selected Python)")
@@ -522,14 +551,47 @@ def main(argv: list[str] | None = None) -> int:
                 child_env["CASU_WORKBENCH_LAUNCHER_PID"] = str(os.getpid())
                 child_env["CASU_WORKBENCH_RESUME_FROM"] = str(args.resume.resolve()) if args.resume else ""
                 child_env["CASU_WORKBENCH_RUN_KIND"] = "engineering_smoke" if args.engineering_smoke else "research_training"
-                result = subprocess.run(cmd, cwd=ROOT, env=child_env)
-                if result.returncode == 0:
+                log_path = run_dir / "launcher.log"
+                child = subprocess.Popen(cmd, cwd=ROOT, env=child_env, start_new_session=True,
+                                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                         text=True, bufsize=1)
+                try:
+                    with log_path.open("w", encoding="utf-8") as log:
+                        assert child.stdout is not None
+                        for line in child.stdout:
+                            sys.stdout.write(line)
+                            sys.stdout.flush()
+                            log.write(line)
+                            log.flush()
+                        result_code = child.wait()
+                except KeyboardInterrupt:
+                    # The worker processes are descendants in the same session; terminate
+                    # this exact process group, then reap the launcher child.
+                    try:
+                        os.killpg(child.pid, signal.SIGTERM)
+                        child.wait(timeout=10)
+                    except (ProcessLookupError, subprocess.TimeoutExpired):
+                        try:
+                            os.killpg(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        child.wait()
+                    raise
+                if result_code == 0:
                     (run_dir / "COMPLETE").write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
+                    (run_dir / "failure.json").unlink(missing_ok=True)
+                    (run_dir / "INTERRUPTED").unlink(missing_ok=True)
                 else:
-                    (run_dir / "failure.json").write_text(json.dumps({"exit_code": result.returncode,
-                        "finished_utc": datetime.now(timezone.utc).isoformat()}, indent=2) + "\n", encoding="utf-8")
-                return int(result.returncode)
+                    if not (run_dir / "failure.json").exists():
+                        log_tail = log_path.read_text(encoding="utf-8", errors="replace")[-12000:] if log_path.exists() else ""
+                        (run_dir / "failure.json").write_text(json.dumps({"status": "failed", "exit_code": result_code,
+                            "finished_utc": datetime.now(timezone.utc).isoformat(),
+                            "log_path": str(log_path), "log_tail": log_tail}, indent=2) + "\n", encoding="utf-8")
+                    (run_dir / "COMPLETE").unlink(missing_ok=True)
+                    (run_dir / "INTERRUPTED").unlink(missing_ok=True)
+                return int(result_code)
             except KeyboardInterrupt:
+                (run_dir / "COMPLETE").unlink(missing_ok=True)
                 (run_dir / "INTERRUPTED").write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
                 print(f"Interrupted. Checkpoint, if present: {run_dir / 'latest.pt'}")
                 return 130
@@ -549,7 +611,10 @@ def main(argv: list[str] | None = None) -> int:
                                   "path": str(config_path),
                                   "sha256": hashlib.sha256(config_path.read_bytes()).hexdigest()})
             if args.json: print(json.dumps(found, indent=2))
-            else: _print_table(found, [("name", "Experiment"), ("status", "Status"), ("path", "Config path"), ("sha256", "SHA-256")])
+            elif found:
+                _print_table(found, [("name", "Experiment"), ("status", "Status"), ("path", "Config path"), ("sha256", "SHA-256")])
+            else:
+                print(f"No experiment configurations found in {directory}. Create one with: python -m casu_grid.workbench.lab new 'Experiment name' --output {directory}/my_experiment.py")
         elif args.command == "status":
             run = _find_run(args.run, root)
             try: report = _summary(run)
@@ -624,6 +689,12 @@ def main(argv: list[str] | None = None) -> int:
                 if not summary.get("config_matches_recorded", True):
                     print(f"WARNING: replay config hash differs from recorded run; recorded={summary.get('run_config_sha256')} replay={summary.get('replay_config_sha256')}", file=sys.stderr)
             return int(result.returncode)
+        elif args.command == "observation-probe":
+            config=args.config.expanduser().resolve();_load_config(config)
+            python_cmd=_isaac_python_command()
+            command=[python_cmd,"-m","casu_grid.workbench.observation_probe","--config",str(config)]
+            print("Bounded one-world Isaac observation probe (one decision): "+_display_command(command))
+            return int(subprocess.run(command,cwd=ROOT).returncode)
         elif args.command == "resume":
             source = _find_run(args.run, root); checkpoint = source / "latest.pt"
             if not checkpoint.is_file(): raise ValueError(f"No latest.pt checkpoint in {source}")
