@@ -31,7 +31,8 @@ def _round(value, digits=7):
     return value
 
 
-def pack(session: Path, out_dir: Path, name: str, horizon_actions: int, terrain: Path | None):
+def pack(session: Path, out_dir: Path, name: str, horizon_actions: int, terrain: Path | None,
+         events: str | None = None, event_log: Path | None = None):
     smoke = json.loads((session / "smoke_result.json").read_text())
     if smoke["status"] != "passed":
         raise ValueError("source session did not pass")
@@ -71,6 +72,14 @@ def pack(session: Path, out_dir: Path, name: str, horizon_actions: int, terrain:
         shutil.copyfile(terrain, out / "terrain_fixture.json")
         manifest["terrain_fixture"] = {"file": "terrain_fixture.json",
                                        "sha256": hashlib.sha256(terrain.read_bytes()).hexdigest()}
+    if events:
+        parsed = []
+        for item in events.split(";"):
+            seq, x, y, block = (int(v) for v in item.split(":"))
+            parsed.append({"action_sequence": seq, "cell": [x, y], "new_block": block})
+        manifest["terrain_events"] = parsed
+        if event_log is not None and event_log.is_file():
+            manifest["terrain_event_source_log"] = [json.loads(l) for l in event_log.read_text().splitlines()]
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
     return manifest
 
@@ -82,6 +91,8 @@ if __name__ == "__main__":
     parser.add_argument("--name", required=True)
     parser.add_argument("--actions", type=int, required=True)
     parser.add_argument("--terrain", type=Path)
+    parser.add_argument("--events", help="seq:x:y:block;... (PPO_DIAG_TERRAIN_EVENTS)")
+    parser.add_argument("--event-log", type=Path)
     args = parser.parse_args()
-    m = pack(args.session, args.out_dir, args.name, args.actions, args.terrain)
+    m = pack(args.session, args.out_dir, args.name, args.actions, args.terrain, args.events, args.event_log)
     print(args.name, {k: v["rows"] for k, v in m["files"].items()})

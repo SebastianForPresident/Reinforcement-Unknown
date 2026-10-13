@@ -85,8 +85,15 @@ def author_layer1_collision(stage, blocks, *, chunk_size: int = 64,
     }
 
 
+def _collision_offset_schemas(contact_offset):
+    """API schemas + attribute writer for explicit PhysX contact/rest offsets (None = defaults)."""
+    if contact_offset is None:
+        return []
+    return ["PhysxCollisionAPI"]
+
+
 def _author_chunk_cuboids(stage, chunk_path, rectangles, *, half_thickness,
-                          world_offset, material_path):
+                          world_offset, material_path, contact_offset=None):
     """Write one static Cube collider per rectangle directly as Sdf prim specs.
 
     This is equivalent to the Isaac Lab ``CuboidCfg`` spawner (a unit Cube
@@ -98,7 +105,7 @@ def _author_chunk_cuboids(stage, chunk_path, rectangles, *, half_thickness,
 
     layer = stage.GetEditTarget().GetLayer()
     parent = layer.GetPrimAtPath(chunk_path)
-    api_schemas = ["PhysicsCollisionAPI"]
+    api_schemas = ["PhysicsCollisionAPI", *_collision_offset_schemas(contact_offset)]
     if material_path:
         api_schemas.append("MaterialBindingAPI")
     count = 0
@@ -118,6 +125,9 @@ def _author_chunk_cuboids(stage, chunk_path, rectangles, *, half_thickness,
                               variability=Sdf.VariabilityUniform).default = [
                 "xformOp:translate", "xformOp:scale"]
             Sdf.AttributeSpec(spec, "physics:collisionEnabled", Sdf.ValueTypeNames.Bool).default = True
+            if contact_offset is not None:
+                Sdf.AttributeSpec(spec, "physxCollision:contactOffset", Sdf.ValueTypeNames.Float).default = float(contact_offset)
+                Sdf.AttributeSpec(spec, "physxCollision:restOffset", Sdf.ValueTypeNames.Float).default = 0.0
             if material_path:
                 relationship = Sdf.RelationshipSpec(spec, "material:binding:physics")
                 relationship.targetPathList.explicitItems = [Sdf.Path(material_path)]
@@ -132,8 +142,14 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
                                 only_chunks=None,
                                 replace_chunks=False,
                                 root_path: str = "/World/CasUTerrain",
-                                world_offset: tuple[float, float, float] = (0.0, 0.0, 0.0)) -> dict:
+                                world_offset: tuple[float, float, float] = (0.0, 0.0, 0.0),
+                                contact_offset: float | None = None) -> dict:
     """Create chunk-preserving static cuboids from exact occupied rectangles.
+
+    ``contact_offset`` sets the PhysX contact distance of the terrain shapes (rest offset 0).
+    A pair's contact distance is the *sum* of both shapes' offsets; leaving terrain at the
+    PhysX default makes a body sliding over a seam between coplanar boxes brake against
+    the neighbouring box's edge (speculative contact), so the env passes a tiny value.
 
     This is the straightforward correctness representation used to validate
     contacts while the lower-prim-count triangle-mesh path is characterized.
@@ -174,7 +190,8 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
                     blocks, chunk_x, chunk_y, chunk_size=chunk_size),
                 half_thickness=half_thickness, world_offset=world_offset,
                 material_path=(physics_material_path
-                               if physics_material is not None else None))
+                               if physics_material is not None else None),
+                contact_offset=contact_offset)
     return {
         "nonempty_chunk_count": nonempty_chunk_count,
         "occupied_cells": occupied,
@@ -187,7 +204,8 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
 
 def author_static_object_colliders(stage, colliders, *, half_thickness: float = 0.1,
                                    physics_material_path: str | None = None,
-                                   root_path: str = "/World/CasUObjects") -> dict:
+                                   root_path: str = "/World/CasUObjects",
+                                   contact_offset: float | None = None) -> dict:
     """Author the measured non-tile static colliders (doors, crates, pods...).
 
     Boxes become scaled/rotated unit Cubes and circles become Y-axis Cylinders,
@@ -201,7 +219,7 @@ def author_static_object_colliders(stage, colliders, *, half_thickness: float = 
     UsdGeom.Xform.Define(stage, root_path)
     layer = stage.GetEditTarget().GetLayer()
     parent = layer.GetPrimAtPath(root_path)
-    api_schemas = ["PhysicsCollisionAPI"]
+    api_schemas = ["PhysicsCollisionAPI", *_collision_offset_schemas(contact_offset)]
     if physics_material_path:
         api_schemas.append("MaterialBindingAPI")
     count = 0
@@ -231,6 +249,9 @@ def author_static_object_colliders(stage, colliders, *, half_thickness: float = 
             Sdf.AttributeSpec(spec, "xformOpOrder", Sdf.ValueTypeNames.TokenArray,
                               variability=Sdf.VariabilityUniform).default = order
             Sdf.AttributeSpec(spec, "physics:collisionEnabled", Sdf.ValueTypeNames.Bool).default = True
+            if contact_offset is not None:
+                Sdf.AttributeSpec(spec, "physxCollision:contactOffset", Sdf.ValueTypeNames.Float).default = float(contact_offset)
+                Sdf.AttributeSpec(spec, "physxCollision:restOffset", Sdf.ValueTypeNames.Float).default = 0.0
             spec.SetInfo("documentation", collider.name)
             if physics_material_path:
                 relationship = Sdf.RelationshipSpec(spec, "material:binding:physics")

@@ -25,6 +25,8 @@ class SourceTrace:
     post_physics: list
     terrain_edits: tuple[tuple[int, int, int, int], ...]
     terrain_support: dict | None
+    terrain_events: tuple = ()
+    terrain_event_source_log: tuple = ()
 
     def policy_actions(self):
         return [PolicyAction.from_categories(row) for row in self.actions]
@@ -60,7 +62,9 @@ def load_source_trace(name: str, root: Path = TRACE_DIR) -> SourceTrace:
                                         "cleared_air_bounds_inclusive")}
     return SourceTrace(name, tuple(tuple(a) for a in manifest["actions"]), loaded["post_fixed"][0],
                        loaded["pre_fixed"][1], loaded["post_fixed"][1], loaded["post_physics"][1],
-                       edits, support)
+                       edits, support, tuple((e["action_sequence"], *e["cell"], e["new_block"])
+                                             for e in manifest.get("terrain_events", [])),
+                       tuple(manifest.get("terrain_event_source_log", [])))
 
 
 def terrain_for_trace(trace: SourceTrace) -> np.ndarray:

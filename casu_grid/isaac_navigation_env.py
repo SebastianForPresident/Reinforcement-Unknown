@@ -44,12 +44,14 @@ class IsaacLayer1EnvConfig:
     fixture_grid_xy: tuple[int, int] = (483, 1010)
     geometry_scope: str = "full"  # full or spawn_chunk (diagnostic only)
     terrain_extrusion_depth: float = 2.0
+    terrain_collider_delay_ticks: int = 0   # CB1 harness measured 30-38 (median 31): next-frame refresh
     include_world_objects: bool = True  # measured static non-tile colliders (shuttle doors, crates...)
     player_depth: float = 0.2
     contact_friction: float = 0.0       # measured: player "Entity" material friction is 0
     crouch_levels: int = 32             # quantization of the continuous crouch collider
     player_rest_offset: float = 0.0155  # calibrates the rest gap to the source's 0.1155
-    player_contact_offset: float = 0.04
+    player_contact_offset: float = 0.04   # speculative range for ~8 m/s landings; terrain stays tiny (seam ghosts)
+    terrain_contact_offset: float = 0.001   # PhysX contact distance of terrain shapes (see collision_usd)
     rounded_player_collider: bool = True   # retained for config compatibility; always modelled
     fluid_rng_seed: int = 391728405
     liquid_affect_phase: str = "before_controller"  # before_controller or after_controller
@@ -112,6 +114,8 @@ class _PhysxAdapter:
 
     def step(self):
         env = self.env
+        if env.slot.physical_dirty:
+            env._refresh_mutated_colliders()
         env.player.write_data_to_sim()
         env.sim.step(render=False)
         env.player.update(env.cfg.physics_dt)
@@ -227,7 +231,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
             half_thickness=self.cfg.terrain_extrusion_depth / 2,
             physics_material=self.material,
             physics_material_path=self.material_path,
-            only_chunks=chunk_filter)
+            only_chunks=chunk_filter, contact_offset=self.cfg.terrain_contact_offset)
 
         self.object_geometry_info = None
         if self.world_objects is not None:
@@ -241,7 +245,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
             static = [c for c in colliders if "shuttledoor" not in c.name]
             self.object_geometry_info = author_static_object_colliders(
                 self.stage, static, half_thickness=self.cfg.terrain_extrusion_depth / 2,
-                physics_material_path=self.material_path)
+                physics_material_path=self.material_path, contact_offset=self.cfg.terrain_contact_offset)
             if self.slot.door_defs:
                 self._build_shuttle_doors(sim_utils, RigidObject, RigidObjectCfg)
         self.geometry_build_seconds = time.perf_counter() - started
@@ -350,16 +354,21 @@ class IsaacLayer1NavigationEnv(gym.Env):
         return self.slot.support_info()
 
     def set_block(self, x: int, y: int, block_id: int):
-        """Mutate canonical discrete terrain and synchronize its source chunk."""
-        self.grid.set_block(x, y, block_id)
-        self._refresh_mutated_colliders()
+        """Mutate canonical discrete terrain now; colliders follow after the refresh delay.
+
+        ``terrain_collider_delay_ticks == 0`` (default) rebuilds the source chunk's colliders
+        immediately. The CB1 harness measured a next-render-frame refresh of 30-38 ticks.
+        """
+        self.slot.edit_block(x, y, block_id)
+        if self.slot.physical_dirty:
+            self._refresh_mutated_colliders()
 
     def apply_block_edits(self, edits):
-        """Batch ``(x, y, expected_old, new)`` terrain edits with one collider rebuild."""
+        """Batch ``(x, y, expected_old, new)`` terrain edits applied immediately, one collider rebuild."""
         for x, y, old, new in edits:
             if self.grid.get_block(x, y) != old:
                 raise ValueError(f"edit expects block {old} at {(x, y)}, found {self.grid.get_block(x, y)}")
-            self.grid.set_block(x, y, new)
+            self.slot.edit_block(x, y, new, immediate=True)
         self._refresh_mutated_colliders()
 
     def load_body_state(self, state: BodyState, *, snap_to_rest_gap: bool = False):
@@ -492,10 +501,11 @@ class IsaacLayer1NavigationEnv(gym.Env):
         self._last_state = self._body_state()
 
     def _refresh_mutated_colliders(self):
-        """Rebuild changed source chunk(s) as static boxes after grid edits."""
-        chunks = getattr(self.grid, "dirty_chunks", set())
+        """Rebuild changed source chunk(s) as static boxes after physical terrain edits."""
+        chunks = self.slot.physical_dirty
         if not chunks:
             return
+        blocks = self.slot.physical_blocks
         player_state = self.player.data.root_link_state_w[0].detach().clone()
         was_playing = self.sim.is_playing()
         from .collision_usd import author_layer1_box_collision
@@ -504,17 +514,16 @@ class IsaacLayer1NavigationEnv(gym.Env):
             existing = self.stage.GetPrimAtPath(path)
             if existing and existing.IsValid():
                 self.stage.RemovePrim(path)
-            chunk = self.grid.blocks[cx * 64:(cx + 1) * 64,
-                                     cy * 64:(cy + 1) * 64]
-            if not np.count_nonzero(chunk):
+            if not np.count_nonzero(blocks[cx * 64:(cx + 1) * 64, cy * 64:(cy + 1) * 64]):
                 continue
             author_layer1_box_collision(
-                self.stage, self.grid.blocks,
+                self.stage, blocks,
                 half_thickness=self.cfg.terrain_extrusion_depth / 2,
                 physics_material=self.material,
                 physics_material_path=self.material_path,
-                only_chunks=[(cx, cy)], replace_chunks=True)
-        self.grid.dirty_chunks.clear()
+                only_chunks=[(cx, cy)], replace_chunks=True,
+                contact_offset=self.cfg.terrain_contact_offset)
+        chunks.clear()
         self.sim.reset(soft=False)
         self.player.reset()
         self.player.write_root_link_state_to_sim(player_state.unsqueeze(0))

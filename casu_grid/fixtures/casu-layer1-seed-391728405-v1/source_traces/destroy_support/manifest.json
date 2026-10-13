@@ -1,0 +1,312 @@
+{
+ "action_ticks": 10,
+ "actions": [
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   2,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   2,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   2,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ],
+  [
+   1,
+   0,
+   1,
+   0,
+   4,
+   5,
+   0
+  ]
+ ],
+ "files": {
+  "post_fixed": {
+   "file": "post_fixed.jsonl.gz",
+   "rows": 240,
+   "sha256": "232afa77e70e645254f36c8b14d77b83c6581b290de31dc7576e644be08e8c52"
+  },
+  "post_physics": {
+   "file": "post_physics.jsonl.gz",
+   "rows": 240,
+   "sha256": "337116a4b746292c525bd59ce5064a41bc3c859e6eb3abf6b8fde00624321b10"
+  },
+  "pre_fixed": {
+   "file": "pre_fixed.jsonl.gz",
+   "rows": 240,
+   "sha256": "bf1de1f6315ca2244ea33e5ae672667355a821023b59b4fc48839ad752703a75"
+  }
+ },
+ "name": "destroy_support",
+ "schema": "casu.source-trace.v1",
+ "seed": 391728405,
+ "terrain_event_source_log": [
+  {
+   "action_sequence": 5,
+   "cell": [
+    552,
+    632
+   ],
+   "fixed_time": 8.24,
+   "fixed_update_index": 378,
+   "frame": 3509,
+   "new_block": 0,
+   "old_block": 1,
+   "set_block_ms": 0.4411
+  },
+  {
+   "action_sequence": 5,
+   "cell": [
+    551,
+    632
+   ],
+   "fixed_time": 8.24,
+   "fixed_update_index": 378,
+   "frame": 3509,
+   "new_block": 0,
+   "old_block": 1,
+   "set_block_ms": 0.4221
+  },
+  {
+   "action_sequence": 5,
+   "cell": [
+    553,
+    632
+   ],
+   "fixed_time": 8.24,
+   "fixed_update_index": 378,
+   "frame": 3509,
+   "new_block": 0,
+   "old_block": 1,
+   "set_block_ms": 0.4194
+  }
+ ],
+ "terrain_events": [
+  {
+   "action_sequence": 5,
+   "cell": [
+    552,
+    632
+   ],
+   "new_block": 0
+  },
+  {
+   "action_sequence": 5,
+   "cell": [
+    551,
+    632
+   ],
+   "new_block": 0
+  },
+  {
+   "action_sequence": 5,
+   "cell": [
+    553,
+    632
+   ],
+   "new_block": 0
+  }
+ ],
+ "terrain_fixture": {
+  "file": "terrain_fixture.json",
+  "sha256": "dd54d1ddc4616d82d78e8916496d99935ebd21eb4aa71953800ba58f141a115a"
+ }
+}

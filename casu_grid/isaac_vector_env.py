@@ -146,13 +146,14 @@ class BatchedIsaacLayer1Env(gym.Env):
             self.geometry_by_env.append(author_layer1_box_collision(
                 self.stage, self.reference.terrain, half_thickness=half,
                 physics_material=self.material, physics_material_path=self.material_path,
-                root_path=root, world_offset=offset))
+                root_path=root, world_offset=offset, contact_offset=self.cfg.terrain_contact_offset))
             if static_objects:
                 objects_root = (f"/World/Env_{index:05d}/CasUObjects" if self.terrain_mode == "independent"
                                 else "/World/CasUObjects")
                 self.object_geometry = author_static_object_colliders(
                     self.stage, [self._shifted(c, offset) for c in static_objects], half_thickness=half,
-                    physics_material_path=self.material_path, root_path=objects_root)
+                    physics_material_path=self.material_path, root_path=objects_root,
+                    contact_offset=self.cfg.terrain_contact_offset)
         self.geometry_build_seconds = time.perf_counter() - started
 
         rigid = sim_utils.RigidBodyPropertiesCfg(
@@ -318,6 +319,10 @@ class BatchedIsaacLayer1Env(gym.Env):
             vels[i, 0], vels[i, 2] = s.vx, s.vy
             forces[i, 0, 0], forces[i, 0, 2] = fx, fy
         t1 = clock()
+        if self.terrain_mode == "independent":
+            stale = [i for i, slot in enumerate(self.slots) if slot.physical_dirty]
+            if stale:
+                self._rebuild_dirty(stale)
         current = self.player.data.root_pos_w
         moved = [i for i in range(count)
                  if abs(float(current[i, 0]) - float(poses[i, 0])) > 1e-6
@@ -401,7 +406,7 @@ class BatchedIsaacLayer1Env(gym.Env):
             raise NotImplementedError("terrain edits need terrain_mode='independent' (shared terrain is static)")
         if not 0 <= env_index < self.count:
             raise IndexError("environment index outside vector batch")
-        self.slots[env_index].grid.set_block(x, y, block_id)
+        self.slots[env_index].edit_block(x, y, block_id)
         self._rebuild_dirty([env_index])
 
     def _rebuild_dirty(self, indices):
@@ -410,21 +415,22 @@ class BatchedIsaacLayer1Env(gym.Env):
         from .collision_usd import author_layer1_box_collision
         any_change = False
         for i in indices:
-            grid = self.slots[i].grid
+            slot = self.slots[i]
             root = f"/World/Env_{i:05d}/CasUTerrain"
             offset = tuple(float(v) for v in self.offsets[i])
-            for cx, cy in sorted(grid.dirty_chunks):
+            for cx, cy in sorted(slot.physical_dirty):
                 path = f"{root}/Chunk_{cx}_{cy}"
                 prim = self.stage.GetPrimAtPath(path)
                 if prim and prim.IsValid():
                     self.stage.RemovePrim(path)
-                if np.count_nonzero(grid.blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64]):
+                if np.count_nonzero(slot.physical_blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64]):
                     author_layer1_box_collision(
-                        self.stage, grid.blocks, half_thickness=self.cfg.terrain_extrusion_depth / 2,
+                        self.stage, slot.physical_blocks, half_thickness=self.cfg.terrain_extrusion_depth / 2,
                         physics_material=self.material, physics_material_path=self.material_path,
-                        root_path=root, world_offset=offset, only_chunks=[(cx, cy)])
+                        root_path=root, world_offset=offset, only_chunks=[(cx, cy)],
+                        contact_offset=self.cfg.terrain_contact_offset)
                 any_change = True
-            grid.dirty_chunks.clear()
+            slot.physical_dirty.clear()
         if any_change:
             root_state = self.player.data.root_link_state_w.detach().clone()
             self.sim.reset(soft=False)

@@ -25,11 +25,13 @@ parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--modes", default="teacher,free")
 parser.add_argument("--rest-offset", type=float, default=0.0155)
 parser.add_argument("--contact-offset", type=float, default=0.04)
+parser.add_argument("--terrain-contact-offset", type=float, default=0.001)
 parser.add_argument("--crouch-levels", type=int, default=32)
 parser.add_argument("--solver", type=int, default=1)
 parser.add_argument("--max-depen", type=float, default=100.0)
 parser.add_argument("--tag", default="")
 parser.add_argument("--step-clear", type=float, default=0.0)
+parser.add_argument("--collider-delay", type=int, default=0, help="terrain_collider_delay_ticks")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 args.headless = True
@@ -100,6 +102,9 @@ def free_running(env, trace, actions):
     env.load_body_state(state0)
     series = []
     for index, row in enumerate(trace.actions):
+        for seq, ex, ey, block in trace.terrain_events:
+            if seq == index + 1:
+                env.set_block(ex, ey, block)
         env.step({"move_x": [row[0]], "jump": [row[1]], "crouch": [row[3]], "move_y": [row[2]]})
         for record in env.last_tick_records:
             i = index * 10 + record.tick
@@ -142,7 +147,13 @@ def segment_resync(env, trace, actions):
         pre = trace.pre_fixed[index * 10]
         nxt = trace.pre_fixed[(index + 1) * 10]
         previous = actions[index - 1] if index else PolicyAction()
+        for seq, ex, ey, block in trace.terrain_events:
+            if seq <= index and env.grid.get_block(ex, ey) != block:
+                env.apply_block_edits([(ex, ey, env.grid.get_block(ex, ey), block)])
         env.load_body_state(state_from_pre_fixed(pre, previous), snap_to_rest_gap=True)
+        for seq, ex, ey, block in trace.terrain_events:
+            if seq == index + 1:
+                env.set_block(ex, ey, block)
         row = trace.actions[index]
         env.step({"move_x": [row[0]], "jump": [row[1]], "crouch": [row[3]], "move_y": [row[2]]})
         env.model.apply_actions(latch=actions[index + 1])
@@ -182,9 +193,10 @@ def main():
     actions = trace.policy_actions()
     cfg = IsaacLayer1EnvConfig(record_ticks=True, crouch_levels=args.crouch_levels,
                                player_rest_offset=args.rest_offset,
-                               player_contact_offset=args.contact_offset,
+                               player_contact_offset=args.contact_offset, terrain_contact_offset=args.terrain_contact_offset,
                                physx_solver_type=args.solver, max_depenetration_velocity=args.max_depen,
-                               step_up_clearance=args.step_clear)
+                               step_up_clearance=args.step_clear,
+                               terrain_collider_delay_ticks=args.collider_delay)
     env = IsaacLayer1NavigationEnv(cfg)
     try:
         env.reset(seed=391728405)

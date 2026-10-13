@@ -40,7 +40,14 @@ class EnvSlot:
         for door in self.door_defs:
             self.door_polygon_slots.append(len(polygons))
             polygons.append((door.name, self._door_polygon(door.center, door)))
-        self.ground_world = GroundWorld(self.grid.blocks, polygons)
+        # Physical geometry (queries + colliders) can lag the discrete grid: CasU refreshes tile
+        # colliders on the next rendered frame. With no delay it simply aliases the grid.
+        self.collider_delay_ticks = int(getattr(cfg, "terrain_collider_delay_ticks", 0))
+        self.physical_blocks = (self.grid.blocks if self.collider_delay_ticks == 0
+                                else self.grid.blocks.copy())
+        self.pending_edits: list[tuple[int, int, int, int]] = []   # (due_tick, x, y, block_id)
+        self.physical_dirty: set[tuple[int, int]] = set()
+        self.ground_world = GroundWorld(self.physical_blocks, polygons)
         self.model = StandingBodyModel(self.ground_world, body_config)
         self.runtime = RuntimeState()
         self.shuttle_doors = (ShuttleDoors(SHUTTLE_TRIGGERS, tuple(d.center for d in self.door_defs))
@@ -100,18 +107,50 @@ class EnvSlot:
                            s.crouch_amount, max(s.jump_cooldown, 0.0),
                            float(self.elapsed_steps) / self.cfg.episode_length_steps], dtype=np.float32)
 
+    # ------------------------------------------------------------- terrain edits
+    def _mark_physical_dirty(self, before: np.ndarray) -> bool:
+        changed = False
+        for cx in range(self.grid.width // 64):
+            for cy in range(self.grid.height // 64):
+                sl = np.s_[cx*64:(cx+1)*64, cy*64:(cy+1)*64]
+                if not np.array_equal(before[sl], self.physical_blocks[sl]):
+                    self.physical_dirty.add((cx, cy))
+                    changed = True
+        return changed
+
+    def edit_block(self, x: int, y: int, block_id: int, *, immediate: bool = False) -> None:
+        """Discrete edit now; the physical (collider) edit lands after the refresh delay."""
+        self.grid.set_block(x, y, block_id)
+        if self.collider_delay_ticks == 0:
+            self.physical_dirty.add((x // 64, y // 64))
+        elif immediate:
+            self.physical_blocks[x, y] = block_id
+            self.physical_dirty.add((x // 64, y // 64))
+        else:
+            self.pending_edits.append((self.physics_ticks + self.collider_delay_ticks, x, y, block_id))
+
+    def apply_due_edits(self) -> None:
+        if not self.pending_edits:
+            return
+        remaining = []
+        for edit in self.pending_edits:
+            due, x, y, block_id = edit
+            if due <= self.physics_ticks:
+                self.physical_blocks[x, y] = block_id
+                self.physical_dirty.add((x // 64, y // 64))
+            else:
+                remaining.append(edit)
+        self.pending_edits = remaining
+
     # ------------------------------------------------------------------- lifecycle
     def reset_logical(self) -> bool:
         """Restore grid/body/doors to the canonical start. Returns True if terrain changed."""
-        before = self.grid.blocks.copy()
+        before = self.physical_blocks.copy()
         self.grid.restore(copy.deepcopy(self.grid_initial))
-        changed = not np.array_equal(before, self.grid.blocks)
-        if changed:
-            self.grid.dirty_chunks = {
-                (cx, cy)
-                for cx in range(self.grid.width // 64) for cy in range(self.grid.height // 64)
-                if not np.array_equal(before[cx*64:(cx+1)*64, cy*64:(cy+1)*64],
-                                      self.grid.blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64])}
+        if self.physical_blocks is not self.grid.blocks:
+            self.physical_blocks[...] = self.grid.blocks
+        self.pending_edits = []
+        changed = self._mark_physical_dirty(before)
         self.grid.rng = SeededDecisionStream(self.fluid_seed)
         self.model.s = self.initial_body_state()
         self.runtime = RuntimeState()
@@ -131,20 +170,19 @@ class EnvSlot:
             "elapsed_steps": self.elapsed_steps, "physics_ticks": self.physics_ticks,
             "was_water": self.was_water, "grid_tick": self.grid.tick,
             "collider_revision": self.grid.block_revision, "fluid_rng_seed": self.fluid_seed,
+            "physical_blocks": None if self.physical_blocks is self.grid.blocks else self.physical_blocks.copy(),
+            "pending_edits": list(self.pending_edits),
         }
 
     def restore_logical(self, snap: dict) -> bool:
         """Restore a logical snapshot. Returns True if terrain changed (colliders need a rebuild)."""
-        before = self.grid.blocks.copy()
-        before_revision = self.grid.block_revision
+        before = self.physical_blocks.copy()
         self.grid.restore(snap["grid"])
-        changed = before_revision != self.grid.block_revision or not np.array_equal(before, self.grid.blocks)
-        if changed:
-            self.grid.dirty_chunks = {
-                (cx, cy)
-                for cx in range(self.grid.width // 64) for cy in range(self.grid.height // 64)
-                if not np.array_equal(before[cx*64:(cx+1)*64, cy*64:(cy+1)*64],
-                                      self.grid.blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64])}
+        if self.physical_blocks is not self.grid.blocks:
+            self.physical_blocks[...] = (snap["physical_blocks"] if snap.get("physical_blocks") is not None
+                                         else self.grid.blocks)
+        self.pending_edits = [tuple(e) for e in snap.get("pending_edits", [])]
+        changed = self._mark_physical_dirty(before)
         self.model.s = copy.deepcopy(snap["body_model"])
         self.runtime = RuntimeState(frozenset(tuple(t) for t in snap["runtime_touching"]))
         if self.shuttle_doors is not None and snap["shuttle_doors"] is not None:
@@ -172,6 +210,7 @@ class EnvSlot:
 
     def pre_tick(self, model):
         s = model.s
+        self.apply_due_edits()
         in_water, _, _ = self.liquid_state()
         self.was_water = in_water
         if in_water:

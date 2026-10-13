@@ -14,7 +14,7 @@ interpolates the collider size continuously; the quantization error is at most
 """
 from __future__ import annotations
 
-SHAPE_NAMES = ("CrossX", "CrossZ", "CornerNE", "CornerNW", "CornerSW", "CornerSE")
+SHAPE_NAMES_ALL = ("CrossX", "CrossZ", "CornerNE", "CornerNW", "CornerSW", "CornerSE")
 
 
 def _author_shape(stage, path, prim_type, material_path, rest_offset, contact_offset, enabled):
@@ -42,7 +42,8 @@ class RoundedBoxCollider:
     def __init__(self, stage, root_path: str, *, width: float, standing_height: float,
                  crouch_height_ratio: float = 0.5, edge_radius: float, depth: float,
                  material_path: str | None, levels: int = 32,
-                 rest_offset: float = 0.0155, contact_offset: float = 0.04):
+                 rest_offset: float = 0.0155, contact_offset: float = 0.04,
+                 corner_shape: str = "cylinder"):
         from pxr import Gf, Sdf, UsdGeom
 
         self.stage, self.root_path, self.levels = stage, root_path, int(levels)
@@ -50,6 +51,7 @@ class RoundedBoxCollider:
         self.crouch_height_ratio, self.edge_radius, self.depth = (
             float(crouch_height_ratio), float(edge_radius), float(depth))
         self.active_level = 0
+        self.shape_names = SHAPE_NAMES_ALL if corner_shape == "cylinder" else ("CrossX", "CrossZ")
         layer = stage.GetEditTarget().GetLayer()
         for level in range(self.levels + 1):
             crouch = level / self.levels
@@ -60,11 +62,16 @@ class RoundedBoxCollider:
             specs = {
                 "CrossX": ("Cube", (0.0, off), (w + 2 * r, d, h)),
                 "CrossZ": ("Cube", (0.0, off), (w, d, h + 2 * r)),
-                "CornerNE": ("Cylinder", (w / 2, off + h / 2), None),
-                "CornerNW": ("Cylinder", (-w / 2, off + h / 2), None),
-                "CornerSW": ("Cylinder", (-w / 2, off - h / 2), None),
-                "CornerSE": ("Cylinder", (w / 2, off - h / 2), None),
             }
+            if corner_shape == "cylinder":
+                specs.update({
+                    "CornerNE": ("Cylinder", (w / 2, off + h / 2), None),
+                    "CornerNW": ("Cylinder", (-w / 2, off + h / 2), None),
+                    "CornerSW": ("Cylinder", (-w / 2, off - h / 2), None),
+                    "CornerSE": ("Cylinder", (w / 2, off - h / 2), None),
+                })
+            elif corner_shape != "none":
+                raise ValueError("corner_shape must be 'cylinder' or 'none'")
             for name, (prim_type, (cx, cz), scale) in specs.items():
                 spec = _author_shape(stage, f"{level_path}/{name}", prim_type, material_path,
                                      rest_offset, contact_offset, enabled=(level == 0))
@@ -99,7 +106,7 @@ class RoundedBoxCollider:
         if level not in self._enabled_attrs:
             self._enabled_attrs[level] = [
                 UsdPhysics.CollisionAPI(self.stage.GetPrimAtPath(f"{self.root_path}/Level_{level}/{n}"))
-                .GetCollisionEnabledAttr() for n in SHAPE_NAMES]
+                .GetCollisionEnabledAttr() for n in self.shape_names]
         return self._enabled_attrs[level]
 
     def set_level(self, level: int) -> None:
