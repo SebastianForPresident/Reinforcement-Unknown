@@ -8,6 +8,7 @@ The workbench now records the execution layout reported by a live environment, p
 
 - GUI and CLI share configuration and run services. Offscreen GUI construction, safe experiment discovery, typed model/PPO controls and plotting-view behavior are covered by automated tests. A manual desktop usability review remains necessary.
 - Workbench tests: `python -m unittest discover -s casu_grid -p 'test_*.py'` — 26 passed, including injected early-launcher failure/log preservation.
+- Simulator/workbench Python regressions: 114 passed under the bundled Isaac Lab Python (`"$ISAAC_LAB/isaaclab.sh" -p -m unittest discover -s casu_grid/tests -p 'test_*.py'`). This does not launch Kit.
 - Syntax: `python -m compileall -q casu_grid/workbench` — passed.
 - Formatting check: `git diff --check` — passed.
 - Single-process CLI lifecycle: engineering smoke configuration, one PPO update, 32 environment decisions, real metrics, checkpoint, trajectories, completed status and inspectable environment metadata. Evidence: `/tmp/casu-integration-single-2`.

@@ -19,6 +19,7 @@
 
 - `python -m compileall -q casu_grid/workbench`: passed.
 - `python -m unittest discover -s casu_grid -p 'test_*.py'`: 26 tests passed, including GUI offscreen construction, config lifecycle, metadata presentation, injected early launcher failure/log preservation, failure precedence, and replay partition helper coverage.
+- Isaac-free simulator/workbench regression suite under the bundled Isaac Lab Python: 114 tests passed via `"$ISAAC_LAB/isaaclab.sh" -p -m unittest discover -s casu_grid/tests -p 'test_*.py'`. Running the same suite under system Python is unsupported here because it has no NumPy.
 - `git diff --check`: passed.
 - A real single-process engineering-only smoke completed one PPO update (32 environment decisions, one metrics row), with trajectory and `latest.pt` checkpoint. Artifacts were in `/tmp/casu-integration-single-2`; its `RUNNING` marker was removed after the run. The metadata was manually normalized after execution to reflect the effective backend because the single-env backend report was missing; the code now supplies that report directly.
 - A prior Isaac engineering smoke artifact at `/tmp/casu-gui-isaac-smoke-20261013` is discoverable and reports completed, with checkpoint and metrics.
