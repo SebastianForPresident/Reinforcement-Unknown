@@ -93,6 +93,7 @@ class BatchedIsaacLayer1Env(gym.Env):
         self.reward_function = reward_function or (lambda *_: (0.0, {}))
         self.closed = False
         self.timers: dict[str, float] = defaultdict(float)   # cumulative seconds per tick phase
+        self.counters: dict[str, int] = defaultdict(int)     # diagnostic event counts (e.g. crouch-shape level changes)
         self.world_spacing = 1040.0
         self.offsets = np.zeros((self.count, 3), dtype=np.float32)
         if terrain_mode == "independent":
@@ -136,7 +137,7 @@ class BatchedIsaacLayer1Env(gym.Env):
         device = "cuda:0" if self.cfg.use_cuda and torch.cuda.is_available() else "cpu"
         self.sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(
             dt=self.cfg.physics_dt, device=device, gravity=(0.0, 0.0, -55.0),
-            physx=sim_utils.PhysxCfg(enable_ccd=True, solver_type=self.cfg.physx_solver_type,
+            physx=sim_utils.PhysxCfg(enable_ccd=self.cfg.physx_ccd, solver_type=self.cfg.physx_solver_type,
                                      enable_enhanced_determinism=self.cfg.physx_enhanced_determinism)))
         self.stage = stage_utils.get_current_stage()
         UsdGeom.SetStageUpAxis(self.stage, UsdGeom.Tokens.z)
@@ -212,13 +213,14 @@ class BatchedIsaacLayer1Env(gym.Env):
             path = f"/World/Env_{i:05d}/CasuPlayer"
             spawn_cfg = copy.deepcopy(body_cfg)
             spawn_cfg.func(path, spawn_cfg, translation=position)
-            PhysxSchema.PhysxRigidBodyAPI.Apply(self.stage.GetPrimAtPath(path)).CreateEnableCCDAttr().Set(True)
+            PhysxSchema.PhysxRigidBodyAPI.Apply(self.stage.GetPrimAtPath(path)).CreateEnableCCDAttr().Set(bool(self.cfg.physx_ccd))
             self.colliders.append(RoundedBoxCollider(
                 self.stage, path, width=self.controller_config.orig_col_size[0],
                 standing_height=self.controller_config.orig_col_size[1],
                 edge_radius=self.controller_config.edge_radius, depth=self.cfg.player_depth,
                 material_path=self.material_path, levels=self.cfg.crouch_levels,
-                rest_offset=self.cfg.player_rest_offset, contact_offset=self.cfg.player_contact_offset))
+                rest_offset=self.cfg.player_rest_offset, contact_offset=self.cfg.player_contact_offset,
+                representation=self.cfg.player_collider))
             member_paths = [path]
             for k, door in enumerate(slot.door_defs):
                 door_path = f"/World/Env_{i:05d}/ShuttleDoor{'LR'[k]}"
@@ -366,9 +368,16 @@ class BatchedIsaacLayer1Env(gym.Env):
             door_body.write_root_pose_to_sim(poses, env_ids=ids)
             door_body.write_data_to_sim()
 
+    def _np(self, tensor):
+        """Host NumPy view of a (possibly GPU) tensor; zero-copy on the CPU pipeline."""
+        return tensor.numpy() if tensor.device.type == "cpu" else tensor.cpu().numpy()
+
+    def _dev(self, tensor):
+        return tensor if self.sim.device == "cpu" else tensor.to(self.sim.device)
+
     def _read_states(self):
-        pos = self.player.data.root_pos_w.numpy()
-        vel = self.player.data.root_lin_vel_w.numpy()
+        pos = self._np(self.player.data.root_pos_w)
+        vel = self._np(self.player.data.root_lin_vel_w)
         x = pos[:, 0].astype(np.float64) - self.offsets[:, 0].astype(np.float64)
         y = pos[:, 2].astype(np.float64) - self.offsets[:, 2].astype(np.float64)
         return list(zip(x.tolist(), y.tolist(), vel[:, 0].astype(np.float64).tolist(),
@@ -377,12 +386,12 @@ class BatchedIsaacLayer1Env(gym.Env):
     def _staging(self):
         """Persistent CPU staging buffers (numpy views over torch tensors) for the per-tick writes."""
         if getattr(self, "_stage_pose", None) is None:
-            n, device = self.count, self.sim.device
-            self._stage_pose = torch.zeros((n, 7), dtype=torch.float32, device=device)
+            n = self.count   # staging lives on the host (NumPy views); GPU pipelines copy per tick via _dev()
+            self._stage_pose = torch.zeros((n, 7), dtype=torch.float32)
             self._stage_pose[:, 3] = 1.0
-            self._stage_vel = torch.zeros((n, 6), dtype=torch.float32, device=device)
-            self._stage_force = torch.zeros((n, 1, 3), dtype=torch.float32, device=device)
-            self._stage_torque = torch.zeros((n, 1, 3), dtype=torch.float32, device=device)
+            self._stage_vel = torch.zeros((n, 6), dtype=torch.float32)
+            self._stage_force = torch.zeros((n, 1, 3), dtype=torch.float32)
+            self._stage_torque = torch.zeros((n, 1, 3), dtype=torch.float32)
             self._np_pose, self._np_vel, self._np_force = (
                 self._stage_pose.numpy(), self._stage_vel.numpy(), self._stage_force.numpy())
             self._off_x = self.offsets[:, 0].astype(np.float64)
@@ -410,21 +419,21 @@ class BatchedIsaacLayer1Env(gym.Env):
             stale = [i for i, slot in enumerate(self.slots) if slot.physical_dirty]
             if stale:
                 self._rebuild_dirty(stale)
-        current = self.player.data.root_pos_w.numpy()
+        current = self._np(self.player.data.root_pos_w)
         moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[:, 0].astype(np.float64)) > 1e-6)
                                | (np.abs(current[:, 2].astype(np.float64) - pose[:, 2].astype(np.float64)) > 1e-6))
         if moved.size:
             ids = torch.as_tensor(moved, dtype=torch.int32, device=self.sim.device)
-            self.player.write_root_pose_to_sim(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)], env_ids=ids)
-        self.player.write_root_velocity_to_sim(self._stage_vel)
-        self.player.set_external_force_and_torque(self._stage_force, self._stage_torque, is_global=True)
+            self.player.write_root_pose_to_sim(self._dev(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)]), env_ids=ids)
+        self.player.write_root_velocity_to_sim(self._dev(self._stage_vel))
+        self.player.set_external_force_and_torque(self._dev(self._stage_force), self._dev(self._stage_torque), is_global=True)
         self.player.write_data_to_sim()
         t2 = clock()
         self.sim.step(render=False)
         t3 = clock()
         self.player.update(self.cfg.physics_dt)
-        pos = self.player.data.root_pos_w.numpy()
-        lin = self.player.data.root_lin_vel_w.numpy()
+        pos = self._np(self.player.data.root_pos_w)
+        lin = self._np(self.player.data.root_lin_vel_w)
         S[:, CK.X] = pos[:, 0].astype(np.float64) - self._off_x
         S[:, CK.Y] = pos[:, 2].astype(np.float64) - self._off_z
         S[:, CK.VX] = lin[:, 0]
@@ -432,10 +441,16 @@ class BatchedIsaacLayer1Env(gym.Env):
         t4 = clock()
         for fast in self._fast:
             fast.post_tick(completed)
+        t4b = clock()
         crouch = S[:, CK.CROUCH]
         levels = np.rint(np.clip(crouch, 0.0, 1.0) * self.cfg.crouch_levels).astype(np.int64).tolist()
+        changes = sum(1 for c, lv in zip(self.colliders, levels) if lv != c.active_level)
         set_levels(self.colliders, levels)
         t5 = clock()
+        # diagnostics (sub-intervals of controller_post_and_shapes, not additional wall time)
+        timers["diag_controller_post_kernels"] += t4b - t4
+        timers["diag_crouch_shape_switch"] += t5 - t4b
+        self.counters["shape_changes"] += changes
         timers["controller_and_fluid_pre"] += t1 - t0
         timers["tensor_write"] += t2 - t1
         timers["physx_step"] += t3 - t2
@@ -463,14 +478,14 @@ class BatchedIsaacLayer1Env(gym.Env):
             stale = [i for i, slot in enumerate(self.slots) if slot.physical_dirty]
             if stale:
                 self._rebuild_dirty(stale)
-        current = self.player.data.root_pos_w.numpy()
+        current = self._np(self.player.data.root_pos_w)
         moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[:, 0].astype(np.float64)) > 1e-6)
                                | (np.abs(current[:, 2].astype(np.float64) - pose[:, 2].astype(np.float64)) > 1e-6))
         if moved.size:
             ids = torch.as_tensor(moved, dtype=torch.int32, device=self.sim.device)
-            self.player.write_root_pose_to_sim(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)], env_ids=ids)
-        self.player.write_root_velocity_to_sim(self._stage_vel)
-        self.player.set_external_force_and_torque(self._stage_force, self._stage_torque, is_global=True)
+            self.player.write_root_pose_to_sim(self._dev(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)]), env_ids=ids)
+        self.player.write_root_velocity_to_sim(self._dev(self._stage_vel))
+        self.player.set_external_force_and_torque(self._dev(self._stage_force), self._dev(self._stage_torque), is_global=True)
         self.player.write_data_to_sim()
         t2 = clock()
         self.sim.step(render=False)

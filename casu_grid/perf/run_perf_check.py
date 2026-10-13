@@ -24,7 +24,11 @@ GATE_CONFIGS = (("e16_random_fixture", 16, "random", "fixture", "shared", 80),
                 ("e4_run_fixture", 4, "run", "fixture", "shared", 80),
                 ("e4_random_canonical", 4, "random", "canonical", "shared", 80),
                 ("ind4_random_fixture", 4, "random", "fixture", "independent", 60),
-                ("ind4_run_fixture", 4, "run", "fixture", "independent", 60))
+                ("ind4_run_fixture", 4, "run", "fixture", "independent", 60),
+                # experimental convex-hull player collider: its own baselines (not equivalent to the compound ones)
+                ("hull_e16_random_fixture", 16, "random", "fixture", "shared", 80),
+                ("hull_e4_run_fixture", 4, "run", "fixture", "shared", 80),
+                ("hull_ind4_random_fixture", 4, "random", "fixture", "independent", 60))
 
 p = argparse.ArgumentParser()
 p.add_argument("--quick", action="store_true")
@@ -53,9 +57,10 @@ if not args.quick and not args.update_reference:
 
 if not args.update_reference:
     for name, envs, workload, spawn, terrain, steps in GATE_CONFIGS:
+        collider = ["--player-collider", "convex_hull"] if name.startswith("hull_") else []
         out = OUT / "check_tmp" / f"{name}.json"
         r = run(["casu_grid/perf/trajectory_dump.py", "--envs", str(envs), "--workload", workload, "--spawn", spawn,
-                 "--terrain-mode", terrain, "--macrosteps", str(steps), "--output", str(out)])
+                 "--terrain-mode", terrain, "--macrosteps", str(steps), "--output", str(out), *collider])
         if r.returncode != 0 or not out.exists():
             summary["gates"][f"trajectory_{name}"] = {"status": "failed", "error": r.stdout[-400:] + r.stderr[-400:]}
             failed = True

@@ -19,6 +19,7 @@ p.add_argument("--terrain-mode", choices=("shared", "independent"), default="sha
 p.add_argument("--spawn", choices=("fixture", "canonical"), default="fixture")
 p.add_argument("--seed", type=int, default=0)
 p.add_argument("--physx-threads", type=int, default=None, help="in-process PhysX CPU threads (experiment)")
+p.add_argument("--player-collider", choices=("compound", "convex_hull"), default=None, help="experimental representation")
 p.add_argument("--workers", type=int, default=None, help="override num_workers")
 p.add_argument("--worker-threads", type=int, default=None, help="PhysX threads per worker")
 p.add_argument("--output", type=Path, required=True)
@@ -38,6 +39,8 @@ from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
 try:
     n = args.envs
     kw = dict(spawn_mode="fixture", fixture_grid_xy=(483, 1010)) if args.spawn == "fixture" else dict(spawn_mode="canonical")
+    if args.player_collider:
+        kw["player_collider"] = args.player_collider
     if args.workers is not None:
         kw["num_workers"] = args.workers
     if args.worker_threads is not None:

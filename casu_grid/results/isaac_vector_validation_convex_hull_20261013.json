@@ -1,0 +1,140 @@
+{
+  "schema": "casu.isaac-vector-validation.v2",
+  "num_envs": 4,
+  "checks": {
+    "world_isolation": {
+      "status": "passed",
+      "world0_max_abs_state_error_when_other_worlds_act_differently": 2.9857546905986965e-05,
+      "worlds_actually_differ": true
+    },
+    "restore_continuation_exact": {
+      "status": "passed",
+      "max_abs_state_error": 0.0,
+      "per_world_error": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "first": [
+        {
+          "x": -17.915502548217773,
+          "y": 501.6155090332031,
+          "vx": 0.00015593235730193555,
+          "vy": -2.809125362546183e-06
+        },
+        {
+          "x": -28.5,
+          "y": 501.6155090332031,
+          "vx": 2.567572664702311e-06,
+          "vy": -8.866300049703568e-06
+        },
+        {
+          "x": -38.08452224731445,
+          "y": 501.6155090332031,
+          "vx": 0.0022707446478307247,
+          "vy": -0.007404666859656572
+        },
+        {
+          "x": -17.91550064086914,
+          "y": 501.6155090332031,
+          "vx": 0.0001259596028830856,
+          "vy": -5.2061986934859306e-06
+        }
+      ],
+      "second": [
+        {
+          "x": -17.915502548217773,
+          "y": 501.6155090332031,
+          "vx": 0.00015593235730193555,
+          "vy": -2.809125362546183e-06
+        },
+        {
+          "x": -28.5,
+          "y": 501.6155090332031,
+          "vx": 2.567572664702311e-06,
+          "vy": -8.866300049703568e-06
+        },
+        {
+          "x": -38.08452224731445,
+          "y": 501.6155090332031,
+          "vx": 0.0022707446478307247,
+          "vy": -0.007404666859656572
+        },
+        {
+          "x": -17.91550064086914,
+          "y": 501.6155090332031,
+          "vx": 0.0001259596028830856,
+          "vy": -5.2061986934859306e-06
+        }
+      ]
+    },
+    "partial_reset": {
+      "status": "passed",
+      "untouched_worlds_max_abs_state_error": 0.0,
+      "reset_world_at_spawn": true
+    },
+    "shared_terrain_edit_rejected": {
+      "status": "passed"
+    },
+    "door_state_per_world": {
+      "status": "passed",
+      "world0": {
+        "activated": true,
+        "progress": 4.559999999999991,
+        "destroyed": false
+      },
+      "world1": {
+        "activated": false,
+        "progress": 0.0,
+        "destroyed": false
+      }
+    },
+    "independent_edit_changes_contacts": {
+      "status": "passed",
+      "world0_y": -138.384521484375,
+      "world1_y": -136.6227569580078
+    },
+    "independent_terrain_edit_and_restore": {
+      "status": "passed",
+      "cell_xy": [
+        0,
+        0
+      ],
+      "world0_chunk_colliders": [
+        205,
+        206,
+        205
+      ],
+      "world1_chunk_colliders": [
+        205,
+        205,
+        205
+      ]
+    },
+    "stress_corner_fall_informational": {
+      "status": "passed",
+      "spread": 0.0
+    }
+  },
+  "build_seconds": 4.9006123910075985,
+  "throughput_shared": {
+    "num_envs": 4,
+    "macrosteps": 10,
+    "elapsed_seconds": 0.060147034004330635,
+    "aggregate_physics_ticks_per_second": 6650.369492387599,
+    "aggregate_policy_decisions_per_second": 665.0369492387599,
+    "per_env_physics_ticks_per_second": 1662.5923730968998
+  },
+  "shared_peak_rss_gib": 2.7158546447753906,
+  "stress_corner_fall": {
+    "status": "passed",
+    "world0_branch_spread_m_or_mps": 0.0,
+    "other_worlds_max_spread": 0.0,
+    "note": "chaotic corner contact; branch results may depend on other worlds' prior history"
+  },
+  "doors_peak_rss_gib": 2.6292037963867188,
+  "independent_peak_rss_gib": 3.525188446044922,
+  "stress_peak_rss_gib": 2.7324066162109375,
+  "status": "passed"
+}

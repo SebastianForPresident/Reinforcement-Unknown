@@ -36,6 +36,45 @@ def _author_shape(stage, path, prim_type, material_path, rest_offset, contact_of
     return spec
 
 
+def _author_hull(stage, path, material_path, rest_offset, contact_offset, *, enabled, width, height, offset,
+                 radius, depth, segments):
+    """One convex-hull mesh: the rounded rectangle (quarter-circle corners of ``segments`` steps), extruded along Y.
+
+    EXPERIMENTAL representation (see ``player_collider='convex_hull'``): the same union of two cross boxes and four
+    corner cylinders as the compound, but a single shape, so a crouch-level change toggles 2 USD attributes instead of 12.
+    """
+    import math
+    from pxr import Gf, Sdf, Vt
+
+    spec = _author_shape(stage, path, "Mesh", material_path, rest_offset, contact_offset, enabled)
+    schemas = list(spec.GetInfo("apiSchemas").prependedItems) + ["PhysicsMeshCollisionAPI", "PhysxConvexHullCollisionAPI"]
+    spec.SetInfo("apiSchemas", Sdf.TokenListOp.Create(prependedItems=schemas))
+    Sdf.AttributeSpec(spec, "physics:approximation", Sdf.ValueTypeNames.Token).default = "convexHull"
+    Sdf.AttributeSpec(spec, "physxConvexHullCollision:hullVertexLimit", Sdf.ValueTypeNames.Int).default = 255
+    ring = []
+    centers = ((width / 2, offset + height / 2, 0.0), (-width / 2, offset + height / 2, 90.0),
+               (-width / 2, offset - height / 2, 180.0), (width / 2, offset - height / 2, 270.0))
+    for cx, cz, start in centers:                      # counter-clockwise in the XZ plane
+        for k in range(segments + 1):
+            angle = math.radians(start + 90.0 * k / segments)
+            ring.append((cx + radius * math.cos(angle), cz + radius * math.sin(angle)))
+    n = len(ring)
+    points = [Gf.Vec3f(x, -depth / 2, z) for x, z in ring] + [Gf.Vec3f(x, depth / 2, z) for x, z in ring]
+    counts, indices = [], []
+    counts.append(n); indices += list(range(n - 1, -1, -1))          # bottom cap (-Y)
+    counts.append(n); indices += list(range(n, 2 * n))               # top cap (+Y)
+    for i in range(n):                                               # side quads
+        j = (i + 1) % n
+        counts.append(4); indices += [i, j, n + j, n + i]
+    Sdf.AttributeSpec(spec, "points", Sdf.ValueTypeNames.Point3fArray).default = Vt.Vec3fArray(points)
+    Sdf.AttributeSpec(spec, "faceVertexCounts", Sdf.ValueTypeNames.IntArray).default = Vt.IntArray(counts)
+    Sdf.AttributeSpec(spec, "faceVertexIndices", Sdf.ValueTypeNames.IntArray).default = Vt.IntArray(indices)
+    Sdf.AttributeSpec(spec, "extent", Sdf.ValueTypeNames.Float3Array).default = Vt.Vec3fArray(
+        [Gf.Vec3f(-width / 2 - radius, -depth / 2, offset - height / 2 - radius),
+         Gf.Vec3f(width / 2 + radius, depth / 2, offset + height / 2 + radius)])
+    return spec
+
+
 class RoundedBoxCollider:
     """Pre-authored crouch levels of the rounded compound collider under ``root_path``."""
 
@@ -43,15 +82,21 @@ class RoundedBoxCollider:
                  crouch_height_ratio: float = 0.5, edge_radius: float, depth: float,
                  material_path: str | None, levels: int = 32,
                  rest_offset: float = 0.0155, contact_offset: float = 0.04,
-                 corner_shape: str = "cylinder"):
+                 corner_shape: str = "cylinder", representation: str = "compound",
+                 hull_segments: int = 8):
         from pxr import Gf, Sdf, UsdGeom
+
+        if representation not in ("compound", "convex_hull"):
+            raise ValueError("representation must be 'compound' (validated) or 'convex_hull' (experimental)")
+        self.representation = representation
 
         self.stage, self.root_path, self.levels = stage, root_path, int(levels)
         self.width, self.standing_height = float(width), float(standing_height)
         self.crouch_height_ratio, self.edge_radius, self.depth = (
             float(crouch_height_ratio), float(edge_radius), float(depth))
         self.active_level = 0
-        self.shape_names = SHAPE_NAMES_ALL if corner_shape == "cylinder" else ("CrossX", "CrossZ")
+        self.shape_names = (("Hull",) if representation == "convex_hull" else
+                            SHAPE_NAMES_ALL if corner_shape == "cylinder" else ("CrossX", "CrossZ"))
         layer = stage.GetEditTarget().GetLayer()
         for level in range(self.levels + 1):
             crouch = level / self.levels
@@ -59,6 +104,11 @@ class RoundedBoxCollider:
             level_path = f"{root_path}/Level_{level}"
             Sdf.PrimSpec(layer.GetPrimAtPath(root_path), f"Level_{level}", Sdf.SpecifierDef, "Xform")
             r, d, w = self.edge_radius, self.depth, self.width
+            if representation == "convex_hull":
+                _author_hull(stage, f"{level_path}/Hull", material_path, rest_offset, contact_offset,
+                             enabled=(level == 0), width=w, height=h, offset=off, radius=r, depth=d,
+                             segments=hull_segments)
+                continue
             specs = {
                 "CrossX": ("Cube", (0.0, off), (w + 2 * r, d, h)),
                 "CrossZ": ("Cube", (0.0, off), (w, d, h + 2 * r)),

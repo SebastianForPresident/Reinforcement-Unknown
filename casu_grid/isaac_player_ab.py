@@ -30,6 +30,9 @@ parser.add_argument("--crouch-levels", type=int, default=32)
 parser.add_argument("--solver", type=int, default=1)
 parser.add_argument("--max-depen", type=float, default=100.0)
 parser.add_argument("--tag", default="")
+parser.add_argument("--player-collider", choices=("compound", "convex_hull"), default="compound", help="EXPERIMENTAL representation")
+parser.add_argument("--no-ccd", action="store_true", help="EXPERIMENT ONLY: disable CCD (GPU studies)")
+parser.add_argument("--cuda", action="store_true", help="EXPERIMENTAL: PhysX GPU pipeline (not the validated reference)")
 parser.add_argument("--step-clear", type=float, default=0.0)
 parser.add_argument("--collider-delay", type=int, default=0, help="terrain_collider_delay_ticks")
 AppLauncher.add_app_launcher_args(parser)
@@ -196,7 +199,7 @@ def main():
                                player_contact_offset=args.contact_offset, terrain_contact_offset=args.terrain_contact_offset,
                                physx_solver_type=args.solver, max_depenetration_velocity=args.max_depen,
                                step_up_clearance=args.step_clear,
-                               terrain_collider_delay_ticks=args.collider_delay)
+                               terrain_collider_delay_ticks=args.collider_delay, use_cuda=args.cuda, physx_ccd=not args.no_ccd, player_collider=args.player_collider)
     env = IsaacLayer1NavigationEnv(cfg)
     try:
         env.reset(seed=391728405)

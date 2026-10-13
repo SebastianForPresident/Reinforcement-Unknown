@@ -34,6 +34,12 @@ from .world_objects import ground_polygons, load_physics_audit
 PLAYER_PATH = "/World/CasuPlayer"
 
 
+def _gpu_overrides() -> dict:
+    """EXPERIMENT hook: ``CASU_GPU_PHYSX='{"gpu_max_rigid_patch_count": 400000}'`` overrides PhysxCfg GPU buffers."""
+    import json
+    return json.loads(os.environ.get("CASU_GPU_PHYSX", "{}"))
+
+
 def _default_workers() -> int:
     """Worker processes for the batched environment.
 
@@ -63,6 +69,9 @@ class IsaacLayer1EnvConfig:
     player_rest_offset: float = 0.0155  # calibrates the rest gap to the source's 0.1155
     player_contact_offset: float = 0.04   # speculative range for ~8 m/s landings; terrain stays tiny (seam ghosts)
     terrain_contact_offset: float = 0.001   # PhysX contact distance of terrain shapes (see collision_usd)
+    # "compound" = validated cuboids+cylinders (default); "convex_hull" = EXPERIMENTAL single convex hull of the same
+    # rounded rectangle (cheap crouch switching). Environment override: CASU_PLAYER_COLLIDER.
+    player_collider: str = field(default_factory=lambda: os.environ.get("CASU_PLAYER_COLLIDER", "compound"))
     rounded_player_collider: bool = True   # retained for config compatibility; always modelled
     fluid_rng_seed: int = 391728405
     liquid_affect_phase: str = "before_controller"  # before_controller or after_controller
@@ -77,7 +86,8 @@ class IsaacLayer1EnvConfig:
     # faster, 3.0 s -> 0.05 s per edit with 2 worlds; equal trajectories on wall/pit scenarios). Set True
     # to restore the old full ``sim.reset`` after every chunk rebuild.
     terrain_edit_scene_reset: bool = False
-    use_cuda: bool = False
+    use_cuda: bool = False              # EXPERIMENTAL: PhysX GPU pipeline (opt-in research backend, see perf/OPTIMIZATION2_LOG.md)
+    physx_ccd: bool = True              # protected default; False exists only for GPU-pipeline experiments
     # Execution layout only (never changes the simulated experiment): split the worlds over this
     # many independent Isaac processes. 1 keeps everything in-process. See isaac_sharded_env.py.
     num_workers: int = field(default_factory=_default_workers)
@@ -105,6 +115,8 @@ class IsaacLayer1EnvConfig:
             raise ValueError("contact_friction cannot be negative")
         if self.crouch_levels < 2:
             raise ValueError("crouch_levels must be at least 2")
+        if self.player_collider not in ("compound", "convex_hull"):
+            raise ValueError("player_collider must be 'compound' or 'convex_hull'")
         if self.num_workers < 0 or self.worker_physx_threads < 2 or self.worker_timeout_seconds <= 0:
             raise ValueError("num_workers must be >= 0 (0 = auto), worker_physx_threads >= 2, worker_timeout_seconds > 0")
         if self.liquid_affect_phase not in {"before_controller", "after_controller"}:
@@ -236,7 +248,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
         device = "cuda:0" if self.cfg.use_cuda and torch.cuda.is_available() else "cpu"
         self.sim_cfg = sim_utils.SimulationCfg(
             dt=self.cfg.physics_dt, device=device, gravity=(0.0, 0.0, -55.0),
-            physx=sim_utils.PhysxCfg(enable_ccd=True, solver_type=self.cfg.physx_solver_type,
+            physx=sim_utils.PhysxCfg(enable_ccd=self.cfg.physx_ccd, **_gpu_overrides(), solver_type=self.cfg.physx_solver_type,
                                      enable_enhanced_determinism=self.cfg.physx_enhanced_determinism))
         self.sim = sim_utils.SimulationContext(self.sim_cfg)
         self.stage = stage_utils.get_current_stage()
@@ -297,13 +309,14 @@ class IsaacLayer1NavigationEnv(gym.Env):
             init_state=RigidObjectCfg.InitialStateCfg(pos=(initial.x, 0.0, initial.y))))
         from pxr import PhysxSchema
         rigid_api = PhysxSchema.PhysxRigidBodyAPI.Apply(self.stage.GetPrimAtPath(PLAYER_PATH))
-        rigid_api.CreateEnableCCDAttr().Set(True)   # the scene flag alone does not enable per-body CCD
+        rigid_api.CreateEnableCCDAttr().Set(bool(self.cfg.physx_ccd))   # the scene flag alone does not enable per-body CCD
         self.collider = RoundedBoxCollider(
             self.stage, PLAYER_PATH, width=self.controller_config.orig_col_size[0],
             standing_height=self.controller_config.orig_col_size[1],
             edge_radius=self.controller_config.edge_radius, depth=self.cfg.player_depth,
             material_path=self.material_path, levels=self.cfg.crouch_levels,
-            rest_offset=self.cfg.player_rest_offset, contact_offset=self.cfg.player_contact_offset)
+            rest_offset=self.cfg.player_rest_offset, contact_offset=self.cfg.player_contact_offset,
+            representation=self.cfg.player_collider)
 
         anchor = UsdGeom.Xform.Define(self.stage, "/World/CasuPlanarAnchor")
         UsdGeom.Xformable(anchor).AddTranslateOp().Set(Gf.Vec3d(initial.x, 0.0, initial.y))

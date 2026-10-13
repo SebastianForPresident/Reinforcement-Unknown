@@ -21,9 +21,13 @@ parser.add_argument("--macrosteps", type=int, default=30, help="measured macrost
 parser.add_argument("--windows", type=int, default=3, help="repeated measurement windows per batch size")
 parser.add_argument("--warmup", type=int, default=3, help="untimed macrosteps before each window")
 parser.add_argument("--terrain-mode", choices=("shared", "independent"), default="shared")
-parser.add_argument("--workload", choices=("random", "run"), default="random")
+parser.add_argument("--workload", choices=("random", "run", "landing", "fluid"), default="random")
 parser.add_argument("--physx-threads", type=int, default=None, help="override /persistent/physics/numThreads (experiment)")
 parser.add_argument("--workers", type=int, default=1, help="worker processes (ShardedBatchedEnv); 1 = in-process")
+parser.add_argument("--cuda", action="store_true", help="EXPERIMENTAL PhysX GPU pipeline (not the validated reference)")
+parser.add_argument("--player-contact-offset", type=float, default=None, help="EXPERIMENT override (protected default 0.04)")
+parser.add_argument("--fixture", type=int, nargs=2, default=[483, 1010], help="spawn support cell (workload `fluid` defaults to the immersed fixture)")
+parser.add_argument("--player-collider", choices=("compound", "convex_hull"), default="compound", help="EXPERIMENTAL representation")
 parser.add_argument("--label", default="", help="free-text tag stored in the result (e.g. the optimisation under test)")
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--single", type=int, default=0, help=argparse.SUPPRESS)
@@ -86,7 +90,11 @@ if not args.single:
         subprocess.run([sys.executable, __file__, "--single", str(n), "--macrosteps", str(args.macrosteps),
                         "--windows", str(args.windows), "--warmup", str(args.warmup),
                         "--terrain-mode", args.terrain_mode, "--workload", args.workload,
+                        "--fixture", str(args.fixture[0]), str(args.fixture[1]),
                         "--workers", str(args.workers),
+                        *(["--cuda"] if args.cuda else []),
+                        "--player-collider", args.player_collider,
+                        *(["--player-contact-offset", str(args.player_contact_offset)] if args.player_contact_offset is not None else []),
                         *(["--physx-threads", str(args.physx_threads)] if args.physx_threads is not None else []),
                         "--output", str(part), "--headless"], check=True)
         rows.append(json.loads(part.read_text()))
@@ -124,9 +132,15 @@ try:
     n = args.single
     import dataclasses
     extra = {"num_workers": args.workers} if "num_workers" in {f.name for f in dataclasses.fields(IsaacLayer1EnvConfig)} else {}
+    if args.cuda:
+        extra["use_cuda"] = True
+    if args.player_collider != "compound":
+        extra["player_collider"] = args.player_collider
+    if args.player_contact_offset is not None:
+        extra["player_contact_offset"] = args.player_contact_offset
     if args.workers > 1 and args.physx_threads is not None:
         extra["worker_physx_threads"] = args.physx_threads
-    cfg = IsaacLayer1EnvConfig(num_envs=n, spawn_mode="fixture", fixture_grid_xy=(483, 1010), **extra)
+    cfg = IsaacLayer1EnvConfig(num_envs=n, spawn_mode="fixture", fixture_grid_xy=tuple(args.fixture), **extra)
     started = time.perf_counter()
     env = BatchedIsaacLayer1Env(cfg, terrain_mode=args.terrain_mode)
     construct = time.perf_counter() - started
@@ -136,6 +150,12 @@ try:
     def tape(step, rng):
         if args.workload == "random":
             return {"move_x": rng.integers(0, 3, n), "jump": rng.integers(0, 2, n), "crouch": rng.integers(0, 2, n)}
+        if args.workload == "landing":     # jump every other decision, reverse direction every 5: walls, landings, contacts
+            return {"move_x": np.full(n, 2 if (step // 5) % 2 == 0 else 0), "jump": np.full(n, step % 2),
+                    "crouch": np.zeros(n, int)}
+        if args.workload == "fluid":       # swim back and forth in the immersed fixture
+            return {"move_x": np.full(n, 2 if (step // 6) % 2 == 0 else 0), "jump": np.full(n, 1 if step % 5 == 4 else 0),
+                    "crouch": np.zeros(n, int)}
         return {"move_x": np.full(n, 2), "jump": np.full(n, 1 if step % 4 == 3 else 0), "crouch": np.zeros(n, int)}
 
     ticks_per_s, decisions_per_s, cpu_util, breakdowns = [], [], [], []
@@ -161,7 +181,7 @@ try:
     t = time.perf_counter(); snap = env.snapshot(); snapshot_s = time.perf_counter() - t
     t = time.perf_counter(); env.restore(snap); restore_s = time.perf_counter() - t
     t = time.perf_counter(); env.reset_done(np.asarray([True] + [False] * (n - 1))); reset_one = time.perf_counter() - t
-    row = {"num_envs": n, "terrain_mode": args.terrain_mode, "workload": args.workload,
+    row = {"num_envs": n, "terrain_mode": args.terrain_mode, "workload": args.workload, "cuda": args.cuda, "player_collider": args.player_collider,
            "macrosteps_per_window": args.macrosteps, "windows": args.windows, "warmup_macrosteps": args.warmup, "physx_threads": args.physx_threads,
            "construct_seconds": construct, "geometry_build_seconds": env.geometry_build_seconds,
            "aggregate_physics_ticks_per_second": stats(ticks_per_s),
@@ -169,6 +189,8 @@ try:
            "per_env_physics_ticks_per_second": stats(np.asarray(ticks_per_s) / n),
            "cpu_utilization_of_one_core": stats(cpu_util),
            "phase_fraction": phase_fraction,
+           "shape_changes_per_world_tick": (getattr(env, "counters", {}).get("shape_changes", 0) /
+                                            ((args.warmup + args.macrosteps) * 10 * n * args.windows)),
            "reset_all_seconds": reset_all, "reset_one_world_seconds": reset_one,
            "snapshot_seconds": snapshot_s, "restore_seconds": restore_s,
            "num_workers": args.workers, "layout": env.performance_info() if hasattr(env, "performance_info") else {"note": "pre-backend revision"},
