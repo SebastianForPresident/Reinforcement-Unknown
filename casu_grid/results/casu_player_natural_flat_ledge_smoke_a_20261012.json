@@ -1,0 +1,438 @@
+{
+  "actions": [
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ]
+  ],
+  "commands": [
+    {
+      "command": "CF_HELLO",
+      "outcome": "ack",
+      "round_trip_ms": 24.28428898565471
+    },
+    {
+      "command": "CF_RESET",
+      "outcome": "ack",
+      "round_trip_ms": 1016.5666859829798
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3981.6903980099596
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 2.5839429872576147
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3551.577967009507
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.4341620078776032
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3538.3064829802606
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.38720801239833236
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3546.7658620036673
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.4501959774643183
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3558.42517898418
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.32219200511462986
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3554.193051997572
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.4010310221929103
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3550.643252005102
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.43588399421423674
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3580.8351449959446
+    }
+  ],
+  "completed_utc": "2026-10-12T22:51:34Z",
+  "hello": {
+    "dll_sha256": "b8231a1394a10cef775e4a325469d93cc049a68f9d59b8453db7cc1068c3b109",
+    "fixed_delta_time": 0.02,
+    "game_assembly_sha256": "fd0ad2851f6bae4ab2589634643b92e16696c0e36f090bdd3f4c41e8f1c97095",
+    "gameplay_hz": 60,
+    "natural_stamina": false,
+    "observation_bytes": 42012,
+    "ok": true,
+    "protocol": 2,
+    "python_participates": false,
+    "schema": 1,
+    "scientific_status": "A/A required before A/B",
+    "time_scale": 10.0,
+    "unity_version": "2022.3.62f3"
+  },
+  "initial_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      512,
+      1020
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  },
+  "initial_state_file": "000000.json",
+  "initial_state_sha256": "0ef926aa4039971e5b1843964a9873891edd6ce85ac559e6505a1c0d8781ba1f",
+  "listener_ready_utc": "2026-10-12T22:50:43Z",
+  "next_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      485,
+      1013
+    ],
+    "velocity": [
+      -0.9117075204849243,
+      0.0
+    ]
+  },
+  "next_state_file": "000007.json",
+  "next_state_sha256": "4516d10796796a9641a26537e8150ac927b1ca8911df3316f72226875cbe815a",
+  "observation_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "observations": [
+    {
+      "expected_id": 1,
+      "outcome": "received",
+      "wait_ms": 0.006861984729766846
+    },
+    {
+      "expected_id": 2,
+      "outcome": "received",
+      "wait_ms": 90.58387199183926
+    },
+    {
+      "expected_id": 3,
+      "outcome": "received",
+      "wait_ms": 16.03180600795895
+    },
+    {
+      "expected_id": 4,
+      "outcome": "received",
+      "wait_ms": 10.939686995698139
+    },
+    {
+      "expected_id": 5,
+      "outcome": "received",
+      "wait_ms": 12.530314998002723
+    },
+    {
+      "expected_id": 6,
+      "outcome": "received",
+      "wait_ms": 10.504447011044249
+    },
+    {
+      "expected_id": 7,
+      "outcome": "received",
+      "wait_ms": 11.721716989995912
+    },
+    {
+      "expected_id": 8,
+      "outcome": "received",
+      "wait_ms": 12.04985799267888
+    }
+  ],
+  "ports": {
+    "action": 34863,
+    "observation": 39101
+  },
+  "reset": {
+    "ok": true,
+    "reset_token": 1,
+    "seed": 391728405
+  },
+  "reset_ready": {
+    "observation_id": 1,
+    "reset_ready": true,
+    "seed": 391728405,
+    "token": 1
+  },
+  "schema": 1,
+  "seed": 391728405,
+  "session": "cb1-smoke-1-1-1791845443",
+  "status": "passed",
+  "steps": [
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 1,
+      "observation_id": 2,
+      "player_tile_position": [
+        483,
+        1013
+      ],
+      "state_file": "000001.json",
+      "state_sha256": "eafff7c8a9bd44bdec47e6aeada8d5b30b006891714472a78871427d4c74bdb7",
+      "velocity": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        2,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 2,
+      "observation_id": 3,
+      "player_tile_position": [
+        485,
+        1013
+      ],
+      "state_file": "000002.json",
+      "state_sha256": "1690474fc820fed4d2a5d1192b7a6f2c06a6b6d7ce1aeefb2d30c6f64f59d76f",
+      "velocity": [
+        15.794801712036133,
+        -1.5921142101287842
+      ]
+    },
+    {
+      "action": [
+        0,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 3,
+      "observation_id": 4,
+      "player_tile_position": [
+        485,
+        1013
+      ],
+      "state_file": "000003.json",
+      "state_sha256": "34844fe2feb33982d0d4064cc0046ecb5aec437be8d4b8c227c5633f4ca73dc0",
+      "velocity": [
+        -8.398383140563965,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 4,
+      "observation_id": 5,
+      "player_tile_position": [
+        484,
+        1013
+      ],
+      "state_file": "000004.json",
+      "state_sha256": "73edb5c8195eb00ac5257f0d417c0221125ea42328a46bae37b5c7324b4700b3",
+      "velocity": [
+        -0.9017695784568787,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        2,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 5,
+      "observation_id": 6,
+      "player_tile_position": [
+        486,
+        1013
+      ],
+      "state_file": "000005.json",
+      "state_sha256": "2e60b3bfb8911c2fe9631d458077bf641bbce4ed8fc2036e35ba6853174ea1da",
+      "velocity": [
+        15.512350082397461,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        0,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 6,
+      "observation_id": 7,
+      "player_tile_position": [
+        486,
+        1013
+      ],
+      "state_file": "000006.json",
+      "state_sha256": "89a98e69b33a19d3c697b6f1c9e8dfa21a8691ad1a5dfe48684b8ec78e48364e",
+      "velocity": [
+        -8.490936279296875,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 7,
+      "observation_id": 8,
+      "player_tile_position": [
+        485,
+        1013
+      ],
+      "state_file": "000007.json",
+      "state_sha256": "4516d10796796a9641a26537e8150ac927b1ca8911df3316f72226875cbe815a",
+      "velocity": [
+        -0.9117075204849243,
+        0.0
+      ]
+    }
+  ]
+}

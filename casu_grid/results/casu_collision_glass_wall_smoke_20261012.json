@@ -1,0 +1,148 @@
+{
+  "actions": [
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ]
+  ],
+  "commands": [
+    {
+      "command": "CF_HELLO",
+      "outcome": "ack",
+      "round_trip_ms": 23.555072024464607
+    },
+    {
+      "command": "CF_RESET",
+      "outcome": "ack",
+      "round_trip_ms": 1013.6662570002954
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3949.584963003872
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 2.6988129829987884
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3499.4086110091303
+    }
+  ],
+  "completed_utc": "2026-10-13T00:14:27Z",
+  "hello": {
+    "dll_sha256": "6ffd1f32c1ba441e87c823dcc596e0e0179e76a2e3143f3afab4afb023ee3978",
+    "fixed_delta_time": 0.02,
+    "game_assembly_sha256": "fd0ad2851f6bae4ab2589634643b92e16696c0e36f090bdd3f4c41e8f1c97095",
+    "gameplay_hz": 60,
+    "natural_stamina": false,
+    "observation_bytes": 42012,
+    "ok": true,
+    "protocol": 2,
+    "python_participates": false,
+    "schema": 1,
+    "scientific_status": "A/A required before A/B",
+    "time_scale": 10.0,
+    "unity_version": "2022.3.62f3"
+  },
+  "initial_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      512,
+      1020
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  },
+  "initial_state_file": "000000.json",
+  "initial_state_sha256": "0ef926aa4039971e5b1843964a9873891edd6ce85ac559e6505a1c0d8781ba1f",
+  "listener_ready_utc": "2026-10-13T00:13:57Z",
+  "next_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      920,
+      432
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  },
+  "next_state_file": "000001.json",
+  "next_state_sha256": "1cfabf8587b8c7dfb539d1d1a6e8b6067ebe566548499eb5fc80140c75a500b8",
+  "observation_ids": [
+    1,
+    2
+  ],
+  "observations": [
+    {
+      "expected_id": 1,
+      "outcome": "received",
+      "wait_ms": 0.006566988304257393
+    },
+    {
+      "expected_id": 2,
+      "outcome": "received",
+      "wait_ms": 86.50774697889574
+    }
+  ],
+  "ports": {
+    "action": 46437,
+    "observation": 42681
+  },
+  "reset": {
+    "ok": true,
+    "reset_token": 1,
+    "seed": 391728405
+  },
+  "reset_ready": {
+    "observation_id": 1,
+    "reset_ready": true,
+    "seed": 391728405,
+    "token": 1
+  },
+  "schema": 1,
+  "seed": 391728405,
+  "session": "cb1-smoke-1-1-1791850437",
+  "status": "passed",
+  "steps": [
+    {
+      "action": [
+        2,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "action_ack": {
+        "action_sequence": 1,
+        "ok": true
+      },
+      "grounded": true,
+      "index": 1,
+      "observation_id": 2,
+      "player_tile_position": [
+        920,
+        432
+      ],
+      "state_file": "000001.json",
+      "state_sha256": "1cfabf8587b8c7dfb539d1d1a6e8b6067ebe566548499eb5fc80140c75a500b8",
+      "velocity": [
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}

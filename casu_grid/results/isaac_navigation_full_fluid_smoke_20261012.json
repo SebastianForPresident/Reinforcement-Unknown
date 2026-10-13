@@ -1,0 +1,172 @@
+{
+  "schema": "casu.isaac-navigation-lifecycle-smoke.v1",
+  "status": "passed",
+  "canonical_fixture_id": "casu-layer1-seed-391728405-v1",
+  "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "spawn_mode": "canonical",
+  "initial_observation_keys": [
+    "player_state"
+  ],
+  "reset_info": {
+    "seed": 391728405,
+    "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+    "spawn_mode": "canonical"
+  },
+  "geometry": {
+    "nonempty_chunk_count": 256,
+    "occupied_cells": 320647,
+    "box_collider_count": 39746,
+    "build_seconds": 209.20425101197907,
+    "half_thickness": 1.0,
+    "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+  },
+  "geometry_scope": "full",
+  "geometry_total_seconds": 209.2043497900013,
+  "physics_dt_s": 0.02,
+  "physics_ticks_per_action": 10,
+  "action_tape_states": [
+    {
+      "x": 0.0,
+      "y": 507.5000305175781,
+      "vx": 0.0,
+      "vy": -0.00010532944725127891
+    },
+    {
+      "x": 1.785714030265808,
+      "y": 507.5,
+      "vx": 16.233766555786133,
+      "vy": -2.7364820198272355e-05
+    },
+    {
+      "x": 6.415584564208984,
+      "y": 507.5,
+      "vx": 25.0,
+      "vy": -2.7363097615307197e-05
+    },
+    {
+      "x": 8.460041046142578,
+      "y": 507.2802429199219,
+      "vx": 5.442002773284912,
+      "vy": -4.400289535522461
+    }
+  ],
+  "snapshot_replay_max_abs_state_error": 0.0,
+  "snapshot_player_state": [
+    8.460041046142578,
+    -9.962094782489715e-17,
+    507.2802429199219,
+    1.0,
+    1.687528589089382e-12,
+    1.4890588762028756e-11,
+    1.8808324242134376e-16,
+    5.442002773284912,
+    -1.0097419586828951e-27,
+    -4.400289535522461,
+    -7.513799049426656e-25,
+    1.756340035337144e-24,
+    9.441608829371015e-32
+  ],
+  "snapshot_body_state": {
+    "x": 8.460041046142578,
+    "y": 507.2802429199219,
+    "vx": 5.442002773284912,
+    "vy": -4.400289535522461
+  },
+  "post_restore_body_state": {
+    "x": 8.460041046142578,
+    "y": 507.2802429199219,
+    "vx": 5.442002773284912,
+    "vy": -4.400289535522461
+  },
+  "snapshot_replay_branch_a": [
+    {
+      "x": 11.334156036376953,
+      "y": 505.1901550292969,
+      "vx": 21.675769805908203,
+      "vy": -15.400291442871094
+    },
+    {
+      "x": 13.87539291381836,
+      "y": 500.9001159667969,
+      "vx": 7.557872772216797,
+      "vy": -26.40029525756836
+    },
+    {
+      "x": 13.293055534362793,
+      "y": 496.0094299316406,
+      "vx": -10.360132217407227,
+      "vy": 0.038239624351263046
+    }
+  ],
+  "snapshot_replay_branch_b": [
+    {
+      "x": 11.334156036376953,
+      "y": 505.1901550292969,
+      "vx": 21.675769805908203,
+      "vy": -15.400291442871094
+    },
+    {
+      "x": 13.87539291381836,
+      "y": 500.9001159667969,
+      "vx": 7.557872772216797,
+      "vy": -26.40029525756836
+    },
+    {
+      "x": 13.293055534362793,
+      "y": 496.0094299316406,
+      "vx": -10.360132217407227,
+      "vy": 0.038239624351263046
+    }
+  ],
+  "reset_max_abs_state_error": 0.0,
+  "final_player_state": {
+    "x": 21.198890686035156,
+    "y": 498.5000305175781,
+    "vx": 1.2767942280333955e-05,
+    "vy": -8.050253381952643e-05
+  },
+  "engineering_ppo": {
+    "updates": [
+      {
+        "policy_loss": -0.0005484347348101437,
+        "value_loss": 69.26668548583984,
+        "entropy": 0.6820279359817505,
+        "approx_kl": 2.4636585749249207e-06,
+        "grad_norm": 8.396391868591309,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 1,
+        "environment_steps": 12,
+        "completed_episodes": 0,
+        "mean_completed_return": null,
+        "rollout_seconds": 0.9323807859909721,
+        "reward_term/goal": 1.0,
+        "reward_term/progress_delta": 0.0833333358168602
+      },
+      {
+        "policy_loss": -1.9498168818188333e-05,
+        "value_loss": 67.70195770263672,
+        "entropy": 0.683480978012085,
+        "approx_kl": 3.7252904094842165e-08,
+        "grad_norm": 8.403728008270264,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 2,
+        "environment_steps": 24,
+        "completed_episodes": 0,
+        "mean_completed_return": null,
+        "rollout_seconds": 0.9293876189913135,
+        "reward_term/goal": 0.9166666865348816,
+        "reward_term/progress_delta": 0.0833333358168602
+      }
+    ],
+    "checkpoint": "casu_grid/results/isaac_navigation_full_fluid_smoke_20261012_engineering_ppo.pt",
+    "metrics_jsonl": "casu_grid/results/isaac_navigation_full_fluid_smoke_20261012_engineering_ppo.jsonl",
+    "checkpoint_restored_and_training_continued": true,
+    "research_status": "temporary engineering-only contract; not approved Timmy experiment"
+  },
+  "elapsed_seconds": 218.3686042340123,
+  "peak_rss_kib": 3442520
+}

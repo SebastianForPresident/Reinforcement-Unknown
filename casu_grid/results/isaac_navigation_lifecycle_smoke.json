@@ -1,0 +1,160 @@
+{
+  "schema": "casu.isaac-navigation-lifecycle-smoke.v1",
+  "status": "failed",
+  "canonical_fixture_id": "casu-layer1-seed-391728405-v1",
+  "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "spawn_mode": "canonical",
+  "initial_observation_keys": [
+    "player_state"
+  ],
+  "reset_info": {
+    "seed": 391728405,
+    "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+    "spawn_mode": "canonical"
+  },
+  "geometry": {
+    "nonempty_chunk_count": 1,
+    "occupied_cells": 1004,
+    "box_collider_count": 132,
+    "build_seconds": 0.6765419010189362,
+    "half_thickness": 1.0,
+    "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+  },
+  "geometry_scope": "spawn_chunk",
+  "geometry_total_seconds": 0.6766967620060313,
+  "physics_dt_s": 0.02,
+  "physics_ticks_per_action": 10,
+  "action_tape_states": [
+    {
+      "x": -1.1125255696242675e-05,
+      "y": 507.5,
+      "vx": -9.652323933551088e-05,
+      "vy": -6.689253496006131e-06
+    },
+    {
+      "x": 1.7856872081756592,
+      "y": 507.5,
+      "vx": 16.23369026184082,
+      "vy": -2.736467831709888e-05
+    },
+    {
+      "x": 6.4155473709106445,
+      "y": 507.5,
+      "vx": 25.0,
+      "vy": -2.736328860919457e-05
+    },
+    {
+      "x": 8.460003852844238,
+      "y": 507.2802429199219,
+      "vx": 5.442002773284912,
+      "vy": -4.400289535522461
+    }
+  ],
+  "snapshot_replay_max_abs_state_error": 0.5949239730834961,
+  "snapshot_player_state": [
+    8.460003852844238,
+    -9.95811174240415e-17,
+    507.2802429199219,
+    1.0,
+    1.687310013931409e-12,
+    1.4891032851238606e-11,
+    1.878248973724312e-16,
+    5.442002773284912,
+    -1.0097419586828951e-27,
+    -4.400289535522461,
+    7.564193160381598e-24,
+    1.7537066204202898e-24,
+    1.2527141028704596e-31
+  ],
+  "snapshot_replay_branch_a": [
+    {
+      "x": 11.334118843078613,
+      "y": 505.1901550292969,
+      "vx": 21.675769805908203,
+      "vy": -15.400291442871094
+    },
+    {
+      "x": 13.87535572052002,
+      "y": 500.9001159667969,
+      "vx": 7.557872772216797,
+      "vy": -26.40029525756836
+    },
+    {
+      "x": 13.293018341064453,
+      "y": 496.0094299316406,
+      "vx": -10.360132217407227,
+      "vy": 0.03824068233370781
+    }
+  ],
+  "snapshot_replay_branch_b": [
+    {
+      "x": 11.009442329406738,
+      "y": 505.1901550292969,
+      "vx": 20.052392959594727,
+      "vy": -15.400291442871094
+    },
+    {
+      "x": 13.360356330871582,
+      "y": 500.9001159667969,
+      "vx": 6.9918365478515625,
+      "vy": -26.40029525756836
+    },
+    {
+      "x": 12.698094367980957,
+      "y": 496.0115966796875,
+      "vx": -10.735708236694336,
+      "vy": 2.0713036064989865e-05
+    }
+  ],
+  "reset_max_abs_state_error": 0.0,
+  "final_player_state": {
+    "x": 21.198890686035156,
+    "y": 498.5000305175781,
+    "vx": 1.276353305001976e-05,
+    "vy": -8.050384349189699e-05
+  },
+  "engineering_ppo": {
+    "updates": [
+      {
+        "policy_loss": -0.0005484347348101437,
+        "value_loss": 69.26668548583984,
+        "entropy": 0.6820279359817505,
+        "approx_kl": 2.4636585749249207e-06,
+        "grad_norm": 8.396391868591309,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 1,
+        "environment_steps": 12,
+        "completed_episodes": 0,
+        "mean_completed_return": null,
+        "rollout_seconds": 0.07769361298414879,
+        "reward_term/goal": 1.0,
+        "reward_term/progress_delta": 0.0833333358168602
+      },
+      {
+        "policy_loss": -1.9513071190857545e-05,
+        "value_loss": 67.70195770263672,
+        "entropy": 0.6834810078144073,
+        "approx_kl": 3.973643103449831e-08,
+        "grad_norm": 8.403727531433105,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 2,
+        "environment_steps": 24,
+        "completed_episodes": 0,
+        "mean_completed_return": null,
+        "rollout_seconds": 0.067816752998624,
+        "reward_term/goal": 0.9166666865348816,
+        "reward_term/progress_delta": 0.0833333358168602
+      }
+    ],
+    "checkpoint": "casu_grid/results/isaac_navigation_lifecycle_smoke_engineering_ppo.pt",
+    "metrics_jsonl": "casu_grid/results/isaac_navigation_lifecycle_smoke_engineering_ppo.jsonl",
+    "checkpoint_restored_and_training_continued": true,
+    "research_status": "temporary engineering-only contract; not approved Timmy experiment"
+  },
+  "elapsed_seconds": 0.9642732670181431,
+  "peak_rss_kib": 1804272
+}

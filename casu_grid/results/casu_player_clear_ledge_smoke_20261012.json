@@ -1,0 +1,340 @@
+{
+  "actions": [
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ]
+  ],
+  "commands": [
+    {
+      "command": "CF_HELLO",
+      "outcome": "ack",
+      "round_trip_ms": 23.317392013268545
+    },
+    {
+      "command": "CF_RESET",
+      "outcome": "ack",
+      "round_trip_ms": 1016.5873780206311
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3951.3134529988747
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 2.488345024175942
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3492.369600018719
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.40166699909605086
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3501.1809279967565
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.4457900067791343
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3509.4292380090337
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.5411780148278922
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3523.7693779927213
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 0.40941601037047803
+    },
+    {
+      "command": "CF_STATE",
+      "outcome": "ack",
+      "round_trip_ms": 3537.91172199999
+    }
+  ],
+  "completed_utc": "2026-10-12T22:45:19Z",
+  "hello": {
+    "dll_sha256": "730d57de6d5cb081a338dbc350eecb34e42ad5e514e10c93ff453006f6c8b84e",
+    "fixed_delta_time": 0.02,
+    "game_assembly_sha256": "fd0ad2851f6bae4ab2589634643b92e16696c0e36f090bdd3f4c41e8f1c97095",
+    "gameplay_hz": 60,
+    "natural_stamina": false,
+    "observation_bytes": 42012,
+    "ok": true,
+    "protocol": 2,
+    "python_participates": false,
+    "schema": 1,
+    "scientific_status": "A/A required before A/B",
+    "time_scale": 10.0,
+    "unity_version": "2022.3.62f3"
+  },
+  "initial_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      512,
+      1020
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  },
+  "initial_state_file": "000000.json",
+  "initial_state_sha256": "0ef926aa4039971e5b1843964a9873891edd6ce85ac559e6505a1c0d8781ba1f",
+  "listener_ready_utc": "2026-10-12T22:44:36Z",
+  "next_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      546,
+      994
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  },
+  "next_state_file": "000005.json",
+  "next_state_sha256": "1e8958c0298ae6aca51d4c3aec0320fba4ec61335cc241441150a5f9ed513b12",
+  "observation_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "observations": [
+    {
+      "expected_id": 1,
+      "outcome": "received",
+      "wait_ms": 0.0077709846664220095
+    },
+    {
+      "expected_id": 2,
+      "outcome": "received",
+      "wait_ms": 98.4100500063505
+    },
+    {
+      "expected_id": 3,
+      "outcome": "received",
+      "wait_ms": 16.36629199492745
+    },
+    {
+      "expected_id": 4,
+      "outcome": "received",
+      "wait_ms": 11.693568987539038
+    },
+    {
+      "expected_id": 5,
+      "outcome": "received",
+      "wait_ms": 14.174928975990042
+    },
+    {
+      "expected_id": 6,
+      "outcome": "received",
+      "wait_ms": 10.74315098230727
+    }
+  ],
+  "ports": {
+    "action": 38919,
+    "observation": 43409
+  },
+  "reset": {
+    "ok": true,
+    "reset_token": 1,
+    "seed": 391728405
+  },
+  "reset_ready": {
+    "observation_id": 1,
+    "reset_ready": true,
+    "seed": 391728405,
+    "token": 1
+  },
+  "schema": 1,
+  "seed": 391728405,
+  "session": "cb1-smoke-1-1-1791845076",
+  "status": "passed",
+  "steps": [
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 1,
+      "observation_id": 2,
+      "player_tile_position": [
+        538,
+        993
+      ],
+      "state_file": "000001.json",
+      "state_sha256": "ef7d38f9b523e6a1b5f4e223cd25079f6526112ef7582fb665aa5463e01b65d0",
+      "velocity": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        2,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 2,
+      "observation_id": 3,
+      "player_tile_position": [
+        540,
+        994
+      ],
+      "state_file": "000002.json",
+      "state_sha256": "a62b10d30caa49e87078771ba9e60010aa0019a24e2240477e26007c7b883bd7",
+      "velocity": [
+        14.16738510131836,
+        0.03532426431775093
+      ]
+    },
+    {
+      "action": [
+        2,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 3,
+      "observation_id": 4,
+      "player_tile_position": [
+        545,
+        994
+      ],
+      "state_file": "000003.json",
+      "state_sha256": "d45809ccde23173fd82e5e08113e98e05a233a686b5b4b2bd9b3584610f2cce6",
+      "velocity": [
+        25.531023025512695,
+        -4.400000095367432
+      ]
+    },
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 4,
+      "observation_id": 5,
+      "player_tile_position": [
+        546,
+        994
+      ],
+      "state_file": "000004.json",
+      "state_sha256": "4022888e772a84981d1c1206d3011c49b1175d4fdd9fc56a02deed1d075a94ba",
+      "velocity": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 5,
+      "observation_id": 6,
+      "player_tile_position": [
+        546,
+        994
+      ],
+      "state_file": "000005.json",
+      "state_sha256": "1e8958c0298ae6aca51d4c3aec0320fba4ec61335cc241441150a5f9ed513b12",
+      "velocity": [
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1843 @@
+{
+  "schema": "casu.player-motion-ab.v1",
+  "canonical_fixture_id": "casu-layer1-seed-391728405-v1",
+  "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "source_trace_path": "casu_grid/results/casu_collision_chunk_seam_ticks_20261012.jsonl",
+  "source_header": {
+    "schema": "cb1.player-fixed-tick.v1",
+    "record_type": "header",
+    "sampling_boundary": "after Body.FixedUpdate and before Physics2D simulation",
+    "unity_fixed_delta_time": 0.02,
+    "physics2d_gravity": [
+      0.0,
+      -55.0
+    ],
+    "body_source": "SearchBase/Body.cs standing controller"
+  },
+  "source_smoke_status": "passed",
+  "action_tape": [
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ]
+  ],
+  "physics_dt_s": 0.02,
+  "physics_ticks_per_action": 10,
+  "local_source_chunk_xy": [
+    0,
+    5
+  ],
+  "terrain_geometry": {
+    "nonempty_chunk_count": 1,
+    "occupied_cells": 1467,
+    "box_collider_count": 215,
+    "build_seconds": 1.1148642229964025,
+    "half_thickness": 1.0,
+    "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+  },
+  "terrain_extrusion_depth": 2.0,
+  "body_mass_kg": 49.28,
+  "body_size_xyz": [
+    1.6,
+    0.2,
+    5.0
+  ],
+  "source_box_size_xy": [
+    1.6,
+    5.0
+  ],
+  "source_edge_radius": 0.1,
+  "edge_radius_modelled": false,
+  "source_tile_collider_material": "coefficients unmeasured; current Isaac trial isolates the measured controller with 0 static/dynamic friction",
+  "sample_alignment": "controller outputs applied before PhysX tick; state compared at matching pre-physics boundaries",
+  "sample_count": 10,
+  "max_abs_position_x_error": 0.0,
+  "mean_abs_position_x_error": 0.0,
+  "max_abs_position_y_error": 0.11549999999999727,
+  "mean_abs_position_y_error": 0.09265850166015355,
+  "max_abs_velocity_x_error": 0.0003066487261094153,
+  "mean_abs_velocity_x_error": 0.00012685236943070776,
+  "max_abs_velocity_y_error": 2.200000047683716,
+  "mean_abs_velocity_y_error": 0.33093441569290005,
+  "grounded_mismatch_count": 0,
+  "source_trace": [
+    {
+      "record_type": "player_tick",
+      "fixed_index": 329,
+      "frame": 3546,
+      "fixed_time": 7.25999975,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 0,
+      "position": [
+        -448.5,
+        -132.399643
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": 0.0,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.09484863,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 0,
+      "contacts": []
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 330,
+      "frame": 3546,
+      "fixed_time": 7.27999973,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 1,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.0166666675,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.9995,
+            -134.999725
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.0198516846,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.999664
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.0199432373,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.999725
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.0198516846,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.999573
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.0201416016,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.0002,
+            -134.999573
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.0201416016,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.999619
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.0200500488,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 331,
+      "frame": 3546,
+      "fixed_time": 7.29999971,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 2,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.0333333351,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 332,
+      "frame": 3546,
+      "fixed_time": 7.31999969,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 3,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.0500000045,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 333,
+      "frame": 3546,
+      "fixed_time": 7.33999968,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 4,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.06666667,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 334,
+      "frame": 3546,
+      "fixed_time": 7.35999966,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 5,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.1,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 335,
+      "frame": 3546,
+      "fixed_time": 7.37999964,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 6,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.116666667,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 336,
+      "frame": 3546,
+      "fixed_time": 7.39999962,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 7,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.13333334,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 337,
+      "frame": 3546,
+      "fixed_time": 7.4199996,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 8,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.15,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    },
+    {
+      "record_type": "player_tick",
+      "fixed_index": 338,
+      "frame": 3546,
+      "fixed_time": 7.44,
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 9,
+      "position": [
+        -448.5,
+        -132.3845
+      ],
+      "velocity": [
+        0.0,
+        0.0
+      ],
+      "mass": 49.28,
+      "drag": 0.0,
+      "gravity_scale": 1.0,
+      "standing": true,
+      "grounded": true,
+      "move_dir": [
+        0.0,
+        0.0
+      ],
+      "ended_jump": false,
+      "jump_cooldown": -0.166666672,
+      "time_since_grounded": 0.0,
+      "max_speed": 24.9999981,
+      "move_force": 3999.99976,
+      "jump_speed": 25.9999981,
+      "crouch_amount": 0.0,
+      "collider_size": [
+        1.6,
+        5.0
+      ],
+      "collider_offset": [
+        0.0,
+        0.0
+      ],
+      "collider_edge_radius": 0.1,
+      "slippery": false,
+      "standing_on": "BlockInfo",
+      "ground_box_cast": {
+        "point": [
+          -448.0002,
+          -134.997
+        ],
+        "normal": [
+          0.0,
+          1.0
+        ],
+        "distance": 0.109985352,
+        "collider": "World/Grid/Chunk"
+      },
+      "contact_buffer_capacity": 128,
+      "contacts_truncated": false,
+      "contact_count": 6,
+      "contacts": [
+        {
+          "point": [
+            -448.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.7,
+            -134.99205
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00491333,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -448.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.3,
+            -134.9921
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.00480651855,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -447.9995,
+            -134.992157
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.004714966,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        },
+        {
+          "point": [
+            -449.0002,
+            -134.992
+          ],
+          "normal": [
+            0.0,
+            1.0
+          ],
+          "separation": -0.005004883,
+          "relative_velocity": [
+            0.0,
+            0.0
+          ],
+          "collider": "World/Grid/Chunk",
+          "other_collider": "Experiment/Body",
+          "other_layer": 9
+        }
+      ]
+    }
+  ],
+  "isaac_trace": [
+    {
+      "source_fixed_index": 329,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        0.0,
+        -132.39964294433594
+      ],
+      "velocity_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 0.1003570556640625,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0
+    },
+    {
+      "source_fixed_index": 330,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        0.0,
+        -132.42161560058594
+      ],
+      "velocity_xyz": [
+        0.0,
+        0.0,
+        -1.100000023841858
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 0.0783843994140625,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0
+    },
+    {
+      "source_fixed_index": 331,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        0.0,
+        -132.46556091308594
+      ],
+      "velocity_xyz": [
+        0.0,
+        0.0,
+        -2.200000047683716
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 0.0344390869140625,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0
+    },
+    {
+      "source_fixed_index": 332,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        0.0,
+        -132.49998474121094
+      ],
+      "velocity_xyz": [
+        0.0,
+        0.0,
+        -0.00888102687895298
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 1.52587890625e-05,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0
+    },
+    {
+      "source_fixed_index": 333,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        -1.6617288656206597e-09,
+        -132.5
+      ],
+      "velocity_xyz": [
+        8.372432057512924e-05,
+        -3.831379657981415e-13,
+        -8.073591016000137e-05
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 0.0,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 8.372432203032077e-05
+    },
+    {
+      "source_fixed_index": 334,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        -1.691105033785334e-09,
+        -132.49998474121094
+      ],
+      "velocity_xyz": [
+        0.00015003963198978454,
+        -1.545430450278218e-13,
+        -7.646440644748509e-05
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 1.52587890625e-05,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0001500396290794015
+    },
+    {
+      "source_fixed_index": 335,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        -1.6958283666212992e-09,
+        -132.49998474121094
+      ],
+      "velocity_xyz": [
+        0.00020309176761657,
+        -7.926992395823618e-14,
+        -7.445664959959686e-05
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 1.52587890625e-05,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.00020309176761657
+    },
+    {
+      "source_fixed_index": 336,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        -1.6960004511901161e-09,
+        -132.49998474121094
+      ],
+      "velocity_xyz": [
+        0.0002455328940413892,
+        -1.4910295220715852e-13,
+        -7.79086331021972e-05
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 1.52587890625e-05,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0002455329056829214
+    },
+    {
+      "source_fixed_index": 337,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        -1.695976914461994e-09,
+        -132.49998474121094
+      ],
+      "velocity_xyz": [
+        0.0002794863539747894,
+        -1.892930256985892e-13,
+        -7.51199186197482e-05
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 1.52587890625e-05,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0002794863656163216
+    },
+    {
+      "source_fixed_index": 338,
+      "action_sequence": 1,
+      "position_xyz": [
+        -448.5,
+        -1.6960058912829368e-09,
+        -132.49998474121094
+      ],
+      "velocity_xyz": [
+        0.0003066487261094153,
+        5.340172748447003e-14,
+        -7.837300654500723e-05
+      ],
+      "grounded": true,
+      "source_grounded": true,
+      "foot_height_error_from_support": 1.52587890625e-05,
+      "horizontal_force_n": 0.0,
+      "gravity_scale": 1.0,
+      "horizontal_velocity_override": 0.0003066487377509475
+    }
+  ]
+}

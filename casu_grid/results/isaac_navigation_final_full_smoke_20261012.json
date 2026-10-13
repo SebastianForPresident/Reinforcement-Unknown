@@ -1,0 +1,234 @@
+{
+  "schema": "casu.isaac-navigation-lifecycle-smoke.v1",
+  "status": "passed",
+  "canonical_fixture_id": "casu-layer1-seed-391728405-v1",
+  "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "spawn_mode": "canonical",
+  "initial_observation_keys": [
+    "player_state"
+  ],
+  "reset_info": {
+    "seed": 391728405,
+    "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+    "spawn_mode": "canonical"
+  },
+  "terrain_mutation_restore": {
+    "status": "passed",
+    "cell_xy": [
+      0,
+      0
+    ],
+    "initial_block_id": 14,
+    "initial_chunk_collider_count": 205,
+    "mutated_chunk_collider_count": 206,
+    "restored_chunk_collider_count": 205
+  },
+  "geometry": {
+    "nonempty_chunk_count": 256,
+    "occupied_cells": 320647,
+    "box_collider_count": 39746,
+    "build_seconds": 209.7826083660184,
+    "half_thickness": 1.0,
+    "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+  },
+  "geometry_scope": "full",
+  "geometry_total_seconds": 209.7827042780118,
+  "physics_dt_s": 0.02,
+  "physics_ticks_per_action": 10,
+  "rounded_player_collider": true,
+  "crouch_shape_probe": {
+    "status": "passed",
+    "scale_standing": [
+      true,
+      false
+    ],
+    "scale_crouched": [
+      false,
+      true
+    ],
+    "scale_recovering": [
+      true,
+      false
+    ]
+  },
+  "physics_ticks_elapsed": 40,
+  "fluid_scheduler_ticks": 40,
+  "fluid_tick_delta_during_branch_a": 30,
+  "fluid_rng_decisions_consumed": 0,
+  "fluid_decision_contract": "seeded PCG64 replay tape; Unity RNG parity not claimed",
+  "liquid_affect_phase": "before_controller",
+  "fluid_grid_matches_physics_tick_count": true,
+  "snapshot_grid_tick": 60,
+  "action_tape_states": [
+    {
+      "x": -0.0014802981168031693,
+      "y": 507.6000061035156,
+      "vx": -0.0005276653682813048,
+      "vy": -0.00032529880991205573
+    },
+    {
+      "x": 1.784106969833374,
+      "y": 507.6000061035156,
+      "vx": 16.233125686645508,
+      "vy": -4.730609362013638e-07
+    },
+    {
+      "x": 6.413898468017578,
+      "y": 507.5999755859375,
+      "vx": 25.0,
+      "vy": -4.710796019935515e-07
+    },
+    {
+      "x": 8.204105377197266,
+      "y": 507.4679260253906,
+      "vx": -0.16243742406368256,
+      "vy": -3.303539514541626
+    }
+  ],
+  "snapshot_replay_max_abs_state_error": 0.0,
+  "snapshot_player_state": [
+    8.204105377197266,
+    -1.3249913308754913e-06,
+    507.4679260253906,
+    0.9999996423721313,
+    -6.781987749171492e-10,
+    -0.0008044602582231164,
+    0.0001619828399270773,
+    -0.12488935887813568,
+    2.9183340302552097e-05,
+    -3.3034791946411133,
+    1.6055189917096868e-05,
+    0.05489294230937958,
+    -0.01888294145464897
+  ],
+  "snapshot_body_state": {
+    "x": 8.204105377197266,
+    "y": 507.4679260253906,
+    "vx": -0.12488935887813568,
+    "vy": -3.3034791946411133
+  },
+  "post_restore_body_state": {
+    "x": 8.204105377197266,
+    "y": 507.4679260253906,
+    "vx": -0.16243742406368256,
+    "vy": -3.303539514541626
+  },
+  "snapshot_replay_branch_a": [
+    {
+      "x": 9.95417594909668,
+      "y": 505.5970764160156,
+      "vx": 16.050025939941406,
+      "vy": -14.30354118347168
+    },
+    {
+      "x": 11.835844039916992,
+      "y": 501.5262756347656,
+      "vx": 5.5962982177734375,
+      "vy": -25.303544998168945
+    },
+    {
+      "x": 10.972764015197754,
+      "y": 496.5995178222656,
+      "vx": -11.685254096984863,
+      "vy": -0.02158011496067047
+    }
+  ],
+  "snapshot_replay_branch_b": [
+    {
+      "x": 9.95417594909668,
+      "y": 505.5970764160156,
+      "vx": 16.050025939941406,
+      "vy": -14.30354118347168
+    },
+    {
+      "x": 11.835844039916992,
+      "y": 501.5262756347656,
+      "vx": 5.5962982177734375,
+      "vy": -25.303544998168945
+    },
+    {
+      "x": 10.972764015197754,
+      "y": 496.5995178222656,
+      "vx": -11.685254096984863,
+      "vy": -0.02158011496067047
+    }
+  ],
+  "reset_max_abs_state_error": 0.0,
+  "reset_restored_fluid_tick": 40,
+  "final_player_state": {
+    "x": 3.082773208618164,
+    "y": 507.6000061035156,
+    "vx": 0.020011821761727333,
+    "vy": -4.745834303321317e-07
+  },
+  "engineering_ppo": {
+    "updates": [
+      {
+        "policy_loss": -0.0005977799689089736,
+        "value_loss": 69.26377868652344,
+        "entropy": 0.6818884611129761,
+        "approx_kl": 2.5952856503863586e-06,
+        "grad_norm": 8.447627067565918,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 1,
+        "environment_steps": 12,
+        "completed_episodes": 0,
+        "mean_completed_return": null,
+        "mean_completed_episode_length": null,
+        "rollout_seconds": 0.27289387199562043,
+        "collection_seconds": 0.25277572200866416,
+        "optimization_seconds": 0.020107182004721835,
+        "physics_step_seconds": 0.23880342600750737,
+        "physics_ticks": 120,
+        "physics_ticks_per_second": 502.50535348779925,
+        "environment_count": 1,
+        "batch_calls_per_second": 47.472913556107606,
+        "policy_decisions_per_second": 47.472913556107606,
+        "policy_decisions_per_env_second": 47.472913556107606,
+        "action/advance/choice_0_fraction": 0.16666666666666666,
+        "action/advance/choice_1_fraction": 0.8333333333333334,
+        "reward_term/goal": 1.0,
+        "reward_term/progress_delta": 0.0833333358168602
+      },
+      {
+        "policy_loss": -0.00012554631878813893,
+        "value_loss": 29.982173919677734,
+        "entropy": 0.68525630235672,
+        "approx_kl": 2.1979213518097396e-06,
+        "grad_norm": 5.742048501968384,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 2,
+        "environment_steps": 24,
+        "completed_episodes": 1,
+        "mean_completed_return": 41.0,
+        "mean_completed_episode_length": 20.0,
+        "rollout_seconds": 0.28187727599288337,
+        "collection_seconds": 0.2780308929795865,
+        "optimization_seconds": 0.003781823004828766,
+        "physics_step_seconds": 0.26627088300301693,
+        "physics_ticks": 120,
+        "physics_ticks_per_second": 450.6688776731189,
+        "environment_count": 1,
+        "batch_calls_per_second": 43.160671360650056,
+        "policy_decisions_per_second": 43.160671360650056,
+        "policy_decisions_per_env_second": 43.160671360650056,
+        "action/advance/choice_0_fraction": 0.4166666666666667,
+        "action/advance/choice_1_fraction": 0.5833333333333334,
+        "termination/time_limit": 1,
+        "reward_term/goal": 1.0,
+        "reward_term/progress_delta": 0.0833333358168602
+      }
+    ],
+    "checkpoint": "casu_grid/results/isaac_navigation_final_full_smoke_20261012_engineering_ppo.pt",
+    "metrics_jsonl": "casu_grid/results/isaac_navigation_final_full_smoke_20261012_engineering_ppo.jsonl",
+    "tensorboard_dir": "casu_grid/results/isaac_navigation_final_full_smoke_20261012_tensorboard",
+    "checkpoint_restored_and_training_continued": true,
+    "research_status": "temporary engineering-only contract; not approved Timmy experiment"
+  },
+  "elapsed_seconds": 227.37534485702054,
+  "peak_rss_kib": 3400292
+}

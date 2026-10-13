@@ -1,0 +1,207 @@
+{
+  "schema": "casu.isaac-navigation-lifecycle-smoke.v1",
+  "status": "failed",
+  "canonical_fixture_id": "casu-layer1-seed-391728405-v1",
+  "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "spawn_mode": "fixture",
+  "initial_observation_keys": [
+    "player_state"
+  ],
+  "reset_info": {
+    "seed": 391728405,
+    "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+    "spawn_mode": "fixture"
+  },
+  "terrain_mutation_restore": {
+    "status": "skipped",
+    "reason": "requires full geometry scope"
+  },
+  "geometry": {
+    "nonempty_chunk_count": 1,
+    "occupied_cells": 982,
+    "box_collider_count": 169,
+    "build_seconds": 0.8762928280048072,
+    "half_thickness": 1.0,
+    "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+  },
+  "geometry_scope": "spawn_chunk",
+  "geometry_total_seconds": 0.8764208909997251,
+  "physics_dt_s": 0.02,
+  "physics_ticks_per_action": 10,
+  "physics_ticks_elapsed": 0,
+  "fluid_scheduler_ticks": 0,
+  "fluid_tick_delta_during_branch_a": 30,
+  "fluid_rng_decisions_consumed": 0,
+  "fluid_decision_contract": "seeded PCG64 replay tape; Unity RNG parity not claimed",
+  "liquid_affect_phase": "before_controller",
+  "fluid_grid_matches_physics_tick_count": true,
+  "snapshot_grid_tick": 40,
+  "action_tape_states": [
+    {
+      "x": -28.5,
+      "y": 501.5,
+      "vx": 0.0,
+      "vy": -2.7362733817426488e-05
+    },
+    {
+      "x": -26.714279174804688,
+      "y": 501.5,
+      "vx": 16.233766555786133,
+      "vy": -2.7364234483684413e-05
+    },
+    {
+      "x": -22.084396362304688,
+      "y": 501.5,
+      "vx": 25.0,
+      "vy": -2.7364292691345327e-05
+    },
+    {
+      "x": -20.299148559570312,
+      "y": 501.5,
+      "vx": 2.684354305267334,
+      "vy": -2.7364072593627498e-05
+    }
+  ],
+  "snapshot_replay_max_abs_state_error": 22.07833928431137,
+  "snapshot_player_state": [
+    -20.299148559570312,
+    0.0,
+    501.5,
+    1.0,
+    -3.751478061531088e-08,
+    -6.454422418755712e-08,
+    7.30519603142632e-11,
+    2.684354305267334,
+    0.0,
+    -2.7364072593627498e-05,
+    -3.8106607007648563e-06,
+    3.393868973944336e-05,
+    2.869239568159543e-11
+  ],
+  "snapshot_body_state": {
+    "x": -20.299148559570312,
+    "y": 501.5,
+    "vx": 2.684354305267334,
+    "vy": -2.7364072593627498e-05
+  },
+  "post_restore_body_state": {
+    "x": -20.299148559570312,
+    "y": 501.5,
+    "vx": 2.684354305267334,
+    "vy": -2.7364072593627498e-05
+  },
+  "snapshot_replay_branch_a": [
+    {
+      "x": -17.9765625,
+      "y": 501.5,
+      "vx": 18.918121337890625,
+      "vy": -2.736395617830567e-05
+    },
+    {
+      "x": -17.800636291503906,
+      "y": 501.5,
+      "vx": -5.1657771109603345e-06,
+      "vy": -2.742022115853615e-05
+    },
+    {
+      "x": -19.58635711669922,
+      "y": 501.5,
+      "vx": -16.23377227783203,
+      "vy": -2.736414535320364e-05
+    }
+  ],
+  "snapshot_replay_branch_b": [
+    {
+      "x": -21.1541748046875,
+      "y": 500.24267578125,
+      "vx": -0.6874332427978516,
+      "vy": -11.405146598815918
+    },
+    {
+      "x": -21.973526000976562,
+      "y": 495.9128112792969,
+      "vx": -1.440342903137207,
+      "vy": -42.340816497802734
+    },
+    {
+      "x": -22.023914337158203,
+      "y": 487.4598083496094,
+      "vx": -2.78412127494812,
+      "vy": 22.078311920166016
+    }
+  ],
+  "reset_max_abs_state_error": 1.0997327164805029,
+  "reset_restored_fluid_tick": 0,
+  "final_player_state": {
+    "x": -28.440616607666016,
+    "y": 501.47802734375,
+    "vx": 0.11645019799470901,
+    "vy": -1.100000023841858
+  },
+  "engineering_ppo": {
+    "updates": [
+      {
+        "policy_loss": -0.0009740032449672142,
+        "value_loss": 0.4527179002761841,
+        "entropy": 0.6849560141563416,
+        "approx_kl": 1.2653569077203386e-05,
+        "grad_norm": 0.28231824934482574,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 1,
+        "environment_steps": 12,
+        "completed_episodes": 2,
+        "mean_completed_return": 1.4400558471679688,
+        "mean_completed_episode_length": 1.5,
+        "rollout_seconds": 0.3104332649963908,
+        "collection_seconds": 0.2970580699911807,
+        "optimization_seconds": 0.013296759978402406,
+        "physics_step_seconds": 0.2784222410118673,
+        "physics_ticks": 120,
+        "physics_ticks_per_second": 431.0000507282936,
+        "policy_decisions_per_second": 40.39614207537357,
+        "action/advance/choice_0_fraction": 0.16666666666666666,
+        "action/advance/choice_1_fraction": 0.8333333333333334,
+        "termination/world_bounds": 2,
+        "reward_term/goal": 0.0833333358168602,
+        "reward_term/progress_delta": 0.06837224960327148
+      },
+      {
+        "policy_loss": -0.00022946670166357208,
+        "value_loss": 0.4378668814897537,
+        "entropy": 0.6807191371917725,
+        "approx_kl": 9.710590422873366e-07,
+        "grad_norm": 0.43011167645454407,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 2,
+        "environment_steps": 24,
+        "completed_episodes": 2,
+        "mean_completed_return": 1.4405126571655273,
+        "mean_completed_episode_length": 10.5,
+        "rollout_seconds": 0.30101177500910126,
+        "collection_seconds": 0.2965220439946279,
+        "optimization_seconds": 0.0044262990122660995,
+        "physics_step_seconds": 0.2837096509465482,
+        "physics_ticks": 120,
+        "physics_ticks_per_second": 422.96763469145566,
+        "policy_decisions_per_second": 40.46916660340236,
+        "action/advance/choice_0_fraction": 0.4166666666666667,
+        "action/advance/choice_1_fraction": 0.5833333333333334,
+        "termination/time_limit": 1,
+        "termination/world_bounds": 1,
+        "reward_term/goal": 0.0833333358168602,
+        "reward_term/progress_delta": 0.07838916778564453
+      }
+    ],
+    "checkpoint": "casu_grid/results/isaac_navigation_crouch_smoke_20261012_engineering_ppo.pt",
+    "metrics_jsonl": "casu_grid/results/isaac_navigation_crouch_smoke_20261012_engineering_ppo.jsonl",
+    "tensorboard_dir": "casu_grid/results/isaac_navigation_crouch_smoke_20261012_tensorboard",
+    "checkpoint_restored_and_training_continued": true,
+    "research_status": "temporary engineering-only contract; not approved Timmy experiment"
+  },
+  "elapsed_seconds": 1.9124536930175964,
+  "peak_rss_kib": 1839880
+}

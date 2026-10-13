@@ -1,0 +1,487 @@
+{
+  "actions": [
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ]
+  ],
+  "commands": [
+    {
+      "command": "CF_HELLO",
+      "outcome": "ack",
+      "round_trip_ms": 26.06554498197511
+    },
+    {
+      "command": "CF_RESET",
+      "outcome": "ack",
+      "round_trip_ms": 1016.7831410071813
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 4147.3673729924485
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 6.665933993645012
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3778.594756993698
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 4.391256021335721
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3775.7353099877946
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 4.397179989609867
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3771.9974369974807
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 4.323600005591288
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3843.2426810031757
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 4.597599006956443
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3868.264229997294
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 4.984638013411313
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3909.4843339989893
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 4.343784006778151
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3859.9088689952623
+    },
+    {
+      "command": "CF_STEP",
+      "outcome": "ack",
+      "round_trip_ms": 3.075715998420492
+    },
+    {
+      "command": "CF_STATE_DETAIL",
+      "outcome": "ack",
+      "round_trip_ms": 3905.0250969885383
+    }
+  ],
+  "completed_utc": "2026-10-12T21:50:34Z",
+  "hello": {
+    "dll_sha256": "730d57de6d5cb081a338dbc350eecb34e42ad5e514e10c93ff453006f6c8b84e",
+    "fixed_delta_time": 0.02,
+    "game_assembly_sha256": "fd0ad2851f6bae4ab2589634643b92e16696c0e36f090bdd3f4c41e8f1c97095",
+    "gameplay_hz": 60,
+    "natural_stamina": false,
+    "observation_bytes": 42012,
+    "ok": true,
+    "protocol": 2,
+    "python_participates": false,
+    "schema": 1,
+    "scientific_status": "A/A required before A/B",
+    "time_scale": 10.0,
+    "unity_version": "2022.3.62f3"
+  },
+  "initial_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      512,
+      1020
+    ],
+    "velocity": [
+      0.0,
+      0.0
+    ]
+  },
+  "initial_state_file": "000000.json",
+  "initial_state_sha256": "8eaecd83bfe77eacebdf9175e272748ac1c798c9bb2378bec3a2ed1067119586",
+  "listener_ready_utc": "2026-10-12T21:49:36Z",
+  "next_observation": {
+    "grounded": true,
+    "player_tile_position": [
+      484,
+      1013
+    ],
+    "velocity": [
+      -2.626354455947876,
+      0.0
+    ]
+  },
+  "next_state_file": "000008.json",
+  "next_state_sha256": "3f15a1c9bf9edb52248e6a18bfc69b9dad130c493ad011db8aa6994f46396069",
+  "observation_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "observations": [
+    {
+      "expected_id": 1,
+      "outcome": "received",
+      "wait_ms": 0.007124006515368819
+    },
+    {
+      "expected_id": 2,
+      "outcome": "received",
+      "wait_ms": 105.21858799620531
+    },
+    {
+      "expected_id": 3,
+      "outcome": "received",
+      "wait_ms": 22.500923019833863
+    },
+    {
+      "expected_id": 4,
+      "outcome": "received",
+      "wait_ms": 16.7522209812887
+    },
+    {
+      "expected_id": 5,
+      "outcome": "received",
+      "wait_ms": 17.185900011099875
+    },
+    {
+      "expected_id": 6,
+      "outcome": "received",
+      "wait_ms": 13.79108100081794
+    },
+    {
+      "expected_id": 7,
+      "outcome": "received",
+      "wait_ms": 16.655548999551684
+    },
+    {
+      "expected_id": 8,
+      "outcome": "received",
+      "wait_ms": 14.157152007101104
+    },
+    {
+      "expected_id": 9,
+      "outcome": "received",
+      "wait_ms": 10.471035988302901
+    }
+  ],
+  "ports": {
+    "action": 55729,
+    "observation": 59131
+  },
+  "reset": {
+    "ok": true,
+    "reset_token": 1,
+    "seed": 391728405
+  },
+  "reset_ready": {
+    "observation_id": 1,
+    "reset_ready": true,
+    "seed": 391728405,
+    "token": 1
+  },
+  "schema": 1,
+  "seed": 391728405,
+  "session": "cb1-smoke-1-1-1791841776",
+  "status": "passed",
+  "steps": [
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 1,
+      "observation_id": 2,
+      "player_tile_position": [
+        483,
+        1013
+      ],
+      "state_file": "000001.json",
+      "state_sha256": "db0ec6e307a4d3a608cc5eedcf8c97099e08e0b97aee2161967bced7a64ff80d",
+      "velocity": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 2,
+      "observation_id": 3,
+      "player_tile_position": [
+        483,
+        1013
+      ],
+      "state_file": "000002.json",
+      "state_sha256": "de3cf02335f636f8f43bcd86b9fdb083cdcda67f8494f9bd5e45f45f3aa34690",
+      "velocity": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        2,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 3,
+      "observation_id": 4,
+      "player_tile_position": [
+        485,
+        1013
+      ],
+      "state_file": "000003.json",
+      "state_sha256": "a5dc4d23c26f0a8f3c1ebf984b77011e25fce84f5d40cd97e94fb33b69ec715d",
+      "velocity": [
+        15.794801712036133,
+        -1.5921142101287842
+      ]
+    },
+    {
+      "action": [
+        2,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 4,
+      "observation_id": 5,
+      "player_tile_position": [
+        489,
+        1013
+      ],
+      "state_file": "000004.json",
+      "state_sha256": "01dcfd0b8ba9f2f94785ac2176072bfa93663a97ab675cf6cb3f9b1d06a9c1df",
+      "velocity": [
+        26.392070770263672,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 5,
+      "observation_id": 6,
+      "player_tile_position": [
+        491,
+        1013
+      ],
+      "state_file": "000005.json",
+      "state_sha256": "a0499ef6f2aa0dba29e7dd55e0956d1387ddad526dc13601afc7ec8d8c179c0b",
+      "velocity": [
+        2.6662490367889404,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        0,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 6,
+      "observation_id": 7,
+      "player_tile_position": [
+        490,
+        1013
+      ],
+      "state_file": "000006.json",
+      "state_sha256": "b76e5755ae9f2c3aa05bbca7c910a7ffb9ecd89f8f8a75839b7d60f758440ac8",
+      "velocity": [
+        -14.168066024780273,
+        -0.791612446308136
+      ]
+    },
+    {
+      "action": [
+        0,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 7,
+      "observation_id": 8,
+      "player_tile_position": [
+        485,
+        1013
+      ],
+      "state_file": "000007.json",
+      "state_sha256": "203e81138dfc513feeefedb35ffea0e61d0b72cfc407f8e473eee4a55ef3d4f0",
+      "velocity": [
+        -24.459827423095703,
+        0.0
+      ]
+    },
+    {
+      "action": [
+        1,
+        0,
+        1,
+        0,
+        4,
+        5,
+        0
+      ],
+      "grounded": true,
+      "index": 8,
+      "observation_id": 9,
+      "player_tile_position": [
+        484,
+        1013
+      ],
+      "state_file": "000008.json",
+      "state_sha256": "3f15a1c9bf9edb52248e6a18bfc69b9dad130c493ad011db8aa6994f46396069",
+      "velocity": [
+        -2.626354455947876,
+        0.0
+      ]
+    }
+  ]
+}

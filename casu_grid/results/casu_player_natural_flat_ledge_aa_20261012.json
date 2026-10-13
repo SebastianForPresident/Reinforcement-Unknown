@@ -1,0 +1,531 @@
+{
+  "schema": "casu.source-motion-aa.v1",
+  "seed": 391728405,
+  "fixture_grid_xy": [
+    483,
+    1010
+  ],
+  "fixture_terrain": "unchanged canonical terrain; continuous 22-cell occupied run x=473..494, y=1010 with six clear rows; support IDs predominantly 11",
+  "standing_temperature_fixture": "enabled; source temperature curve initializes existing cached movement multiplier to 1.0 at 37 degrees",
+  "action_tape": [
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      2,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      4,
+      5,
+      0
+    ]
+  ],
+  "runs": [
+    "casu_grid/results/casu_player_natural_flat_ledge_ticks_a_20261012.jsonl",
+    "casu_grid/results/casu_player_natural_flat_ledge_ticks_b_20261012.jsonl"
+  ],
+  "compared_physics_samples_per_run": 70,
+  "sample_fields": [
+    "position",
+    "velocity",
+    "grounded",
+    "move_dir",
+    "ended_jump",
+    "jump_cooldown",
+    "time_since_grounded",
+    "max_speed",
+    "move_force",
+    "jump_speed",
+    "crouch_amount",
+    "collider_size",
+    "collider_offset",
+    "collider_edge_radius",
+    "slippery",
+    "standing_on",
+    "ground_box_cast",
+    "contact_count",
+    "contacts"
+  ],
+  "absolute_frame_clock_fields_excluded": [
+    "fixed_index",
+    "frame",
+    "fixed_time"
+  ],
+  "all_physical_fields_identical": true,
+  "maximum_position_or_velocity_delta": 0.0,
+  "samples": [
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 0,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 1,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 2,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 3,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 4,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 5,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 6,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 7,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 8,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 1,
+      "macrostep_physics_ticks": 9,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 0,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 1,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 2,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 3,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 4,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 5,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 6,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 7,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 8,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 2,
+      "macrostep_physics_ticks": 9,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 0,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 1,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 2,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 3,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 4,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 5,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 6,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 7,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 8,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 3,
+      "macrostep_physics_ticks": 9,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 0,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 1,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 2,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 3,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 4,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 5,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 6,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 7,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 8,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 4,
+      "macrostep_physics_ticks": 9,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 0,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 1,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 2,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 3,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 4,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 5,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 6,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 7,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 8,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 5,
+      "macrostep_physics_ticks": 9,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 0,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 1,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 2,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 3,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 4,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 5,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 6,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 7,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 8,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 6,
+      "macrostep_physics_ticks": 9,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 0,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 1,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 2,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 3,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 4,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 5,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 6,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 7,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 8,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    },
+    {
+      "action_sequence": 7,
+      "macrostep_physics_ticks": 9,
+      "fields_identical": true,
+      "max_position_or_velocity_delta": 0.0
+    }
+  ],
+  "note": "Only the first ten ticks for each requested action sequence are compared. The harness continues fixed-update sampling after the final command while waiting for process shutdown; post-horizon rows are excluded."
+}

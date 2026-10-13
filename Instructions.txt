@@ -1,0 +1,478 @@
+# Reinforcement-Unknown — Autonomous Engineering Completion Mandate
+
+## Mission
+
+**Finish the engineering required to make Timmy trainable in a near-identical Isaac Lab replica of Casualties Unknown Layer 1, seed `391728405`.**
+
+You are not being assigned another fifteen-minute reconnaissance mission.
+
+You are being assigned an end-to-end engineering outcome. Investigate, implement, debug, validate, benchmark, refactor, and iterate independently until the acceptance criteria are satisfied or a genuine external blocker prevents progress.
+
+The user is stepping away for dinner and has explicitly expressed that repeated technical approval requests defeat the purpose of delegating this work.
+
+**Do not stop after completing a subsection to ask what to do next. Continue autonomously.**
+
+Use reasonable engineering judgment. You have authority over implementation details, instrumentation, tests, build infrastructure, and fidelity-preserving optimization.
+
+The user retains authority over reinforcement-learning research design.
+
+## Desired final deliverable
+
+A working Isaac Lab Layer 1 environment that:
+
+1. Loads the exact canonical CasU world for seed `391728405`.
+2. Reproduces relevant CasU terrain collision behavior.
+3. Implements the standing player and navigation physics.
+4. Reproduces CasU action timing and relevant controller state.
+5. Includes fluid/body interaction where it materially affects navigation.
+6. Supports complete, repeatable Isaac environment reset and state restoration.
+7. Passes controlled CasU-versus-Isaac validation experiments.
+8. Supports independently running environments and measurable throughput.
+9. Exposes editable user-owned action, observation, reward, encoder, policy/value-network, and PPO configuration interfaces.
+10. Executes an end-to-end PPO training smoke with actual rollouts, gradients, updates, logging, and checkpoint save/load.
+11. Provides a simple, documented launch-and-monitor workflow requiring no additional engineering from the user.
+
+Do not represent a partially validated surrogate as fully CasU-equivalent.
+
+## Current baseline
+
+### Canonical grid state
+
+- Isaac worktree:
+  `/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac`
+- Canonical fixture:
+  `casu_grid/fixtures/casu-layer1-seed-391728405-v1/`
+- Exact 1024×1024 terrain and fluid state imported.
+- Source-derived discrete updates, snapshot/restore and scheduling implemented.
+- Mission 10 commit `3e216557`.
+- Mission 11: 43 tests passing.
+
+### CasU reference harness
+
+Historical project:
+`/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown`
+
+- Contained headless Unity/BepInEx/CB1 execution established.
+- Existing AutoStart hot-entry operational.
+- CB1 control uses ten physics ticks per decision.
+- Mission 8B obtained 131/131 identical measured player samples across repeated runs using an opt-in temperature-cache initialization fixture.
+- Source game reports standing body mass 49.28, box collider 1.6×5.0 with edge radius 0.1, moveForce 4000, maxSpeed 25, jumpSpeed 26, slowdownAmount 0.2. Treat these as measured starting parameters, not proof of final effective force behavior.
+- Keep the hard-fail isolated launcher requirements and exact-owned process cleanup.
+
+### Mission 11 collision findings
+
+- 256 enabled TilemapCollider2D components on layer 6.
+- `usedByComposite=false`.
+- 256 sibling CompositeCollider2D components with zero paths.
+- Observed occupied canonical seed tiles use Grid collider shapes.
+- CasU tile mutation follows `SetBlock` → chunk rewrite → `ChunkUpdated`.
+- Unity collider refresh timing after mutation remains unmeasured.
+- Isaac prototype has nine collision layouts built from 29 static cuboids.
+- Three passive probes settled at expected heights over 60 ticks.
+- No paired CasU contact A/B tests yet.
+- Full-world terrain geometry has not been constructed or validated.
+
+Mission 11 artifacts:
+- `casu_grid/MISSION11_COLLISION_REPORT.md`
+- `casu_grid/results/mission11_casu_collision_detail_seed391728405.json`
+- `casu_grid/results/mission11_isaac_collision_trace.json`
+
+### Execution stack
+
+- Fedora 44
+- RTX 3070 8 GB
+- Isaac Sim 4.5.0 / Isaac Lab 2.1.1
+- Isaac installation:
+  `/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0`
+
+Use the known-working headless `AppLauncher` integration.
+
+## Operating contract — read carefully
+
+This is a consolidated authorization to complete the engineering work.
+
+You may autonomously:
+
+- Run additional CasU and Isaac measurements.
+- Repair launchers and diagnostic clients.
+- Add minimal opt-in CasU fixture or state-inspection hooks.
+- Recover tile contacts and collider refresh timing.
+- Design and implement equivalent Isaac terrain collision geometry.
+- Implement and test standing-player physics.
+- Correct discrepancies found through A/B validation.
+- Implement Isaac environment lifecycle/reset/step interfaces.
+- Add reproducibility and determinism checks.
+- Build training infrastructure and researcher-facing configuration modules.
+- Build metrics, trajectory captures, visualization and checkpointing.
+- Profile and optimize bottlenecks without violating the validated simulation contract.
+- Run small bounded PPO engineering smoke tests.
+- Make focused commits and produce documentation.
+
+**Do not require approval for ordinary engineering decisions or the transition between these stages.**
+
+Do not treat intermediate results as reasons to stop and ask for another prompt.
+
+Work continuously toward the final deliverable.
+
+Only escalate when:
+
+- An essential research decision belongs to the user.
+- A material destructive or irreversible operation cannot be made safe through isolation or backups.
+- A genuinely unresolved blocker prevents independent progress.
+- A proposed change would knowingly abandon an established fidelity requirement.
+
+Otherwise, decide, implement, test, and continue.
+
+If execution limits or context limits interrupt work, write a durable checkpoint with completed changes, exact continuation commands, unresolved issues and the next autonomous steps. The next run should continue from that checkpoint rather than require the user to reconstruct the project.
+
+## Research ownership — hard boundary
+
+The user personally controls:
+
+- Semantic action-space design.
+- Observation selection, masking and representation.
+- Reward and penalty design.
+- Encoder and neural-network architecture.
+- PPO hyperparameters and experimental objectives.
+- Research hypotheses and interpretation.
+- Whether to reuse historical PPO_5 weights or train a new architecture.
+
+You must not silently select or optimize these research choices.
+
+However, **this restriction must not prevent completion of the engineering work**.
+
+Implement the full research-facing interface with configurable contracts and shape validation.
+
+For integration testing, use an explicitly labeled, temporary engineering smoke configuration. It may use a simple, documented set of actions, observations, rewards and a small model solely to verify that the training pipeline functions.
+
+Do not present that temporary configuration as the user's approved Timmy experiment.
+
+Do not transfer historical PPO_5 weights unless the user separately chooses to do so. Existing checkpoints must remain preserved.
+
+The deliverable should let the user make those research decisions directly without editing simulator internals.
+
+## Workstream A — Establish cross-application collision parity
+
+Using the contained CasU executable, build controlled source-game fixture tests corresponding to the existing Isaac prototypes.
+
+Cover:
+
+- Isolated solid tile.
+- Adjacent occupied tiles.
+- Flat terrain.
+- Vertical wall.
+- 64-cell chunk seam.
+- Glass and any demonstrated collision exceptions.
+- Terrain destruction and collider-refresh timing.
+
+Capture source-game collider-query and contact behavior at the relevant physics boundaries.
+
+Repeat controlled runs where necessary to distinguish deterministic behavior from run-to-run variance.
+
+Use the measured `usedByComposite=false` configuration rather than assuming merged composite paths.
+
+If the existing fixture tooling cannot place a tile or body at a controlled position, add the smallest safe test-only capability yourself.
+
+Do not abandon the A/B test simply because instrumentation is missing.
+
+Implement corresponding Isaac geometry.
+
+Compare geometry, first contact, collision normal, resting pose, seam crossing and post-destruction behavior.
+
+For grid IDs and geometry coordinates, seek exact agreement where appropriate.
+
+For floating-point physics, measure CasU baseline variance and define justified acceptance tolerances.
+
+Preserve and report residual differences.
+
+## Workstream B — Build the complete canonical Layer 1 physical terrain
+
+Once minimal collider cases are sufficiently characterized, construct the actual seed-specific world in Isaac.
+
+Requirements:
+
+- Use the frozen canonical terrain and fluid arrays.
+- Preserve world coordinate conversion and 64×64 chunk boundaries.
+- Generate collision geometry for all relevant occupied canonical cells.
+- Respect the measured effective Unity tile geometry and collision exceptions.
+- Handle destructible cells and collider updates with verified timing semantics.
+- Avoid millions of independent dynamic rigid bodies.
+- Use appropriately grouped or static geometry where equivalent.
+- Support bounded construction and cleanup.
+- Keep collision geometry synchronized with the existing discrete grid state.
+
+Measure construction time, runtime memory and collider count.
+
+If full-world geometry exceeds practical hardware limits, investigate fidelity-preserving spatial activation or other memory-efficient representations.
+
+Maintain a clear distinction between exact discrete world state and whatever geometry is currently active.
+
+Do not falsely claim complete world fidelity if essential collisions are missing.
+
+## Workstream C — Implement standing-player navigation physics
+
+Implement the source-game standing controller and body in Isaac.
+
+Include:
+
+- Measured mass, collider dimensions and configuration.
+- Source-equivalent gravity and damping.
+- Ground and wall detection.
+- Horizontal acceleration, stopping and reversal.
+- Jump press/hold/release logic.
+- Coyote time and relevant cooldowns.
+- Midair control.
+- Crouch collider state.
+- Slippery-tile controller effects.
+- Relevant fluid drag and buoyancy.
+- Action input holding and rising/falling edges.
+- Ten-physics-tick macrostep timing.
+- Source-defined body/controller update ordering.
+
+Preserve the distinction between the normal single-body standing mode and ragdoll physics.
+
+Ragdoll mechanics are not required for the first navigation environment unless source-game A/B demonstrates they are essential to the selected benchmark.
+
+Likewise, do not implement combat, enemies, buildings, crafting, inventory or medical systems unless they directly affect the controlled navigation scenario.
+
+Preserve the established test-fixture distinction around initial temperature-cache initialization; do not hide legitimate ragdoll behavior by forcing the player to stand each tick.
+
+## Workstream D — Prove environment parity and reproducibility
+
+This is separate from CasU-versus-Isaac agreement.
+
+Verify that the Isaac environment internally behaves as a coherent, reproducible simulator.
+
+Cover:
+
+- Complete state initialization.
+- Independent environment resets.
+- No hidden mutable state shared between environments.
+- Exact discrete-grid snapshot/restore continuation.
+- Player body state restoration.
+- Collider state restoration after terrain mutation.
+- Fluid scheduler and random-state restoration.
+- Action/observation timing.
+- Terminal-state handling.
+- Repeated controlled action tapes.
+- Per-environment isolation under batched execution.
+
+Explicitly distinguish:
+
+1. CasU reference repeatability.
+2. Isaac internal replay/reproducibility.
+3. CasU-versus-Isaac physical fidelity.
+4. RL interface correctness.
+
+Do not substitute one category for another.
+
+## Workstream E — CasU-versus-Isaac movement A/B
+
+Using equivalent initial terrain, player pose, velocities and action tapes, compare:
+
+- Neutral standing.
+- Free fall and landing.
+- Ground acceleration.
+- Braking and reversal.
+- Jump onset, apex and release.
+- Air steering.
+- Wall collision.
+- Chunk seams.
+- Slippery terrain.
+- Fluid immersion and motion where relevant.
+- Terrain destruction and falling through an opening.
+
+Recover or construct unobstructed jump fixtures rather than relying on the historically obstructed initial spawn.
+
+Capture numerical trajectories and controller-state transitions.
+
+Where meaningful, compare per-physics-tick data, not only ten-tick macrostep boundaries.
+
+Require evidence-based agreement, not visually plausible behavior alone.
+
+Investigate and correct discrepancies autonomously.
+
+If the engines cannot reproduce a particular contact behavior exactly, document and quantify the residual error and whether it materially affects navigation decisions.
+
+## Workstream F — Implement the researcher-facing RL workbench
+
+The user must be able to engineer Timmy without depending on you for every tweak.
+
+Expose separate, readable project-owned interfaces for:
+
+**Actions**
+- Action components, ranges, heads and timing.
+- Clear mapping to simulator inputs.
+- Validation of shapes and bounds.
+
+**Observations**
+- Spatial channels and scalar inputs.
+- Normalization and masks.
+- Coordinate conventions.
+- Tensor-shape inspection.
+
+**Rewards**
+- User-defined reward terms.
+- Independent term logging.
+- Terminal reward and penalty handling.
+- Reward diagnostics.
+
+**Model and encoder architecture**
+- Spatial encoders, scalar encoders, feature fusion.
+- Policy and value networks.
+- Configurable layers and dimensions.
+- Optional recurrence if explicitly selected by the researcher.
+- Parameter counts and tensor-shape validation.
+
+**PPO/training configuration**
+- Learning rate, rollout length, minibatches, discounting, clipping, entropy and related settings.
+- Clearly versioned run configuration.
+- Explicit compatibility checks for checkpoint loading.
+
+The precise file layout is your engineering choice.
+
+Provide approachable documentation and examples explaining where the user changes each research parameter.
+
+Do not make the user edit Isaac Lab internals.
+
+Do not silently alter a user-authored experimental configuration to make a training run succeed.
+
+## Workstream G — Training, diagnostics and monitoring
+
+Implement:
+
+- Headless training launch.
+- Single-environment and multi-environment rollout support.
+- PPO integration with an appropriate supported library or existing implementation.
+- Reliable checkpoint save/load.
+- Training resume semantics.
+- Structured experiment directories.
+- Complete configuration and source revision capture.
+- Reward-term breakdowns.
+- Completion rates and progress measurements.
+- Episode lengths.
+- Termination reasons.
+- Action-distribution diagnostics.
+- PPO optimization metrics.
+- Simulation and training throughput.
+- Recorded trajectories and inspectable replays.
+- A practical metrics dashboard, such as TensorBoard.
+
+Separate simulation bottlenecks from neural-network training overhead.
+
+Do not fabricate metrics or claim a benchmark without running it.
+
+## Workstream H — End-to-end PPO engineering smoke
+
+Once the environment and training interfaces are functional, run a bounded training experiment using a clearly marked **engineering-only test configuration**.
+
+Verify:
+
+1. Environment creation.
+2. Valid action/observation tensors.
+3. Multiple rollout steps.
+4. Episode reset and termination.
+5. Nontrivial rewards from the smoke objective.
+6. Finite losses and gradients.
+7. At least one actual PPO optimizer update.
+8. Checkpoint creation.
+9. Checkpoint restoration.
+10. Continued training after restore.
+11. Diagnostics and metrics output.
+12. Clean execution and process cleanup.
+
+Do not claim that this proves Timmy has learned navigation.
+
+Do not launch an unbounded or multi-day training job with an AI-selected research configuration.
+
+The user's actual experiment may begin only after they approve or author its learning contract.
+
+## Workstream I — Performance and fidelity-preserving optimization
+
+Measure realistic full-environment performance after terrain and player integration.
+
+Report:
+
+- Aggregate physics ticks/s.
+- Aggregate ten-tick policy decisions/s.
+- Per-environment throughput.
+- Environment count.
+- Memory footprint.
+- Reset and snapshot latency.
+- Policy inference and PPO update overhead.
+
+Preserve the validated source-derived grid reference implementation as a correctness oracle.
+
+You may optimize simulation code, including compiled CPU paths, data layout, batched execution or selective spatial activation, provided regression tests demonstrate preserved required behavior.
+
+Do not change simulated physics timestep or action decimation merely to improve benchmark numbers.
+
+Performance optimizations must not redefine the experiment.
+
+## Stop conditions
+
+Do not stop merely because:
+
+- A subtask is completed.
+- A new technical question arises.
+- A library interface is unfamiliar.
+- A diagnostic hook is missing.
+- A test fails.
+- A minor integration problem appears.
+- Another internal engineering phase needs implementation.
+
+Those are your responsibility to resolve.
+
+Stop and produce a precise blocker report only if:
+
+- The required external capability genuinely cannot be established.
+- A major destructive action cannot be made safe.
+- An essential researcher-owned decision is required.
+- A demonstrated fidelity incompatibility demands a deliberate change to the stated scientific objective.
+- Available execution resources prevent further useful progress.
+
+If an individual verification case is blocked, continue independent workstreams where technically possible; do not abandon the entire deliverable over one unresolved measurement.
+
+## Final acceptance report
+
+Return one consolidated report, not a chain of partial handoffs.
+
+Include:
+
+1. The runnable Isaac environment and exact startup commands.
+2. Canonical Layer 1 fixture verification.
+3. Collision reconstruction evidence and CasU A/B.
+4. Player motion A/B results.
+5. Isaac internal environment parity and reproducibility results.
+6. Remaining physics differences and their practical significance.
+7. Researcher-facing action, observation, reward and model interfaces.
+8. PPO smoke results, including updates and checkpoint restoration.
+9. Training metrics and replay inspection workflow.
+10. Measured throughput and resource usage.
+11. Tests, failures and unresolved limitations.
+12. Commits and final repository state.
+13. A concise user-facing guide: **How to configure Timmy, launch training, and inspect results.**
+
+Preserve the original CasU game and historical RL artifacts.
+
+Maintain staged-runtime safety guards and exact-owned-process cleanup.
+
+Do not commit secrets, giant experiment outputs or unrelated historical modifications.
+
+Make focused commits and durable progress notes as needed.
+
+## Definition of done
+
+**Training-ready means the user can sit down, choose the action/observation/reward/model/training configuration, launch a real PPO run in the canonical Layer 1 Isaac environment, and inspect meaningful progress without requiring further engineering intervention.**
+
+It does not mean the user must accept AI-designed research choices.
+
+It does not mean that a successful PPO smoke proves CasU physical parity.
+
+It does not mean that historical weights must be transferred.
+
+It does not mean that performance or fidelity limitations may be concealed.
+
+Complete as much of this end-to-end mandate as possible without further user involvement, aiming for the stated definition of done.
+
+**The next handoff should be a functioning research laboratory, not another request to authorize an obvious engineering task.**

@@ -1,0 +1,39 @@
+{
+  "schema": "casu.player-flat-run-three-run-repeatability.v1",
+  "source_fixture": "canonical terrain, test-only standing temperature-cache init and player relocation to (483,1010); no terrain edit",
+  "runs": [
+    "casu_grid/results/casu_player_natural_flat_ledge_ticks_a_20261012.jsonl",
+    "casu_grid/results/casu_player_natural_flat_ledge_ticks_b_20261012.jsonl",
+    "casu_grid/results/casu_player_natural_flat_ledge_ticks_c_20261012.jsonl"
+  ],
+  "matched_action_boundary_samples": 70,
+  "compared_fields": [
+    "position",
+    "velocity",
+    "mass",
+    "drag",
+    "gravity_scale",
+    "standing",
+    "grounded",
+    "move_dir",
+    "ended_jump",
+    "jump_cooldown",
+    "time_since_grounded",
+    "max_speed",
+    "move_force",
+    "jump_speed",
+    "crouch_amount",
+    "collider_size",
+    "collider_offset",
+    "collider_edge_radius",
+    "slippery",
+    "standing_on",
+    "ground_box_cast",
+    "contact_count",
+    "contacts_truncated",
+    "contacts"
+  ],
+  "mismatch_count": 0,
+  "mismatches": [],
+  "exact_repeatability": true
+}

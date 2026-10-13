@@ -1,0 +1,227 @@
+{
+  "schema": "casu.isaac-navigation-lifecycle-smoke.v1",
+  "status": "passed",
+  "canonical_fixture_id": "casu-layer1-seed-391728405-v1",
+  "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "spawn_mode": "fixture",
+  "initial_observation_keys": [
+    "player_state"
+  ],
+  "reset_info": {
+    "seed": 391728405,
+    "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+    "spawn_mode": "fixture"
+  },
+  "terrain_mutation_restore": {
+    "status": "skipped",
+    "reason": "requires full geometry scope"
+  },
+  "geometry": {
+    "nonempty_chunk_count": 1,
+    "occupied_cells": 982,
+    "box_collider_count": 169,
+    "build_seconds": 0.8736397940083407,
+    "half_thickness": 1.0,
+    "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+  },
+  "geometry_scope": "spawn_chunk",
+  "geometry_total_seconds": 0.8737483810109552,
+  "physics_dt_s": 0.02,
+  "physics_ticks_per_action": 10,
+  "rounded_player_collider": true,
+  "crouch_shape_probe": {
+    "status": "passed",
+    "scale_standing": [
+      true,
+      false
+    ],
+    "scale_crouched": [
+      false,
+      true
+    ],
+    "scale_recovering": [
+      true,
+      false
+    ]
+  },
+  "physics_ticks_elapsed": 40,
+  "fluid_scheduler_ticks": 40,
+  "fluid_tick_delta_during_branch_a": 30,
+  "fluid_rng_decisions_consumed": 0,
+  "fluid_decision_contract": "seeded PCG64 replay tape; Unity RNG parity not claimed",
+  "liquid_affect_phase": "before_controller",
+  "fluid_grid_matches_physics_tick_count": true,
+  "snapshot_grid_tick": 60,
+  "action_tape_states": [
+    {
+      "x": -28.5,
+      "y": 501.5999755859375,
+      "vx": -6.830973143223673e-05,
+      "vy": -4.7118419388425536e-07
+    },
+    {
+      "x": -26.71429443359375,
+      "y": 501.60003662109375,
+      "vx": 16.233713150024414,
+      "vy": -5.900629912503064e-05
+    },
+    {
+      "x": -22.051956176757812,
+      "y": 501.6000061035156,
+      "vx": 25.0,
+      "vy": -4.735170477943029e-07
+    },
+    {
+      "x": -20.266708374023438,
+      "y": 501.5999755859375,
+      "vx": 2.684296131134033,
+      "vy": -4.711423571279738e-07
+    }
+  ],
+  "snapshot_replay_max_abs_state_error": 0.0,
+  "snapshot_player_state": [
+    -20.266708374023438,
+    6.323925560991484e-08,
+    501.5999755859375,
+    1.0,
+    -4.6226617200773035e-08,
+    1.6168471006494656e-09,
+    9.399678951860224e-11,
+    2.6842963695526123,
+    -1.0881697107834043e-06,
+    -4.711422434411361e-07,
+    1.5908344721538015e-06,
+    3.4672771676014236e-07,
+    2.4637499614239833e-13
+  ],
+  "snapshot_body_state": {
+    "x": -20.266708374023438,
+    "y": 501.5999755859375,
+    "vx": 2.6842963695526123,
+    "vy": -4.711422434411361e-07
+  },
+  "post_restore_body_state": {
+    "x": -20.266708374023438,
+    "y": 501.5999755859375,
+    "vx": 2.684296131134033,
+    "vy": -4.711423571279738e-07
+  },
+  "snapshot_replay_branch_a": [
+    {
+      "x": -17.944137573242188,
+      "y": 501.60003662109375,
+      "vx": 18.91806411743164,
+      "vy": -5.9004538343288004e-05
+    },
+    {
+      "x": -17.90033721923828,
+      "y": 501.5999755859375,
+      "vx": 0.00023624396999366581,
+      "vy": -4.99527232022956e-07
+    },
+    {
+      "x": -19.68602752685547,
+      "y": 501.60003662109375,
+      "vx": -16.233577728271484,
+      "vy": -5.900364340050146e-05
+    }
+  ],
+  "snapshot_replay_branch_b": [
+    {
+      "x": -17.944137573242188,
+      "y": 501.60003662109375,
+      "vx": 18.91806411743164,
+      "vy": -5.9004538343288004e-05
+    },
+    {
+      "x": -17.90033721923828,
+      "y": 501.5999755859375,
+      "vx": 0.00023624396999366581,
+      "vy": -4.99527232022956e-07
+    },
+    {
+      "x": -19.68602752685547,
+      "y": 501.60003662109375,
+      "vx": -16.233577728271484,
+      "vy": -5.900364340050146e-05
+    }
+  ],
+  "reset_max_abs_state_error": 0.0,
+  "reset_restored_fluid_tick": 40,
+  "final_player_state": {
+    "x": -25.417221069335938,
+    "y": 501.60003662109375,
+    "vx": 0.020041851326823235,
+    "vy": -5.9003763453802094e-05
+  },
+  "engineering_ppo": {
+    "updates": [
+      {
+        "policy_loss": -0.000926156819332391,
+        "value_loss": 63.55995178222656,
+        "entropy": 0.6850031018257141,
+        "approx_kl": 2.9851993681440092e-06,
+        "grad_norm": 8.498685836791992,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 1,
+        "environment_steps": 12,
+        "completed_episodes": 0,
+        "mean_completed_return": null,
+        "mean_completed_episode_length": null,
+        "rollout_seconds": 0.26020403098664246,
+        "collection_seconds": 0.24564095301320776,
+        "optimization_seconds": 0.014554391003912315,
+        "physics_step_seconds": 0.23205006902571768,
+        "physics_ticks": 120,
+        "physics_ticks_per_second": 517.129775068934,
+        "environment_count": 1,
+        "batch_calls_per_second": 48.85178897410798,
+        "policy_decisions_per_second": 48.85178897410798,
+        "policy_decisions_per_env_second": 48.85178897410798,
+        "action/advance/choice_0_fraction": 0.25,
+        "action/advance/choice_1_fraction": 0.75,
+        "reward_term/goal": 0.8333333134651184,
+        "reward_term/progress_delta": 0.0833333358168602
+      },
+      {
+        "policy_loss": -0.0001205615723542941,
+        "value_loss": 29.962637901306152,
+        "entropy": 0.6857158541679382,
+        "approx_kl": 2.4884939193725586e-06,
+        "grad_norm": 5.78228497505188,
+        "optimizer_batches": 2,
+        "epochs_completed": 2,
+        "parameters": 467,
+        "update": 2,
+        "environment_steps": 24,
+        "completed_episodes": 1,
+        "mean_completed_return": 37.0,
+        "mean_completed_episode_length": 20.0,
+        "rollout_seconds": 0.24741214999812655,
+        "collection_seconds": 0.24367225501919165,
+        "optimization_seconds": 0.0036787359858863056,
+        "physics_step_seconds": 0.23281492802198045,
+        "physics_ticks": 120,
+        "physics_ticks_per_second": 515.4308661370313,
+        "environment_count": 1,
+        "batch_calls_per_second": 49.24647658000653,
+        "policy_decisions_per_second": 49.24647658000653,
+        "policy_decisions_per_env_second": 49.24647658000653,
+        "action/advance/choice_0_fraction": 0.4166666666666667,
+        "action/advance/choice_1_fraction": 0.5833333333333334,
+        "termination/time_limit": 1,
+        "reward_term/goal": 1.0,
+        "reward_term/progress_delta": 0.0833333358168602
+      }
+    ],
+    "checkpoint": "casu_grid/results/isaac_navigation_crouch_shape_20261012_engineering_ppo.pt",
+    "metrics_jsonl": "casu_grid/results/isaac_navigation_crouch_shape_20261012_engineering_ppo.jsonl",
+    "tensorboard_dir": "casu_grid/results/isaac_navigation_crouch_shape_20261012_tensorboard",
+    "checkpoint_restored_and_training_continued": true,
+    "research_status": "temporary engineering-only contract; not approved Timmy experiment"
+  },
+  "elapsed_seconds": 1.8320394260226749,
+  "peak_rss_kib": 1838584
+}

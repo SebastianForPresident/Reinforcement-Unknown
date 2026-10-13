@@ -1,0 +1,114 @@
+{
+  "status": "passed",
+  "num_envs": 2,
+  "geometry_scope": "full",
+  "geometry_representation": "chunk_mesh",
+  "geometry_by_env": [
+    {
+      "nonempty_chunk_collider_count": 256,
+      "occupied_cells": 320647,
+      "mesh_vertex_count": 844282,
+      "mesh_quad_count": 841432,
+      "half_thickness": 1.0,
+      "build_seconds": 2.5010994769982062,
+      "collision_approximation": "none",
+      "representation": "one closed static triangle mesh per nonempty 64x64 CasU chunk"
+    },
+    {
+      "nonempty_chunk_collider_count": 256,
+      "occupied_cells": 320647,
+      "mesh_vertex_count": 844282,
+      "mesh_quad_count": 841432,
+      "half_thickness": 1.0,
+      "build_seconds": 2.5144473419932183,
+      "collision_approximation": "none",
+      "representation": "one closed static triangle mesh per nonempty 64x64 CasU chunk"
+    }
+  ],
+  "geometry_build_seconds": 5.017128284001956,
+  "construction_and_smoke_seconds": 0.7512042390007991,
+  "action_elapsed_seconds": 0.035046727978624403,
+  "aggregate_physics_ticks_per_second": 570.6666828412153,
+  "aggregate_policy_decisions_per_second": 57.06666828412153,
+  "per_env_physics_ticks_per_second": 285.33334142060767,
+  "initial": [
+    {
+      "x": -4.270336262379715e-07,
+      "y": 507.5,
+      "vx": 8.335610800713766e-06,
+      "vy": -2.3428648887602321e-07
+    },
+    {
+      "x": -0.001708984375,
+      "y": 507.5000305175781,
+      "vx": 0.005598141811788082,
+      "vy": -2.42612532019848e-05
+    }
+  ],
+  "after_independent_actions": [
+    {
+      "x": 1.4831829071044922,
+      "y": 507.5,
+      "vx": 13.483783721923828,
+      "vy": -1.1087533493991941e-05
+    },
+    {
+      "x": -0.001708984375,
+      "y": 507.5000305175781,
+      "vx": 0.005565923172980547,
+      "vy": 3.330187973915599e-05
+    }
+  ],
+  "partial_reset": [
+    {
+      "x": 0.0,
+      "y": 507.97802734375,
+      "vx": 0.0,
+      "vy": -1.100000023841858
+    },
+    {
+      "x": -0.0018310546875,
+      "y": 507.5000305175781,
+      "vx": 0.004608574789017439,
+      "vy": -0.00010166562424274161
+    }
+  ],
+  "replay_max_abs_error": 0.006936640711501241,
+  "replay_position_errors_by_env": [
+    6.67572021484375e-06,
+    0.006936640711501241
+  ],
+  "controlled_env_replay_tolerance_m": 0.0001,
+  "passive_env_replay_tolerance_m": 0.01,
+  "passive_neighbor_delta_during_partial_reset": {
+    "x": -0.0001220703125,
+    "y": 0.0,
+    "vx": -0.0009573483839631081,
+    "vy": -0.0001349675039818976
+  },
+  "isolation_position_tolerance_m": 0.001,
+  "isolation_velocity_tolerance_mps": 0.01,
+  "isolation_passed": true,
+  "canonical_content_id": "sha256:0f1413f47d255bbab25fbc43aaa433efdbbb8c15a260ec48268cd02429495ba8",
+  "peak_rss_gib": 2.102954864501953,
+  "physics_ticks_per_action": 10,
+  "terrain_mutation_restore": {
+    "status": "passed",
+    "cell_xy": [
+      0,
+      0
+    ],
+    "removed_block_id": 14,
+    "slot0_chunk_vertices": [
+      3656,
+      3654,
+      3656
+    ],
+    "slot1_chunk_vertices": [
+      3656,
+      3656,
+      3656
+    ],
+    "player_root_state_preserved": true
+  }
+}
