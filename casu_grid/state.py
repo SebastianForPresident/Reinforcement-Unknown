@@ -62,6 +62,34 @@ class DecisionStream:
         return obj
 
 
+class SeededDecisionStream:
+    """On-demand deterministic PCG64 decisions with compact restorable state.
+
+    This is a project-owned simulator stream, deliberately not Unity RNG parity.
+    """
+    def __init__(self, seed: int):
+        self.seed = int(seed)
+        self.rng = np.random.default_rng(self.seed)
+        self.position = 0
+
+    def next_bool(self) -> bool:
+        self.position += 1
+        return bool(self.rng.integers(0, 2))
+
+    def snapshot(self) -> dict[str, Any]:
+        return {"algorithm": "numpy.PCG64", "seed": self.seed,
+                "position": self.position, "state": copy.deepcopy(self.rng.bit_generator.state)}
+
+    @classmethod
+    def from_snapshot(cls, snap: dict[str, Any]) -> "SeededDecisionStream":
+        if snap.get("algorithm") != "numpy.PCG64":
+            raise ValueError("unsupported seeded decision-stream algorithm")
+        obj = cls(snap["seed"])
+        obj.rng.bit_generator.state = copy.deepcopy(snap["state"])
+        obj.position = int(snap["position"])
+        return obj
+
+
 class CasUGridState:
     """Discrete terrain/fluid state with configurable full-world dimensions."""
 
@@ -86,6 +114,7 @@ class CasUGridState:
         self.push_events = 0
         self.last_chunk_update: tuple[int, int] | None = None
         self.block_revision = 0
+        self.dirty_chunks: set[tuple[int, int]] = set()
 
     @staticmethod
     def world_to_cell(x: float, y: float, width: int, height: int) -> tuple[int, int]:
@@ -111,6 +140,7 @@ class CasUGridState:
             raise ValueError("block ID must fit uint16")
         self.blocks[x, y] = block_id
         self.last_chunk_update = (x // 64, y // 64)
+        self.dirty_chunks.add(self.last_chunk_update)
         self.block_revision += 1
 
     def get_damage(self, x: int, y: int) -> BlockDamage | None:
@@ -193,7 +223,7 @@ class CasUGridState:
                 self.water_move_count = 0
                 self.push_events += 1
 
-    def simulation_step(self) -> None:
+    def simulation_step(self, *, decision_budget: int | None = None) -> None:
         (xmin, xmax), (ymin, ymax) = self.simulation_range_index()
         for x in range(xmin, xmax):
             for y in range(ymin, ymax):
@@ -214,7 +244,11 @@ class CasUGridState:
                     self.fluids[x, y] = 2
                 right, left = self.empty(x + 1, y), self.empty(x - 1, y)
                 if right and left:
-                    direction = 1 if self.rng.next_bool() else -1
+                    if decision_budget is not None and (
+                            self.rng.position >= decision_budget):
+                        direction = 1  # deterministic fallback beyond replay tape budget
+                    else:
+                        direction = 1 if self.rng.next_bool() else -1
                     self.fluids[x, y], self.fluids[x + direction, y] = self.fluids[x + direction, y], self.fluids[x, y]
                 elif right:
                     self.fluids[x, y], self.fluids[x + 1, y] = self.fluids[x + 1, y], self.fluids[x, y]
@@ -236,6 +270,7 @@ class CasUGridState:
             "rng": self.rng.snapshot(), "fluid_push_enabled": self.fluid_push_enabled,
             "push_events": self.push_events, "last_chunk_update": self.last_chunk_update,
             "block_revision": self.block_revision,
+            "dirty_chunks": sorted(self.dirty_chunks),
         }
 
     def restore(self, snap: dict[str, Any]) -> None:
@@ -248,7 +283,11 @@ class CasUGridState:
                      "tick", "camera_x", "camera_y", "fluid_push_enabled", "push_events",
                      "last_chunk_update", "block_revision"):
             setattr(self, name, snap[name])
-        self.rng = DecisionStream.from_snapshot(snap["rng"])
+        self.dirty_chunks = set(tuple(chunk) for chunk in snap.get("dirty_chunks", ()))
+        if snap["rng"].get("algorithm") == "numpy.PCG64":
+            self.rng = SeededDecisionStream.from_snapshot(snap["rng"])
+        else:
+            self.rng = DecisionStream.from_snapshot(snap["rng"])
 
     @staticmethod
     def snapshots_equal(a: dict[str, Any], b: dict[str, Any]) -> bool:

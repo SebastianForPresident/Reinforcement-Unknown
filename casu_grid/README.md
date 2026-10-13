@@ -26,8 +26,12 @@ This is preserved and documented rather than normalized.
 branches. It makes replay exact but does not reproduce Unity's RNG algorithm or
 the RNG draws consumed by audio/other loot. Ice's water drop happens only in the
 original `!ignoreLoot` loot switch; by default it consumes a stream decision,
-or a measured branch result can be supplied as `ice_drop`. Collision geometry,
-rendering, loot, audio, `LiquidAffect`, and `WaterPusher` are outside V0.
+or a measured branch result can be supplied as `ice_drop`. The integrated
+Isaac adapter supplies an independently seeded replayable PCG64 decision tape,
+steps this grid once per 20 ms physics tick, and applies `LiquidAffect` drag and
+buoyancy for the selected liquid ID. It is explicit that this RNG stream and
+Unity's callback ordering are not yet source-parity validated. See
+`isaac_navigation_env.py` and `workbench/README.md`.
 
 ## Verification
 
@@ -99,3 +103,48 @@ runtime with the environment setup above:
 This proves array loading and discrete stepping inside the Isaac-launched
 process. It does not create terrain geometry, rendering, player physics, or
 PhysX colliders. See `COLLISION_HANDOFF.md` for the next measurement campaign.
+
+## Mission 11 collision fixtures
+
+The bounded terrain collision prototype is in `collision.py` and
+`isaac_collision_smoke.py`. It creates a few cell cuboids and passive probes;
+it does not instantiate canonical-world terrain. See
+`MISSION11_COLLISION_REPORT.md` for source runtime evidence, fixture geometry,
+the Isaac contact trace, and the remaining CasU A/B work.
+
+## Canonical collision geometry prototype
+
+`geometry.py` builds exact occupancy rectangles within the source 64×64 chunk
+boundaries. `collision_usd.py` can author full canonical geometry as static
+boxes or closed triangle meshes. Reproduce the current full-world standing
+contact result with the headless Isaac environment from `ISAAC_LAB_SETUP.md`:
+
+```bash
+"$ISAAC_SIM/python.sh" casu_grid/isaac_layer1_collision_smoke.py \
+  --geometry boxes --probe-profile player --enable-ccd \
+  --terrain-extrusion-depth 2
+```
+
+The run constructs 39,746 box colliders for the 320,647 occupied cells across
+256 chunks, then drops a 49.28 kg, 1.6×5.0 source-sized probe. On the measured
+host the build took about 197 s; the resting root was within 0.0001 units of
+the expected support height. The depth of 2 units is an Isaac 3-D extrusion
+used to keep the planar body inside the terrain collision volume. It is not a
+Unity depth measurement. The raw trace is
+`results/layer1_collision_boxes_player.json`. The integrated full-world env
+now passes reset, snapshot replay and block-mutation collider rollback. This
+validates Isaac's own lifecycle; it does not establish CasU contact parity.
+The rounded source tile/body contact, crouch collider, controlled source A/B,
+and multi-environment throughput remain unresolved.
+
+## Research workbench foundations
+
+`workbench/` contains editable action, observation, reward, model, and PPO
+contracts, a configurable actor-critic, and a resumable PPO trainer. The
+temporary example contract is engineering-only. The current 60-test suite
+includes actual optimizer updates and contract/checkpoint checks. A full
+canonical Isaac smoke ran two PPO updates, completed engineering episodes,
+restored a checkpoint and continued, recorded 24 trajectory rows, emitted
+TensorBoard events, and passed reset/replay plus collider rollback. The
+training launcher currently supports one Isaac environment. See
+[`workbench/README.md`](workbench/README.md) for commands and limits.

@@ -11,6 +11,25 @@ def grid(**kwargs):
 
 
 class GridStateTests(unittest.TestCase):
+    def test_set_block_tracks_dirty_source_chunk_through_snapshot_restore(self):
+        s = grid()
+        s.set_block(64, 10, 4)
+        self.assertEqual(s.dirty_chunks, {(1, 0)})
+        snap = s.snapshot()
+        s.dirty_chunks.clear()
+        s.restore(snap)
+        self.assertEqual(s.dirty_chunks, {(1, 0)})
+
+    def test_seeded_decision_stream_snapshot_continuation(self):
+        from casu_grid.state import SeededDecisionStream
+        stream = SeededDecisionStream(9123)
+        prefix = [stream.next_bool() for _ in range(11)]
+        snapshot = stream.snapshot()
+        expected = [stream.next_bool() for _ in range(17)]
+        restored = SeededDecisionStream.from_snapshot(snapshot)
+        self.assertEqual([restored.next_bool() for _ in range(17)], expected)
+        self.assertEqual(restored.position, len(prefix) + 17)
+
     def test_empty_and_isolated_blocks(self):
         s = grid()
         self.assertEqual(s.blocks.dtype, np.uint16)
