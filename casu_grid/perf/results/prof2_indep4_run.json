@@ -1,0 +1,140 @@
+{
+  "schema": "casu.isaac-throughput.v2",
+  "label": "opt2 profile",
+  "terrain_mode": "independent",
+  "workload": "run",
+  "system": {
+    "git_revision": "2b7f3e26ba5f07a83ffc8c81308180e531e37ba9",
+    "casu_grid_dirty_files": [
+      "asu_grid/isaac_navigation_env.py",
+      "casu_grid/isaac_player_ab.py",
+      "casu_grid/isaac_throughput_benchmark.py",
+      "casu_grid/isaac_vector_env.py",
+      "casu_grid/workbench/ppo.py",
+      "casu_grid/perf/gpu_probe.py",
+      "casu_grid/perf/gpu_scenarios.py",
+      "casu_grid/perf/ppo_update_bench.py",
+      "casu_grid/perf/results/gpu_probe/",
+      "casu_grid/perf/results/prof2_indep4_random.json",
+      "casu_grid/perf/results/prof2_shared16_fluid.json",
+      "casu_grid/perf/results/prof2_shared16_landing.json",
+      "casu_grid/perf/results/prof2_shared16_random.json",
+      "casu_grid/perf/results/prof2_shared16_run.json",
+      "casu_grid/perf/results/prof2_shared64_random.json",
+      "casu_grid/perf/results/prof2_shared64_run.json",
+      "casu_grid/perf/results/prof2_w4_64_random.json",
+      "casu_grid/perf/run_gpu_scenarios.sh",
+      "casu_grid/tools/compare_scenarios.py"
+    ],
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "cpu_count": 16,
+    "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "python": "3.10.15",
+    "gpu": "NVIDIA GeForce RTX 3070, 615.71.09, 8192 MiB",
+    "backend": {
+      "requested": "auto",
+      "active": "numba",
+      "compiled_controller": true,
+      "numba_version": "0.59.1",
+      "kernel_version": 1
+    }
+  },
+  "rows": [
+    {
+      "num_envs": 4,
+      "terrain_mode": "independent",
+      "workload": "run",
+      "cuda": false,
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 17.954148467018967,
+      "geometry_build_seconds": 11.064379679999547,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 2422.947159137788,
+        "std": 137.6345081531043,
+        "min": 2273.0571846057205,
+        "max": 2605.4311319063013,
+        "samples": [
+          2273.0571846057205,
+          2605.4311319063013,
+          2390.3531609013417
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 242.2947159137788,
+        "std": 13.76345081531043,
+        "min": 227.30571846057208,
+        "max": 260.54311319063015,
+        "samples": [
+          227.30571846057208,
+          260.54311319063015,
+          239.03531609013416
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 605.736789784447,
+        "std": 34.40862703827607,
+        "min": 568.2642961514301,
+        "max": 651.3577829765753,
+        "samples": [
+          568.2642961514301,
+          651.3577829765753,
+          597.5882902253354
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.5987119837555703,
+        "std": 0.029470273886845588,
+        "min": 1.5647828438894789,
+        "max": 1.6366373663018938,
+        "samples": [
+          1.5647828438894789,
+          1.6366373663018938,
+          1.594715741075339
+        ]
+      },
+      "phase_fraction": {
+        "diag_controller_post_kernels": 0.048793434954855185,
+        "diag_crouch_shape_switch": 0.0832887047206345,
+        "controller_and_fluid_pre": 0.06629576594019122,
+        "tensor_write": 0.09388555631577626,
+        "physx_step": 0.6406848499650079,
+        "tensor_read": 0.04826921857204459,
+        "controller_post_and_shapes": 0.13208213967548968
+      },
+      "shape_changes_per_world_tick": 0.13737373737373737,
+      "reset_all_seconds": 0.011096020025433972,
+      "reset_one_world_seconds": 0.002986435021739453,
+      "snapshot_seconds": 0.004766830999869853,
+      "restore_seconds": 5.96080272999825,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 4,
+        "compiled_controller": true,
+        "terrain_mode": "independent",
+        "worlds_per_worker": [
+          4
+        ]
+      },
+      "peak_rss_gib": 5.190219879150391,
+      "gpu_after_build": {
+        "utilization_percent": 6.0,
+        "memory_used_mib": 743.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 6.0,
+        "memory_used_mib": 743.0
+      }
+    }
+  ]
+}

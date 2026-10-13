@@ -1,0 +1,18 @@
+{
+  "cuda": true,
+  "envs": 64,
+  "construct_seconds": 14.135938524996163,
+  "device": "cuda:0",
+  "physx_cfg": {
+    "enable_ccd": true,
+    "solver_type": 1,
+    "enable_stabilization": false,
+    "bounce_threshold_velocity": 0.5,
+    "gpu_max_rigid_contact_count": 8388608,
+    "gpu_max_rigid_patch_count": 163840,
+    "gpu_found_lost_pairs_capacity": 2097152
+  },
+  "status": "failed",
+  "error": "Exception: Failed to get rigid body transforms from backend",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac/casu_grid/perf/gpu_probe.py\", line 50, in <module>\n    _, r, term, trunc, info = env.step(a)\n  File \"/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac/casu_grid/isaac_vector_env.py\", line 603, in step\n    self._physics_tick(tick + 1)\n  File \"/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac/casu_grid/isaac_vector_env.py\", line 433, in _physics_tick\n    pos = self._np(self.player.data.root_pos_w)\n  File \"/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/source/isaaclab/isaaclab/assets/rigid_object/rigid_object_data.py\", line 566, in root_pos_w\n    return self.root_link_pos_w\n  File \"/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/source/isaaclab/isaaclab/assets/rigid_object/rigid_object_data.py\", line 398, in root_link_pos_w\n    return self.root_link_pose_w[:, :3]\n  File \"/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/source/isaaclab/isaaclab/assets/rigid_object/rigid_object_data.py\", line 130, in root_link_pose_w\n    pose = self._root_physx_view.get_transforms().clone()\n  File \"/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/extsPhysics/omni.physics.tensors/omni/physics/tensors/impl/api.py\", line 2856, in get_transforms\n    raise Exception(\"Failed to get rigid body transforms from backend\")\nException: Failed to get rigid body transforms from backend\n"
+}
