@@ -142,6 +142,36 @@ class LabUsabilityTests(unittest.TestCase):
             self.assertFalse((run / "RUNNING").exists())
             self.assertEqual(lab._status(run, json.loads((run / "config.json").read_text()), []), "failed")
 
+    def test_launch_cancellation_signals_owned_group_and_marks_interrupted(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from unittest.mock import patch
+        class InterruptedChild:
+            pid = 424243
+            stdout = StringIO("")
+            waits = 0
+            def wait(self, timeout=None):
+                self.waits += 1
+                if self.waits == 1: raise KeyboardInterrupt
+                return 130
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = root / "smoke.py"
+            config.write_bytes(Path(lab.TEMPLATE).read_bytes())
+            run = root / "interrupted-run"
+            child = InterruptedChild()
+            with patch.object(lab, "_isaac_python_command", return_value="python"), \
+                 patch.object(lab.subprocess, "Popen", return_value=child), \
+                 patch.object(lab.os, "killpg") as killpg, redirect_stdout(StringIO()):
+                code = lab.main(["launch", str(config), "--engineering-smoke", "--run-dir", str(run)])
+            self.assertEqual(code, 130)
+            killpg.assert_called_once_with(child.pid, lab.signal.SIGTERM)
+            self.assertTrue((run / "INTERRUPTED").exists())
+            self.assertFalse((run / "COMPLETE").exists())
+            self.assertFalse((run / "RUNNING").exists())
+            manifest = json.loads((run / "config.json").read_text())
+            self.assertEqual(lab._status(run, manifest, []), "interrupted")
+
     def test_summary_exposes_reproducibility_layout(self):
         with tempfile.TemporaryDirectory() as tmp:
             run = self._run(Path(tmp), "sharded", [{"update": 1}], complete=True)
@@ -163,14 +193,17 @@ class LabUsabilityTests(unittest.TestCase):
 
     def test_isaac_python_setting_accepts_directory_or_explicit_python_sh(self):
         import os
+        from unittest.mock import patch
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);sim=root/"isaac-sim";sim.mkdir();launcher=sim/"python.sh";launcher.write_text("#!/bin/sh\n")
             old=os.environ.get("ISAAC_SIM")
             try:
                 os.environ["ISAAC_SIM"]=str(sim)
-                self.assertEqual(lab._isaac_python_command(preview=True),str(sim/"python.sh"))
+                with patch.object(lab.importlib.util, "find_spec", return_value=None):
+                    self.assertEqual(lab._isaac_python_command(preview=True),str(sim/"python.sh"))
                 os.environ["ISAAC_SIM"]=str(launcher)
-                self.assertEqual(lab._isaac_python_command(preview=True),str(launcher.resolve()))
+                with patch.object(lab.importlib.util, "find_spec", return_value=None):
+                    self.assertEqual(lab._isaac_python_command(preview=True),str(launcher.resolve()))
             finally:
                 if old is None:os.environ.pop("ISAAC_SIM",None)
                 else:os.environ["ISAAC_SIM"]=old
