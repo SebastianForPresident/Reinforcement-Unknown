@@ -120,3 +120,28 @@ def rasterize_cell_centers(colliders, width: int = 1024, height: int = 1024) -> 
         py = (np.arange(iy0, iy1 + 1) - height / 2 + 0.5)[None, :]
         covered[ix0:ix1 + 1, iy0:iy1 + 1] |= collider.contains(px, py)
     return covered
+
+
+def ground_polygons(colliders, *, circle_segments: int = 24):
+    """Layer-6 (Ground) static object colliders as convex polygons for Physics2D-style queries.
+
+    Only Ground-layer objects are visible to the player's BoxCast/Raycast/OverlapBox
+    queries; Default-layer statics still collide physically but are not queried.
+    """
+    polygons = []
+    for collider in colliders:
+        if collider.layer != 6:
+            continue
+        cx, cy = collider.center
+        if collider.kind == "box":
+            a = math.radians(collider.rotation_deg)
+            ca, sa = math.cos(a), math.sin(a)
+            hw, hh = collider.size[0] / 2, collider.size[1] / 2
+            pts = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
+            poly = np.array([(cx + x * ca - y * sa, cy + x * sa + y * ca) for x, y in pts])
+        else:
+            angles = np.linspace(0, 2 * math.pi, circle_segments, endpoint=False)
+            poly = np.stack((cx + collider.radius * np.cos(angles),
+                             cy + collider.radius * np.sin(angles)), axis=1)
+        polygons.append((collider.name, poly))
+    return polygons

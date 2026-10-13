@@ -89,18 +89,21 @@ def main():
             }
             env.reset(seed=391728405)
         first0 = state(env)
-        from pxr import UsdPhysics
-        standing_collision = UsdPhysics.CollisionAPI(env._standing_collider_prim).GetCollisionEnabledAttr()
-        crouch_collision = UsdPhysics.CollisionAPI(env._crouch_collider_prim).GetCollisionEnabledAttr()
-        crouch_size_before = [bool(standing_collision.Get()), bool(crouch_collision.Get())]
-        env.step(action(1, crouch=1))
-        crouch_size_during = [bool(standing_collision.Get()), bool(crouch_collision.Get())]
-        env.controller.state.crouch_amount = 0.0
-        env.step(action(1, crouch=0))
-        crouch_size_recovered = [bool(standing_collision.Get()), bool(crouch_collision.Get())]
-        crouch_shape_ok = crouch_size_before == [True, False] and crouch_size_during[0] is False and crouch_size_during[1] is True and crouch_size_recovered[0] is True and crouch_size_recovered[1] is False
+        crouch_level_before = env.collider.active_level
+        for _ in range(12):
+            env.step(action(1, crouch=1))
+        crouch_level_during = env.collider.active_level
+        crouch_amount_during = env.model.s.crouch_amount
+        for _ in range(30):
+            env.step(action(1, crouch=0))
+        crouch_level_recovered = env.collider.active_level
+        crouch_shape_ok = (crouch_level_before == 0 and crouch_level_during > env.cfg.crouch_levels // 2
+                           and crouch_level_recovered <= 1 and crouch_amount_during > 0.5)
         if not crouch_shape_ok:
-            raise RuntimeError(f"player collider did not shrink and recover during crouch input: {crouch_size_before}, {crouch_size_during}, {crouch_size_recovered}, amount={env.controller.state.crouch_amount}")
+            raise RuntimeError(
+                f"player collider level did not follow crouch input: {crouch_level_before}, "
+                f"{crouch_level_during}, {crouch_level_recovered}, amount={crouch_amount_during}")
+        env.reset(seed=391728405)
         tape_a = [action(1), action(2), action(2), action(1)]
         states_a = []
         for sample in tape_a:
@@ -173,9 +176,10 @@ def main():
             "physics_dt_s": env.cfg.physics_dt,
             "physics_ticks_per_action": env.cfg.action_decimation,
             "rounded_player_collider": env.cfg.rounded_player_collider,
-            "crouch_shape_probe": {"status": "passed", "scale_standing": crouch_size_before,
-                                   "scale_crouched": crouch_size_during,
-                                   "scale_recovering": crouch_size_recovered},
+            "crouch_shape_probe": {"status": "passed", "level_standing": crouch_level_before,
+                                   "level_crouched": crouch_level_during,
+                                   "level_recovered": crouch_level_recovered,
+                                   "crouch_amount_crouched": crouch_amount_during},
             "physics_ticks_elapsed": env.physics_ticks,
             "fluid_scheduler_ticks": env.grid.tick,
             "fluid_tick_delta_during_branch_a": 3 * env.cfg.action_decimation,
