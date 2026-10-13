@@ -224,6 +224,58 @@ class CasUGridState:
                 self.push_events += 1
 
     def simulation_step(self, *, decision_budget: int | None = None) -> None:
+        """Same sweep as :meth:`simulation_step_reference`, visiting only non-empty cells.
+
+        Exactness: columns are processed in ascending x and each column's candidates are
+        re-read when the column is reached, so fluid pushed right by an earlier column is
+        visited later in the same sweep exactly as in the literal loop; within a column
+        every move targets a lower y or a different column, so cells that were empty at
+        column start cannot become relevant before their own visit.
+        """
+        (xmin, xmax), (ymin, ymax) = self.simulation_range_index()
+        if not self.fluids[xmin:xmax, ymin:ymax].any():
+            self.tick += 1
+            return
+        for x in range(xmin, xmax):
+            column = self.fluids[x, ymin:ymax]
+            if not column.any():
+                continue
+            for y in (np.flatnonzero(column) + ymin).tolist():
+                self._sweep_cell(x, y, decision_budget)
+        self.tick += 1
+
+    def _sweep_cell(self, x: int, y: int, decision_budget) -> None:
+        if self.fluids[x, y] == 0:
+            return
+        if self.empty(x, y - 1):
+            if y <= 2:
+                self.fluids[x, y] = 0
+            self.fluids[x, y], self.fluids[x, y - 1] = self.fluids[x, y - 1], self.fluids[x, y]
+            self.tile_cooldown = (self.tile_cooldown + 1) % 256
+            self._incr_move()
+            if self.tile_cooldown > 16:
+                self.tile_cooldown = 0
+            return
+        if ((self.fluids[x, y] == 2 and self.get_liquid(x, y - 1) == 1) or
+                (self.fluids[x, y] == 1 and self.get_liquid(x, y - 1) == 2)):
+            self.fluids[x, y - 1] = 2
+            self.fluids[x, y] = 2
+        right, left = self.empty(x + 1, y), self.empty(x - 1, y)
+        if right and left:
+            if decision_budget is not None and self.rng.position >= decision_budget:
+                direction = 1  # deterministic fallback beyond replay tape budget
+            else:
+                direction = 1 if self.rng.next_bool() else -1
+            self.fluids[x, y], self.fluids[x + direction, y] = self.fluids[x + direction, y], self.fluids[x, y]
+        elif right:
+            self.fluids[x, y], self.fluids[x + 1, y] = self.fluids[x + 1, y], self.fluids[x, y]
+            self._incr_move()
+        elif left:
+            self.fluids[x, y], self.fluids[x - 1, y] = self.fluids[x - 1, y], self.fluids[x, y]
+            self._incr_move()
+
+    def simulation_step_reference(self, *, decision_budget: int | None = None) -> None:
+        """Literal per-cell port of the source sweep; the oracle for :meth:`simulation_step`."""
         (xmin, xmax), (ymin, ymax) = self.simulation_range_index()
         for x in range(xmin, xmax):
             for y in range(ymin, ymax):

@@ -15,6 +15,8 @@ p.add_argument('--updates', type=int, default=100)
 p.add_argument('--num-envs', type=int, default=1)
 p.add_argument('--seed', type=int, default=391728405)
 p.add_argument('--geometry-scope', choices=('full','spawn_chunk'), default='full')
+p.add_argument('--terrain-mode', choices=('shared','independent'), default='shared',
+               help='multi-env only: shared static terrain (fast) or per-world terrain copies (allows terrain edits)')
 p.add_argument('--resume', type=Path)
 AppLauncher.add_app_launcher_args(p); args=p.parse_args(); args.headless=True
 launcher=AppLauncher(args); app=launcher.app
@@ -51,6 +53,7 @@ def main():
         'config_sha256':hashlib.sha256(Path(args.config).read_bytes()).hexdigest(),
         'contracts':validate_contracts(config.ACTION,config.OBSERVATION,config.REWARD,config.MODEL,config.PPO),
         'environment':{'canonical_seed':391728405,'num_envs':args.num_envs,'geometry_scope':args.geometry_scope,
+                       'terrain_mode':args.terrain_mode if args.num_envs>1 else 'single',
                        'physics_dt':0.02,'action_decimation':10}},indent=2)+'\n')
     callbacks=config.callbacks() if hasattr(config,'callbacks') else (None,None,None)
     env=trainer=None
@@ -63,7 +66,8 @@ def main():
         else:
             from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
             env=BatchedIsaacLayer1Env(env_config,
-                action_decoder=callbacks[0],observation_encoder=callbacks[1],reward_function=callbacks[2])
+                action_decoder=callbacks[0],observation_encoder=callbacks[1],reward_function=callbacks[2],
+                terrain_mode=args.terrain_mode)
         env.action_space=spaces.Dict({
             head.name: (spaces.Discrete(head.size) if head.kind=='categorical'
                         else spaces.Box(head.low,head.high,shape=(head.size,),dtype=np.float32))

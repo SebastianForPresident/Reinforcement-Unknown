@@ -63,7 +63,7 @@ class EnvSlot:
         if self.shuttle_doors is None:
             return
         for door, slot, center in zip(self.door_defs, self.door_polygon_slots, self.shuttle_doors.centers()):
-            self.ground_world.polygons[slot] = (door.name, self._door_polygon(center, door))
+            self.ground_world.set_polygon(slot, door.name, self._door_polygon(center, door))
 
     # --------------------------------------------------------------------- state
     def spawn_world_xy(self):

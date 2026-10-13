@@ -38,6 +38,21 @@ class GroundWorld:
         self.width, self.height = blocks.shape
         # polygons: iterable of (name, np.ndarray[N,2] counter-clockwise vertices)
         self.polygons = list(polygons)
+        self._aabb = np.zeros((len(self.polygons), 4))
+        for index, (_, poly) in enumerate(self.polygons):
+            self._aabb[index] = (poly[:, 0].min(), poly[:, 1].min(), poly[:, 0].max(), poly[:, 1].max())
+
+    def set_polygon(self, index: int, name: str, poly: np.ndarray) -> None:
+        """Replace one convex polygon (scripted movers) and refresh its culling box."""
+        self.polygons[index] = (name, poly)
+        self._aabb[index] = (poly[:, 0].min(), poly[:, 1].min(), poly[:, 0].max(), poly[:, 1].max())
+
+    def _polygons_near(self, x0, y0, x1, y1):
+        """Indices of polygons whose bounding box intersects the query box."""
+        if not len(self.polygons):
+            return ()
+        a = self._aabb
+        return np.flatnonzero((a[:, 0] <= x1) & (a[:, 2] >= x0) & (a[:, 1] <= y1) & (a[:, 3] >= y0))
 
     # ----------------------------------------------------------------- tiles
     def solid(self, cx: int, cy: int) -> bool:
@@ -86,8 +101,9 @@ class GroundWorld:
                                    rx + 1.0 + BOX_CAST_SKIN, ry + 1.0 + BOX_CAST_SKIN)
             if hit is not None and (best is None or hit.distance < best.distance):
                 best = hit
-        for _, poly in self.polygons:
-            hit = self._sweep_polygon(cx, cy, hw, hh, dx, dy, distance, poly)
+        for index in self._polygons_near(x0 - BOX_CAST_SKIN, y0 - BOX_CAST_SKIN,
+                                         x1 + BOX_CAST_SKIN, y1 + BOX_CAST_SKIN):
+            hit = self._sweep_polygon(cx, cy, hw, hh, dx, dy, distance, self.polygons[index][1])
             if hit is not None and (best is None or hit.distance < best.distance):
                 best = hit
         return best
@@ -149,8 +165,9 @@ class GroundWorld:
             hit = _ray_rect(ox, oy, dx, dy, distance, rx, ry, rx + 1.0, ry + 1.0)
             if hit is not None and (best is None or hit.distance < best.distance):
                 best = hit
-        for _, poly in self.polygons:
-            t = _ray_polygon_distance(poly, (ox, oy), (dx, dy))
+        for index in self._polygons_near(min(ox, ex) - 1e-9, min(oy, ey) - 1e-9,
+                                         max(ox, ex) + 1e-9, max(oy, ey) + 1e-9):
+            t = _ray_polygon_distance(self.polygons[index][1], (ox, oy), (dx, dy))
             if t is not None and t <= distance and (best is None or t < best.distance):
                 best = Hit(t, (0.0, 0.0), (ox + dx * t, oy + dy * t))
         return best
@@ -171,10 +188,8 @@ class GroundWorld:
             dy = max(ry - (cy + hh), (cy - hh) - (ry + 1.0), 0.0)
             if math.hypot(dx, dy) <= reach:
                 found.add(("chunk", int((rx + HALF_WORLD) // 64), int((ry + HALF_WORLD) // 64)))
-        for index, (_, poly) in enumerate(self.polygons):
-            if poly[:, 0].min() - reach <= cx + hw and poly[:, 0].max() + reach >= cx - hw and \
-                    poly[:, 1].min() - reach <= cy + hh and poly[:, 1].max() + reach >= cy - hh:
-                found.add(("object", index))
+        for index in self._polygons_near(cx - hw - reach, cy - hh - reach, cx + hw + reach, cy + hh + reach):
+            found.add(("object", int(index)))
         return found
 
     def overlap_box(self, center, size) -> bool:
@@ -184,9 +199,11 @@ class GroundWorld:
             if min(cx + hw, rx + 1.0) - max(cx - hw, rx) > 1e-9 and \
                     min(cy + hh, ry + 1.0) - max(cy - hh, ry) > 1e-9:
                 return True
-        for _, poly in self.polygons:
-            corners = np.array([(cx - hw, cy - hh), (cx + hw, cy - hh), (cx + hw, cy + hh), (cx - hw, cy + hh)])
-            if _convex_overlap(poly, corners):
+        corners = None
+        for index in self._polygons_near(cx - hw, cy - hh, cx + hw, cy + hh):
+            if corners is None:
+                corners = np.array([(cx - hw, cy - hh), (cx + hw, cy - hh), (cx + hw, cy + hh), (cx - hw, cy + hh)])
+            if _convex_overlap(self.polygons[index][1], corners):
                 return True
         return False
 

@@ -55,6 +55,7 @@ class IsaacLayer1EnvConfig:
     liquid_affect_phase: str = "before_controller"  # before_controller or after_controller
     max_depenetration_velocity: float = 100.0
     physx_solver_type: int = 1          # 0 = PGS (Box2D-like), 1 = TGS
+    physx_enhanced_determinism: bool = False   # slower, more reproducible PhysX
     step_up_clearance: float = 0.0      # extra lift after TryStepUp so PhysX sees no tangent overlap
     solver_position_iterations: int = 8
     solver_velocity_iterations: int = 8
@@ -203,7 +204,8 @@ class IsaacLayer1NavigationEnv(gym.Env):
         device = "cuda:0" if self.cfg.use_cuda and torch.cuda.is_available() else "cpu"
         self.sim_cfg = sim_utils.SimulationCfg(
             dt=self.cfg.physics_dt, device=device, gravity=(0.0, 0.0, -55.0),
-            physx=sim_utils.PhysxCfg(enable_ccd=True, solver_type=self.cfg.physx_solver_type))
+            physx=sim_utils.PhysxCfg(enable_ccd=True, solver_type=self.cfg.physx_solver_type,
+                                     enable_enhanced_determinism=self.cfg.physx_enhanced_determinism))
         self.sim = sim_utils.SimulationContext(self.sim_cfg)
         self.stage = stage_utils.get_current_stage()
         UsdGeom.SetStageUpAxis(self.stage, UsdGeom.Tokens.z)

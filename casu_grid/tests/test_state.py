@@ -215,5 +215,38 @@ class GridStateTests(unittest.TestCase):
         self.assertEqual(s.fluids.shape, (1024, 1024))
 
 
+
+
+class FastFluidSweepEquivalenceTests(unittest.TestCase):
+    """The optimized sweep must equal the literal source-port loop tick for tick."""
+
+    def make(self, seed):
+        import numpy as np
+        rng = np.random.default_rng(seed)
+        state = CasUGridState(256, 256, camera_x=128, camera_y=128)
+        state.blocks[...] = (rng.random((256, 256)) < 0.30).astype(np.uint16)
+        fluids = (rng.random((256, 256)) < 0.08).astype(np.uint8) * rng.integers(1, 7, (256, 256), dtype=np.uint8)
+        fluids[state.blocks != 0] = 0
+        state.fluids[...] = fluids
+        state.fluid_push_enabled = True
+        return state
+
+    def test_matches_reference_sweep_over_many_ticks(self):
+        import copy
+        import numpy as np
+        for seed in range(4):
+            fast, ref = self.make(seed), self.make(seed)
+            from casu_grid.state import SeededDecisionStream
+            fast.rng, ref.rng = SeededDecisionStream(7 + seed), SeededDecisionStream(7 + seed)
+            for step in range(150):
+                fast.simulation_step()
+                ref.simulation_step_reference()
+                self.assertTrue(np.array_equal(fast.fluids, ref.fluids), f"seed {seed} tick {step}")
+                self.assertEqual((fast.tile_cooldown, fast.water_move_count, fast.push_events, fast.sim_index,
+                                  fast.tick, fast.rng.position),
+                                 (ref.tile_cooldown, ref.water_move_count, ref.push_events, ref.sim_index,
+                                  ref.tick, ref.rng.position))
+
+
 if __name__ == "__main__":
     unittest.main()
