@@ -23,17 +23,14 @@ import torch
 import gymnasium as gym
 from gymnasium import spaces
 
-from .body_model import BodyConfig, BodyState, PolicyAction, StandingBodyModel
-from .ground_query import GroundWorld
+from .body_model import BodyConfig, BodyState, PolicyAction
+from .env_slot import EnvSlot
 from .player_controller import StandingAction
 from .player_runtime import RuntimeState, run_macrostep
 from .reference import load_layer1_reference
-from .shuttle_doors import ShuttleDoors
-from .world_objects import ground_polygons
+from .world_objects import ground_polygons, load_physics_audit
 
 PLAYER_PATH = "/World/CasuPlayer"
-LIQUID_COEFFICIENTS = {1: (0.6, 0.915), 2: (2.0, 0.8), 3: (0.5, 0.75),
-                       4: (1.0, 0.8), 5: (0.6, 0.915), 6: (3.0, 0.7)}  # id -> (buoyancy, drag)
 
 
 @dataclass(frozen=True)
@@ -151,23 +148,38 @@ class IsaacLayer1NavigationEnv(gym.Env):
         if self.cfg.num_envs != 1:
             raise NotImplementedError("single-env Isaac stage construction is the only validated path")
         self.reference = load_layer1_reference()
-        from .state import SeededDecisionStream
-        self.grid = self.reference.new_state()
-        self.grid.rng = SeededDecisionStream(self.cfg.fluid_rng_seed)
-        self._grid_initial = self.grid.snapshot()
-        self._grid_initial["dirty_chunks"] = []
         self.action_decoder = action_decoder or self._default_action_decoder
         self.observation_encoder = observation_encoder or self._default_observation
         self.reward_function = reward_function or (lambda *_: (0.0, {}))
-        self.elapsed_steps = 0
-        self.physics_ticks = 0
-        self._was_water = False
         self.closed = False
-        self._last_state: dict[str, float] | None = None
         self.geometry_build_seconds = 0.0
         self.last_tick_records: list = []
-        self.runtime = RuntimeState()
+        self.controller_config = BodyConfig(step_up_clearance=self.cfg.step_up_clearance)
+        self.world_objects = None
+        object_polygons, door_defs = [], []
+        if self.cfg.include_world_objects:
+            self.world_objects, _ = load_physics_audit()
+            door_defs = [c for c in self.world_objects.colliders if "shuttledoor" in c.name]
+            object_polygons = ground_polygons(
+                [c for c in self.world_objects.colliders if "shuttledoor" not in c.name])
+        self.slot = EnvSlot(self.cfg, self.reference, object_polygons=object_polygons,
+                            door_defs=door_defs, fluid_seed=self.cfg.fluid_rng_seed,
+                            body_config=self.controller_config)
+        self.slot.on_doors_changed = self._apply_door_state
+        self._door_bodies = []
         self._construct_simulation()
+
+    # ----- state owned by the slot (kept as attributes for callers and tests)
+    grid = property(lambda self: self.slot.grid)
+    model = property(lambda self: self.slot.model)
+    ground_world = property(lambda self: self.slot.ground_world)
+    shuttle_doors = property(lambda self: self.slot.shuttle_doors)
+    runtime = property(lambda self: self.slot.runtime, lambda self, v: setattr(self.slot, "runtime", v))
+    elapsed_steps = property(lambda self: self.slot.elapsed_steps,
+                             lambda self, v: setattr(self.slot, "elapsed_steps", v))
+    physics_ticks = property(lambda self: self.slot.physics_ticks,
+                             lambda self, v: setattr(self.slot, "physics_ticks", v))
+    _last_state = property(lambda self: self.slot.last_state, lambda self, v: setattr(self.slot, "last_state", v))
 
     @property
     def num_envs(self):
@@ -215,15 +227,8 @@ class IsaacLayer1NavigationEnv(gym.Env):
             physics_material_path=self.material_path,
             only_chunks=chunk_filter)
 
-        self.world_objects = None
         self.object_geometry_info = None
-        self.shuttle_doors = None
-        self._door_bodies = []
-        self._door_polygon_slots = []
-        object_polygons = []
-        if self.cfg.include_world_objects:
-            from .world_objects import load_physics_audit
-            self.world_objects, _ = load_physics_audit()
+        if self.world_objects is not None:
             colliders = list(self.world_objects.colliders)
             if chunk_filter is not None:
                 kept = []
@@ -231,22 +236,17 @@ class IsaacLayer1NavigationEnv(gym.Env):
                     kept += self.world_objects.in_region(cx * 64 - 512.0, cy * 64 - 512.0,
                                                          cx * 64 - 448.0, cy * 64 - 448.0)
                 colliders = list(dict.fromkeys(kept))
-            doors = [c for c in colliders if "shuttledoor" in c.name]
             static = [c for c in colliders if "shuttledoor" not in c.name]
             self.object_geometry_info = author_static_object_colliders(
                 self.stage, static, half_thickness=self.cfg.terrain_extrusion_depth / 2,
                 physics_material_path=self.material_path)
-            object_polygons = ground_polygons(static)
-            if doors:
-                self._build_shuttle_doors(sim_utils, RigidObject, RigidObjectCfg, doors, object_polygons)
+            if self.slot.door_defs:
+                self._build_shuttle_doors(sim_utils, RigidObject, RigidObjectCfg)
         self.geometry_build_seconds = time.perf_counter() - started
 
-        self.controller_config = BodyConfig(step_up_clearance=self.cfg.step_up_clearance)
-        self.ground_world = GroundWorld(self.grid.blocks, object_polygons)
-        self.model = StandingBodyModel(self.ground_world, self.controller_config)
         self.adapter = _PhysxAdapter(self)
 
-        initial = self._initial_body_state()
+        initial = self.slot.initial_body_state()
         self.initial_position_x, self.initial_position_z = initial.x, initial.y
         rigid = sim_utils.RigidBodyPropertiesCfg(
             kinematic_enabled=False, disable_gravity=False,
@@ -300,10 +300,10 @@ class IsaacLayer1NavigationEnv(gym.Env):
         self.sim.play()
         self.player.update(self.cfg.physics_dt)
 
-    def _build_shuttle_doors(self, sim_utils, RigidObject, RigidObjectCfg, doors, object_polygons):
+    def _build_shuttle_doors(self, sim_utils, RigidObject, RigidObjectCfg):
         """The spawn-shuttle doors are scripted movers: kinematic bodies instead of static prims."""
         half_thickness = self.cfg.terrain_extrusion_depth / 2
-        for index, door in enumerate(sorted(doors, key=lambda c: c.center[0])):
+        for index, door in enumerate(self.slot.door_defs):
             spawn = sim_utils.CuboidCfg(
                 size=(door.size[0], 2 * half_thickness, door.size[1]),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
@@ -312,53 +312,23 @@ class IsaacLayer1NavigationEnv(gym.Env):
             body = RigidObject(cfg=RigidObjectCfg(
                 prim_path=f"/World/CasuShuttleDoor{index}", spawn=spawn,
                 init_state=RigidObjectCfg.InitialStateCfg(pos=(door.center[0], 0.0, door.center[1]))))
-            self._door_bodies.append((body, door))
-        self.shuttle_doors = ShuttleDoors(
-            trigger_boxes=((3.5, 506.5, 4.5, 507.5), (-4.5, 506.5, -3.5, 507.5)),
-            base_centers=tuple(door.center for _, door in self._door_bodies))
-        for body, door in self._door_bodies:
-            self._door_polygon_slots.append(len(object_polygons))
-            hw, hh = door.size[0] / 2, door.size[1] / 2
-            cx, cy = door.center
-            object_polygons.append((door.name, np.array([(cx - hw, cy - hh), (cx + hw, cy - hh),
-                                                         (cx + hw, cy + hh), (cx - hw, cy + hh)])))
+            self._door_bodies.append(body)
 
     def _apply_door_state(self):
         if not self._door_bodies:
             return
-        for (body, door), slot, center in zip(self._door_bodies, self._door_polygon_slots,
-                                              self.shuttle_doors.centers()):
+        for body, center in zip(self._door_bodies, self.slot.shuttle_doors.centers()):
             pose = torch.tensor([[center[0], 0.0, center[1], 1.0, 0.0, 0.0, 0.0]],
                                 dtype=torch.float32, device=self.sim.device)
             body.write_root_pose_to_sim(pose)
             body.write_data_to_sim()
-            hw, hh = door.size[0] / 2, door.size[1] / 2
-            self.ground_world.polygons[slot] = (door.name, np.array([
-                (center[0] - hw, center[1] - hh), (center[0] + hw, center[1] - hh),
-                (center[0] + hw, center[1] + hh), (center[0] - hw, center[1] + hh)]))
 
     # ------------------------------------------------------------------ state
     def _spawn_world_xy(self):
-        if self.cfg.spawn_mode == "canonical":
-            xy = self.reference.spawn_world_xy
-            return float(xy[0]), float(xy[1])
-        x, y = self.cfg.fixture_grid_xy
-        if not self.grid.get_block(x, y):
-            raise ValueError(f"fixture support cell {(x, y)} is empty")
-        # Source fixture placement: tile-centre x, collider standing on the support top
-        # (rest gap of the source's rounded collider = 0.1155).
-        return x - 511.5, y - 511.0 + self.controller_config.orig_col_size[1] / 2 + 0.1155
+        return self.slot.spawn_world_xy()
 
     def _initial_body_state(self) -> BodyState:
-        x, y = self._spawn_world_xy()
-        if self.cfg.spawn_mode == "canonical":
-            # Measured at the first policy boundary of the canonical spawn: the body
-            # starts crouched (crouchAmount 1.0) and grounded; the collider is still
-            # standing-sized until the first Update.
-            return BodyState(x=x, y=y, grounded=True, crouch_amount=1.0,
-                             col_size=self.controller_config.orig_col_size, col_offset=(0.0, 0.0))
-        return BodyState(x=x, y=y, grounded=True, col_size=self.controller_config.orig_col_size,
-                         col_offset=(0.0, 0.0), first_wall_jump=True)
+        return self.slot.initial_body_state()
 
     def _default_action_decoder(self, action_dict):
         def get_head(name, default=0):
@@ -372,12 +342,10 @@ class IsaacLayer1NavigationEnv(gym.Env):
                               move_y=get_head("move_y") - 1)
 
     def _body_state(self):
-        s = self.model.s
-        return {"x": float(s.x), "y": float(s.y), "vx": float(s.vx), "vy": float(s.vy)}
+        return self.slot.body_dict()
 
     def _support_info(self, body=None):
-        s = self.model.s
-        return bool(s.grounded), bool(s.slippery)
+        return self.slot.support_info()
 
     def set_block(self, x: int, y: int, block_id: int):
         """Mutate canonical discrete terrain and synchronize its source chunk."""
@@ -409,7 +377,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
                 if 0.0 < deficit < 0.03:
                     s.y += deficit
         center = (s.x + s.col_offset[0], s.y + s.col_offset[1])
-        self.runtime = RuntimeState(frozenset(self.ground_world.touching_colliders(
+        self.slot.runtime = RuntimeState(frozenset(self.ground_world.touching_colliders(
             center, s.col_size, 0.125)))
         self._write_body_to_sim()
         self.adapter.set_crouch(s.crouch_amount)
@@ -417,68 +385,12 @@ class IsaacLayer1NavigationEnv(gym.Env):
         self._last_state = self._body_state()
 
     def _default_observation(self, _env):
-        body = self._body_state()
-        s = self.model.s
-        return {"player_state": np.asarray([
-            body["x"], body["y"], body["vx"], body["vy"], float(s.grounded),
-            s.crouch_amount, max(s.jump_cooldown, 0.0),
-            float(self.elapsed_steps) / self.cfg.episode_length_steps,
-        ], dtype=np.float32)}
+        return {"player_state": self.slot.default_observation_vector()}
 
     def _format_observation(self):
         obs = self.observation_encoder(self)
         return {name: np.asarray(value, dtype=np.float32)[None, ...]
                 for name, value in obs.items()}
-
-    # ------------------------------------------------------------- tick hooks
-    def _liquid_state(self):
-        s = self.model.s
-        cell_x, cell_y = self.grid.world_to_cell(s.x, s.y, self.grid.width, self.grid.height)
-        fluid_id = self.grid.get_liquid(cell_x, cell_y)
-        buoyancy, drag = LIQUID_COEFFICIENTS.get(fluid_id, (0.0, 0.0))
-        return fluid_id > 0, buoyancy, drag
-
-    def _apply_liquid(self, model):
-        in_water, buoyancy, drag = self._liquid_state()
-        if in_water:
-            model.s.vx = model.s.vx * drag
-            model.s.vy = model.s.vy * drag + buoyancy
-        return in_water
-
-    def _pre_tick(self, model):
-        s = model.s
-        in_water, _, _ = self._liquid_state()
-        if in_water != self._was_water:
-            self._was_water = in_water
-        if in_water:
-            # Body.Jump accepts bodyAffect.wasWater as an alternate support condition.
-            s.time_since_grounded = 0.0
-            s.first_wall_jump = True
-        # PlayerCamera follows the standing body and supplies its position to
-        # FluidManager.SimulationRangeIndex; the Update lerp is collapsed to the
-        # latest pre-physics pose at this boundary.
-        self.grid.camera_x, self.grid.camera_y = self.grid.world_to_cell(
-            s.x, s.y, self.grid.width, self.grid.height)
-        self.grid.simulation_step()
-        self.physics_ticks += 1
-        if self.cfg.liquid_affect_phase == "before_controller":
-            self._apply_liquid(model)
-
-    def _post_fixed(self, model):
-        if self.cfg.liquid_affect_phase == "after_controller":
-            self._apply_liquid(model)
-
-    def _post_tick(self, model, touched):
-        s = model.s
-        if self.shuttle_doors is not None:
-            x0, y0 = s.x - s.col_size[0] / 2, s.y + s.col_offset[1] - s.col_size[1] / 2
-            body_box = (x0, y0, x0 + s.col_size[0], y0 + s.col_size[1])
-            if self.shuttle_doors.tick(self.cfg.physics_dt, body_box):
-                self._apply_door_state()
-        if s.ragdoll_event is None:
-            for kind, index in (t for t in touched if t[0] == "object"):
-                if "jumppad" in self.ground_world.polygons[index][0]:
-                    s.ragdoll_event = "jumppad"
 
     # ------------------------------------------------------------ lifecycle
     def _write_body_to_sim(self):
@@ -498,27 +410,9 @@ class IsaacLayer1NavigationEnv(gym.Env):
             raise RuntimeError("environment is closed")
         if seed is not None:
             self.np_random, _ = gym.utils.seeding.np_random(seed)
-        current_blocks = self.grid.blocks.copy()
-        self.grid.restore(copy.deepcopy(self._grid_initial))
-        if not np.array_equal(current_blocks, self.grid.blocks):
-            self.grid.dirty_chunks = {
-                (cx, cy)
-                for cx in range(self.grid.width // 64)
-                for cy in range(self.grid.height // 64)
-                if not np.array_equal(current_blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64],
-                                      self.grid.blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64])
-            }
+        if self.slot.reset_logical():
             self._refresh_mutated_colliders()
-        from .state import SeededDecisionStream
-        self.grid.rng = SeededDecisionStream(self.cfg.fluid_rng_seed)
-        self.model.s = self._initial_body_state()
-        self.runtime = RuntimeState()
-        if self.shuttle_doors is not None:
-            self.shuttle_doors.restore({"activated": False, "progress": 0.0, "destroyed": False})
-            self._apply_door_state()
-        self.elapsed_steps = 0
-        self.physics_ticks = 0
-        self._was_water = False
+        self._apply_door_state()
         self._write_body_to_sim()
         self.sim.step(render=False)   # let PhysX register the freshly written state
         self._write_body_to_sim()
@@ -537,28 +431,18 @@ class IsaacLayer1NavigationEnv(gym.Env):
         if self.closed:
             raise RuntimeError("environment is closed")
         action = self.action_decoder(action_dict)
-        records = run_macrostep(
-            self.model, self.adapter, self.ground_world, self._policy_action(action), self.runtime,
+        slot = self.slot
+        self.last_tick_records = run_macrostep(
+            slot.model, self.adapter, slot.ground_world, self._policy_action(action), slot.runtime,
             ticks=self.cfg.action_decimation, record=self.cfg.record_ticks,
-            pre_tick_hook=self._pre_tick, post_fixed_hook=self._post_fixed,
-            post_tick_hook=self._post_tick)
-        self.last_tick_records = records
-        self.elapsed_steps += 1
-        current = self._body_state()
-        ragdoll = self.model.s.ragdoll_event
-        out_of_bounds = bool(abs(current["x"]) > 512.0 or abs(current["y"]) > 512.0)
-        terminated = bool(out_of_bounds or ragdoll)
-        truncated = self.elapsed_steps >= self.cfg.episode_length_steps
-        reward, reward_terms = self.reward_function(self._last_state, current, terminated, truncated)
-        self._last_state = current
-        reason = ("ragdoll:" + ragdoll) if ragdoll else "world_bounds" if out_of_bounds \
-            else "time_limit" if truncated else None
+            pre_tick_hook=slot.pre_tick, post_fixed_hook=slot.post_fixed, post_tick_hook=slot.post_tick)
+        reward, reward_terms, terminated, truncated, reason, current = slot.finish_step(self.reward_function)
         info = {
             "reward_terms": reward_terms,
             "termination_reason": reason,
             "physics_ticks": self.cfg.action_decimation,
             "player": current,
-            "grounded": bool(self.model.s.grounded),
+            "grounded": bool(slot.model.s.grounded),
             "canonical_content_id": self.reference.manifest["content_id"],
         }
         return self._format_observation(), np.asarray([reward], dtype=np.float32), \
@@ -574,47 +458,22 @@ class IsaacLayer1NavigationEnv(gym.Env):
     # --------------------------------------------------- snapshot / restore
     def snapshot(self):
         """Capture grid, player (model + PhysX root state), scripted objects and step index."""
-        state = self.player.data.root_link_state_w[0].detach().cpu().clone()
-        return {
+        snap = self.slot.snapshot_logical()
+        snap.update({
             "schema": "casu.isaac-navigation-state.v2",
             "canonical_content_id": self.reference.manifest["content_id"],
-            "grid": self.grid.snapshot(), "player_root_state_wxyz": state,
-            "body_model": copy.deepcopy(self.model.s),
-            "runtime_touching": sorted(self.runtime.touching),
-            "shuttle_doors": None if self.shuttle_doors is None else self.shuttle_doors.snapshot(),
-            "elapsed_steps": self.elapsed_steps,
-            "collider_revision": self.grid.block_revision,
-            "physics_ticks": self.physics_ticks,
-            "was_water": self._was_water,
-            "grid_tick": self.grid.tick,
-            "fluid_rng_seed": self.cfg.fluid_rng_seed,
+            "player_root_state_wxyz": self.player.data.root_link_state_w[0].detach().cpu().clone(),
             "liquid_affect_phase": self.cfg.liquid_affect_phase,
-        }
+        })
+        return snap
 
     def restore(self, snapshot):
         if snapshot.get("schema") != "casu.isaac-navigation-state.v2":
             raise ValueError("unsupported environment snapshot")
         if snapshot.get("canonical_content_id") != self.reference.manifest["content_id"]:
             raise ValueError("snapshot belongs to another canonical world")
-        previous_blocks = self.grid.blocks.copy()
-        before_revision = self.grid.block_revision
-        self.grid.restore(snapshot["grid"])
-        if before_revision != self.grid.block_revision or not np.array_equal(previous_blocks, self.grid.blocks):
-            self.grid.dirty_chunks = {
-                (cx, cy)
-                for cx in range(self.grid.width // 64)
-                for cy in range(self.grid.height // 64)
-                if not np.array_equal(previous_blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64],
-                                      self.grid.blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64])
-            }
+        if self.slot.restore_logical(snapshot):
             self._refresh_mutated_colliders()
-        self.model.s = copy.deepcopy(snapshot["body_model"])
-        self.runtime = RuntimeState(frozenset(tuple(t) for t in snapshot["runtime_touching"]))
-        if self.shuttle_doors is not None and snapshot["shuttle_doors"] is not None:
-            self.shuttle_doors.restore(snapshot["shuttle_doors"])
-        self.elapsed_steps = int(snapshot["elapsed_steps"])
-        self.physics_ticks = int(snapshot["physics_ticks"])
-        self._was_water = bool(snapshot.get("was_water", False))
         # A rigid-body pose/velocity write does not restore PhysX's contact solver
         # caches; reset the scene so continuation does not inherit warm-start impulses
         # from the abandoned rollout branch.

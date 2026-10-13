@@ -52,6 +52,41 @@ def _sample(model: StandingBodyModel) -> dict:
             "sliding_left": s.sliding_left, "sliding_right": s.sliding_right}
 
 
+def pre_physics_phase(model: StandingBodyModel, *, pre_tick_hook=None, post_fixed_hook=None):
+    """``FixedUpdate`` half of a tick. Returns ``(force_x, force_y, FixedOutput)`` for the engine."""
+    s, cfg = model.s, model.cfg
+    if pre_tick_hook is not None:
+        pre_tick_hook(model)
+    out = model.fixed_update()
+    if post_fixed_hook is not None:
+        post_fixed_hook(model)
+    return (out.force[0], out.force[1] + cfg.mass * cfg.gravity_y * (out.gravity_scale - 1.0)), out
+
+
+def post_physics_phase(model: StandingBodyModel, world: GroundWorld, runtime: RuntimeState,
+                       completed: int, ticks: int, *, post_tick_hook=None) -> int:
+    """Collision events, ``Update`` x1|x2 and held-action reapplication after the engine step.
+
+    ``completed`` is the 1-based tick index within the macrostep. Returns the number of
+    newly entered colliders.
+    """
+    s = model.s
+    center = (s.x + s.col_offset[0], s.y + s.col_offset[1])
+    touched = frozenset(world.touching_colliders(center, s.col_size, CONTACT_REACH))
+    entered = len(touched - runtime.touching)
+    runtime.touching = touched
+    for _ in range(entered):
+        model.on_collision_enter()
+    for _ in range(2 if completed % 5 == 0 else 1):
+        model.update()
+    if completed < ticks:  # the held action is reapplied after ticks 1..9
+        for _ in range(2 if completed in (4, 8) else 1):
+            model.apply_actions()
+    if post_tick_hook is not None:
+        post_tick_hook(model, touched)
+    return entered
+
+
 def run_macrostep(model: StandingBodyModel, adapter: PhysicsAdapter, world: GroundWorld,
                   action: PolicyAction | None, runtime: RuntimeState, *,
                   ticks: int = TICKS_PER_ACTION, record: bool = False,
@@ -64,39 +99,23 @@ def run_macrostep(model: StandingBodyModel, adapter: PhysicsAdapter, world: Grou
     ``post_tick_hook(model, touched)`` runs after the tick's Update/apply phase
     (scripted objects, hazards).
     """
-    s, cfg = model.s, model.cfg
+    s = model.s
     records: list[TickRecord] = []
     if action is not None:
         model.apply_actions(latch=action)
     for tick in range(ticks):
         pre = _sample(model) if record else None
-        if pre_tick_hook is not None:
-            pre_tick_hook(model)
-        out = model.fixed_update()
-        if post_fixed_hook is not None:
-            post_fixed_hook(model)
+        (fx, fy), out = pre_physics_phase(model, pre_tick_hook=pre_tick_hook,
+                                          post_fixed_hook=post_fixed_hook)
         post_fixed = _sample(model) if record else None
         adapter.write_state(s.x, s.y, s.vx, s.vy)
-        adapter.apply_force(out.force[0],
-                            out.force[1] + cfg.mass * cfg.gravity_y * (out.gravity_scale - 1.0))
+        adapter.apply_force(fx, fy)
         adapter.step()
         s.x, s.y, s.vx, s.vy = adapter.read_state()
         post_physics = _sample(model) if record else None
-        center = (s.x + s.col_offset[0], s.y + s.col_offset[1])
-        touched = frozenset(world.touching_colliders(center, s.col_size, CONTACT_REACH))
-        entered = len(touched - runtime.touching)
-        runtime.touching = touched
-        for _ in range(entered):
-            model.on_collision_enter()
-        completed = tick + 1
-        for _ in range(2 if completed % 5 == 0 else 1):
-            model.update()
+        entered = post_physics_phase(model, world, runtime, tick + 1, ticks,
+                                     post_tick_hook=post_tick_hook)
         adapter.set_crouch(s.crouch_amount)
-        if completed < ticks:  # the held action is reapplied after ticks 1..9
-            for _ in range(2 if completed in (4, 8) else 1):
-                model.apply_actions()
-        if post_tick_hook is not None:
-            post_tick_hook(model, touched)
         if record:
             records.append(TickRecord(tick, pre, post_fixed, post_physics, entered, out.stepped_up))
     return records
