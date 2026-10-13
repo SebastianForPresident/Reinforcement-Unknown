@@ -227,6 +227,19 @@ class WorkbenchTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "incompatible"):
                 incompatible.load(checkpoint)
 
+    def test_termination_reasons_count_only_finished_worlds(self):
+        class ReasonEnv(TinyGoalEnv):
+            def step(self, action):
+                obs, reward, reached, truncated, info = super().step(action)
+                info["termination_reason"] = [
+                    "goal" if r else "time_limit" if t else None for r, t in zip(reached, truncated)]
+                return obs, reward, reached, truncated, info
+        trainer = PPOTrainer(ReasonEnv(count=3, horizon=4), ACTION, OBSERVATION, MODEL, PPO, seed=5)
+        metrics = trainer.train_update(rollout_steps=12)
+        self.assertNotIn("termination/None", metrics)
+        counted = sum(v for k, v in metrics.items() if k.startswith("termination/"))
+        self.assertEqual(counted, metrics["completed_episodes"])
+
 
 if __name__ == "__main__":
     unittest.main()

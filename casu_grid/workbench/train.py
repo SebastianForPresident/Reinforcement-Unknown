@@ -17,6 +17,8 @@ p.add_argument('--seed', type=int, default=391728405)
 p.add_argument('--geometry-scope', choices=('full','spawn_chunk'), default='full')
 p.add_argument('--terrain-mode', choices=('shared','independent'), default='shared',
                help='multi-env only: shared static terrain (fast) or per-world terrain copies (allows terrain edits)')
+p.add_argument('--episode-steps', type=int, default=None,
+               help='truncate episodes after this many policy decisions (default: environment default, 500)')
 p.add_argument('--resume', type=Path)
 AppLauncher.add_app_launcher_args(p); args=p.parse_args(); args.headless=True
 launcher=AppLauncher(args); app=launcher.app
@@ -54,12 +56,14 @@ def main():
         'contracts':validate_contracts(config.ACTION,config.OBSERVATION,config.REWARD,config.MODEL,config.PPO),
         'environment':{'canonical_seed':391728405,'num_envs':args.num_envs,'geometry_scope':args.geometry_scope,
                        'terrain_mode':args.terrain_mode if args.num_envs>1 else 'single',
+                       'episode_steps':args.episode_steps,
                        'physics_dt':0.02,'action_decimation':10}},indent=2)+'\n')
     callbacks=config.callbacks() if hasattr(config,'callbacks') else (None,None,None)
     env=trainer=None
     try:
         env_config=IsaacLayer1EnvConfig(
-            seed=391728405,num_envs=args.num_envs,spawn_mode='canonical',geometry_scope=args.geometry_scope)
+            seed=391728405,num_envs=args.num_envs,spawn_mode='canonical',geometry_scope=args.geometry_scope,
+            **({'episode_length_steps':args.episode_steps} if args.episode_steps else {}))
         if args.num_envs == 1:
             env=IsaacLayer1NavigationEnv(env_config,
                 action_decoder=callbacks[0],observation_encoder=callbacks[1],reward_function=callbacks[2])

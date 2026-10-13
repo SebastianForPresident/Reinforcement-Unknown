@@ -127,6 +127,10 @@ class PPOTrainer:
         if self._observation is None:
             obs, _ = self.env.reset(seed=int(self.rng.integers(0, 2**31 - 1)))
             self._observation = _as_tensor_obs(obs, self.device)
+            if self.trajectory_path is not None:   # replay restarts its world here
+                with self.trajectory_path.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps({"schema": "casu.trajectory-reset.v1",
+                                             "global_step": self.total_steps}) + "\n")
         obs = self._observation
         env_count = next(iter(obs.values())).shape[0]
         expected = {field.name: field.shape for field in
@@ -230,8 +234,10 @@ class PPOTrainer:
                 reasons = info.get("termination_reason") if isinstance(info, dict) else None
                 if reasons is not None:
                     if isinstance(reasons, (list, tuple, np.ndarray)):
-                        for reason in reasons:
-                            termination_counts[str(reason)] = termination_counts.get(str(reason), 0) + 1
+                        # one reason per world; only worlds that finished this step count
+                        for reason, finished in zip(reasons, done.bool().tolist()):
+                            if finished:
+                                termination_counts[str(reason)] = termination_counts.get(str(reason), 0) + 1
                     else:
                         termination_counts[str(reasons)] = termination_counts.get(str(reasons), 0) + int(done.sum())
                 episode_returns[done.bool()] = 0
