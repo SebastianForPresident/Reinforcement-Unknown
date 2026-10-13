@@ -7,13 +7,13 @@ The workbench now records the execution layout reported by a live environment, p
 ## Verified
 
 - GUI and CLI share configuration and run services. Offscreen GUI construction, safe experiment discovery, typed model/PPO controls and plotting-view behavior are covered by automated tests. A manual desktop usability review remains necessary.
-- Workbench tests: `python -m unittest discover -s casu_grid -p 'test_*.py'` — 25 passed.
+- Workbench tests: `python -m unittest discover -s casu_grid -p 'test_*.py'` — 26 passed, including injected early-launcher failure/log preservation.
 - Syntax: `python -m compileall -q casu_grid/workbench` — passed.
 - Formatting check: `git diff --check` — passed.
 - Single-process CLI lifecycle: engineering smoke configuration, one PPO update, 32 environment decisions, real metrics, checkpoint, trajectories, completed status and inspectable environment metadata. Evidence: `/tmp/casu-integration-single-2`.
 - Older GUI acceptance smoke artifact discovery: `/tmp/casu-gui-isaac-smoke-20261013`.
 - Active performance backend settings are `CASU_BACKEND=auto|numba|reference-python` and `CASU_NUM_WORKERS=N|auto`. The requested values and live effective backend/layout are recorded separately.
-- Failure records carry exception type, message and traceback. A nonzero trainer exit cannot receive a completion marker. Cancellation targets the dedicated launcher process group.
+- Failure records carry exception type, message and traceback. A pre-launch manifest and streamed `launcher.log` preserve failures that occur before `AppLauncher` can enter the trainer's handler. A nonzero trainer exit cannot receive a completion marker. Cancellation targets the dedicated launcher process group.
 - Cleanup review found CRIU/counterfactual and matched-pair materials are tracked historical research artifacts, useful analysis, or scientific records. No archival or uncertain material was deleted.
 
 ## Not verified in this environment
@@ -69,4 +69,4 @@ For full launch instructions, GUI workflow, configuration authoring, output arti
 
 Starting HEAD was `a075acc45bd59f345b33f08f44c1d1017e9b7cef`, on `isaac-lab` and aligned with `origin/isaac-lab`. GUI/workbench source was uncommitted at campaign start. The worktree also contained optimizer-owned changes and user deletions; these were preserved. See [INTEGRATION_LOG.md](INTEGRATION_LOG.md) for the file audit, process constraint, and detailed evidence.
 
-The GUI/workbench integration checkpoint is commit `18887ad2a68989b24cde52737adb287f1bdd6dc6`. The documentation-only finalization commit and push result are recorded in the campaign completion message and branch history.
+The GUI/workbench integration checkpoint is commit `18887ad2a68989b24cde52737adb287f1bdd6dc6`. The checkpoint and documentation are pushed to `origin/isaac-lab`; follow-up lifecycle refinements are recorded in the subsequent commit history.

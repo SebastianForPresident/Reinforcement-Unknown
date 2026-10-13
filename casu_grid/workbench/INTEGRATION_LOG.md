@@ -11,13 +11,14 @@
 
 - Single-process and batched environments expose `performance_info()`. Training records its effective backend report, effective worker count, environment count, per-worker partition, requested backend/workers, terrain mode, timestep, action decimation, world fixture/content IDs, fluid seed and liquid phase in `environment.json`.
 - The trainer records initialization/training exceptions as `failure.json` with type, message and traceback, marks keyboard interruption, and closes environment/trainer while preserving the original exception. The launcher supervises a dedicated process group, marks completion only for exit code zero, removes stale status markers, and terminates the owned process group on cancellation.
+- The CLI writes a pre-launch manifest before Isaac startup and streams child output to `launcher.log`. Early Kit/AppLauncher failures remain discoverable and include a log tail in `failure.json`; launcher terminal state is atomically persisted in the manifest.
 - Replay restores a recorded multi-worker count when no override is present, rejects explicit worker-count/layout conflicts before simulation startup, and includes recorded/current partition equality in its deterministic result.
 - Run inspection exposes experiment identity and execution metadata. Empty `configs` output now gives the configuration-creation command.
 
 ## Validation evidence
 
 - `python -m compileall -q casu_grid/workbench`: passed.
-- `python -m unittest discover -s casu_grid -p 'test_*.py'`: 25 tests passed, including GUI offscreen construction, config lifecycle, metadata presentation, failure precedence, and replay partition helper coverage.
+- `python -m unittest discover -s casu_grid -p 'test_*.py'`: 26 tests passed, including GUI offscreen construction, config lifecycle, metadata presentation, injected early launcher failure/log preservation, failure precedence, and replay partition helper coverage.
 - `git diff --check`: passed.
 - A real single-process engineering-only smoke completed one PPO update (32 environment decisions, one metrics row), with trajectory and `latest.pt` checkpoint. Artifacts were in `/tmp/casu-integration-single-2`; its `RUNNING` marker was removed after the run. The metadata was manually normalized after execution to reflect the effective backend because the single-env backend report was missing; the code now supplies that report directly.
 - A prior Isaac engineering smoke artifact at `/tmp/casu-gui-isaac-smoke-20261013` is discoverable and reports completed, with checkpoint and metrics.

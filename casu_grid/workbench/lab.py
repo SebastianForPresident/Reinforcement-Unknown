@@ -171,12 +171,12 @@ def _read_metrics(path: Path, *, max_rows: int | None = None) -> tuple[list[dict
 
 
 def _status(run: Path, manifest: dict, rows: list[dict]) -> str:
-    status = manifest.get("status")
-    if status in {"configured", "running", "completed", "interrupted", "failed"}:
-        return str(status)
     if (run / "failure.json").exists(): return "failed"
     if (run / "INTERRUPTED").exists(): return "interrupted"
     if (run / "RUNNING").exists(): return "running" if _pid_alive(run / "RUNNING") else "interrupted"
+    status = manifest.get("status")
+    if status in {"configured", "starting", "running", "completed", "interrupted", "failed"}:
+        return str(status)
     if (run / "COMPLETE").exists(): return "completed"
     if rows:
         return "interrupted"  # metrics without explicit completion evidence are not success
@@ -191,6 +191,20 @@ def _pid_alive(marker: Path) -> bool:
         return True
     except (OSError, ValueError):
         return False
+
+
+def _set_run_status(run: Path, status: str) -> None:
+    """Persist launcher-owned terminal state without risking a partial JSON manifest."""
+    path = run / "config.json"
+    try:
+        manifest = _json(path)
+    except ValueError:
+        manifest = {"schema": "casu.training-run.v1", "run_id": run.name}
+    manifest["status"] = status
+    manifest["status_updated_utc"] = datetime.now(timezone.utc).isoformat()
+    temporary = run / ".config.json.tmp"
+    temporary.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def discover_runs(root: Path = DEFAULT_EXPERIMENTS) -> list[dict[str, Any]]:
@@ -544,6 +558,21 @@ def main(argv: list[str] | None = None) -> int:
             if not args.engineering_smoke and Path(args.config).resolve() == TEMPLATE.resolve(): raise ValueError("Refusing to launch engineering_smoke.py as a research run without --engineering-smoke")
             run_dir.parent.mkdir(parents=True, exist_ok=True)
             run_dir.mkdir(parents=True)
+            initial_manifest = {
+                "schema": "casu.training-run.v1", "run_id": run_dir.name,
+                "created_utc": datetime.now(timezone.utc).isoformat(), "status": "starting",
+                "config_path": str(args.config.expanduser().resolve()),
+                "config_sha256": hashlib.sha256(args.config.expanduser().resolve().read_bytes()).hexdigest(),
+                "experiment": getattr(cfg, "EXPERIMENT", {"name": Path(args.config).stem}),
+                "contracts": validate_contracts(cfg.ACTION, cfg.OBSERVATION, cfg.REWARD, cfg.MODEL, cfg.PPO),
+                "seed": args.seed, "run_kind": "engineering_smoke" if args.engineering_smoke else "research_training",
+                "environment": {"num_envs": args.num_envs, "geometry_scope": "full",
+                    "terrain_mode": args.terrain_mode if args.num_envs > 1 else "single",
+                    "physics_dt": 0.02, "action_decimation": 10},
+                "execution_requested": {"backend": os.environ.get("CASU_BACKEND", "auto"),
+                    "workers": os.environ.get("CASU_NUM_WORKERS", "1")},
+            }
+            (run_dir / "config.json").write_text(json.dumps(initial_manifest, indent=2) + "\n", encoding="utf-8")
             marker = run_dir / "RUNNING"
             marker.write_text(f"{os.getpid()}\n", encoding="utf-8")
             try:
@@ -581,6 +610,7 @@ def main(argv: list[str] | None = None) -> int:
                     (run_dir / "COMPLETE").write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
                     (run_dir / "failure.json").unlink(missing_ok=True)
                     (run_dir / "INTERRUPTED").unlink(missing_ok=True)
+                    _set_run_status(run_dir, "completed")
                 else:
                     if not (run_dir / "failure.json").exists():
                         log_tail = log_path.read_text(encoding="utf-8", errors="replace")[-12000:] if log_path.exists() else ""
@@ -589,10 +619,12 @@ def main(argv: list[str] | None = None) -> int:
                             "log_path": str(log_path), "log_tail": log_tail}, indent=2) + "\n", encoding="utf-8")
                     (run_dir / "COMPLETE").unlink(missing_ok=True)
                     (run_dir / "INTERRUPTED").unlink(missing_ok=True)
+                    _set_run_status(run_dir, "failed")
                 return int(result_code)
             except KeyboardInterrupt:
                 (run_dir / "COMPLETE").unlink(missing_ok=True)
                 (run_dir / "INTERRUPTED").write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
+                _set_run_status(run_dir, "interrupted")
                 print(f"Interrupted. Checkpoint, if present: {run_dir / 'latest.pt'}")
                 return 130
             finally:

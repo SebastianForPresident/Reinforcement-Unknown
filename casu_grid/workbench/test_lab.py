@@ -118,6 +118,30 @@ class LabUsabilityTests(unittest.TestCase):
             self.assertEqual(report["status"], "failed")
             self.assertEqual(report["failure"]["message"], "worker crashed")
 
+    def test_launch_failure_preserves_early_startup_log_and_never_completes(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from unittest.mock import patch
+        class FailedChild:
+            pid = 424242
+            stdout = StringIO("Traceback: Isaac Kit initialization failed\n")
+            def wait(self): return 1
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = root / "smoke.py"
+            config.write_bytes(Path(lab.TEMPLATE).read_bytes())
+            run = root / "failed-run"
+            with patch.object(lab, "_isaac_python_command", return_value="python"), \
+                 patch.object(lab.subprocess, "Popen", return_value=FailedChild()), \
+                 redirect_stdout(StringIO()):
+                code = lab.main(["launch", str(config), "--engineering-smoke", "--run-dir", str(run)])
+            self.assertEqual(code, 1)
+            self.assertIn("Isaac Kit initialization failed", (run / "launcher.log").read_text())
+            self.assertIn("Isaac Kit initialization failed", json.loads((run / "failure.json").read_text())["log_tail"])
+            self.assertFalse((run / "COMPLETE").exists())
+            self.assertFalse((run / "RUNNING").exists())
+            self.assertEqual(lab._status(run, json.loads((run / "config.json").read_text()), []), "failed")
+
     def test_summary_exposes_reproducibility_layout(self):
         with tempfile.TemporaryDirectory() as tmp:
             run = self._run(Path(tmp), "sharded", [{"update": 1}], complete=True)
