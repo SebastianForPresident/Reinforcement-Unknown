@@ -69,4 +69,4 @@ For full launch instructions, GUI workflow, configuration authoring, output arti
 
 Starting HEAD was `a075acc45bd59f345b33f08f44c1d1017e9b7cef`, on `isaac-lab` and aligned with `origin/isaac-lab`. GUI/workbench source was uncommitted at campaign start. The worktree also contained optimizer-owned changes and user deletions; these were preserved. See [INTEGRATION_LOG.md](INTEGRATION_LOG.md) for the file audit, process constraint, and detailed evidence.
 
-Commit and push identifiers will be recorded here after staging only the workbench integration files and confirming branch state.
+The GUI/workbench integration checkpoint is commit `18887ad2a68989b24cde52737adb287f1bdd6dc6`. The documentation-only finalization commit and push result are recorded in the campaign completion message and branch history.
