@@ -160,6 +160,17 @@ def phase_independent(n, result):
         env.restore(snap)
         restored = [child_count(0), child_count(1)]
         ok = before[0] != mutated[0] and before[1] == mutated[1] and before == restored
+        # physical effect of the edit (no scene reset is needed): removing the support lets only world 0 fall
+        env.restore(snap)
+        env.set_block(0, 7, 372, 0)
+        flat = {"move_x": np.ones(2, dtype=int), "jump": np.zeros(2, dtype=int), "crouch": np.zeros(2, dtype=int)}
+        for _ in range(6):
+            env.step(flat)
+        fell = env._body_state(0)["y"] < env._body_state(1)["y"] - 1.0
+        result["checks"]["independent_edit_changes_contacts"] = {
+            "status": "passed" if fell else "failed", "world0_y": env._body_state(0)["y"],
+            "world1_y": env._body_state(1)["y"]}
+        env.restore(snap)
         result["checks"]["independent_terrain_edit_and_restore"] = {
             "status": "passed" if ok else "failed", "cell_xy": [mx, my],
             "world0_chunk_colliders": [before[0], mutated[0], restored[0]],

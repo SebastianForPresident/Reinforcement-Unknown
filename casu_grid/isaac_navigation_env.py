@@ -73,6 +73,10 @@ class IsaacLayer1EnvConfig:
     solver_position_iterations: int = 8
     solver_velocity_iterations: int = 8
     record_ticks: bool = False          # keep per-tick samples of the last macrostep (A/B tooling)
+    # Independent-terrain edits: PhysX picks up re-authored static colliders without a scene reset (60x
+    # faster, 3.0 s -> 0.05 s per edit with 2 worlds; equal trajectories on wall/pit scenarios). Set True
+    # to restore the old full ``sim.reset`` after every chunk rebuild.
+    terrain_edit_scene_reset: bool = False
     use_cuda: bool = False
     # Execution layout only (never changes the simulated experiment): split the worlds over this
     # many independent Isaac processes. 1 keeps everything in-process. See isaac_sharded_env.py.

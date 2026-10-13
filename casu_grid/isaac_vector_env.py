@@ -155,10 +155,27 @@ class BatchedIsaacLayer1Env(gym.Env):
                          if self.terrain_mode == "independent" else ["/World/CasUTerrain"])
         for index, root in enumerate(terrain_roots):
             offset = tuple(float(v) for v in self.offsets[index])
-            self.geometry_by_env.append(author_layer1_box_collision(
-                self.stage, self.reference.terrain, half_thickness=half,
-                physics_material=self.material, physics_material_path=self.material_path,
-                root_path=root, world_offset=offset, contact_offset=self.cfg.terrain_contact_offset))
+            if self.terrain_mode == "independent":
+                # Terrain copies differ only by a spatial offset: author world 0 once in local coordinates
+                # and Sdf-copy the finished prim tree for the others; each copy's root Xform carries its
+                # offset (USD adds it to the same local translations, so colliders land on identical doubles).
+                if index == 0:
+                    stats = author_layer1_box_collision(
+                        self.stage, self.reference.terrain, half_thickness=half,
+                        physics_material=self.material, physics_material_path=self.material_path,
+                        root_path=root, contact_offset=self.cfg.terrain_contact_offset)
+                else:
+                    started_copy = time.perf_counter()
+                    self._copy_terrain(terrain_roots[0], root)
+                    stats = dict(self.geometry_by_env[0], build_seconds=time.perf_counter() - started_copy,
+                                 copied_from=terrain_roots[0])
+                self._set_root_offset(root, offset)
+                self.geometry_by_env.append(stats)
+            else:
+                self.geometry_by_env.append(author_layer1_box_collision(
+                    self.stage, self.reference.terrain, half_thickness=half,
+                    physics_material=self.material, physics_material_path=self.material_path,
+                    root_path=root, world_offset=offset, contact_offset=self.cfg.terrain_contact_offset))
             if static_objects:
                 objects_root = (f"/World/Env_{index:05d}/CasUObjects" if self.terrain_mode == "independent"
                                 else "/World/CasUObjects")
@@ -243,6 +260,20 @@ class BatchedIsaacLayer1Env(gym.Env):
         self.player.update(self.cfg.physics_dt)
         if self.player.num_instances != self.count:
             raise RuntimeError(f"expected {self.count} indexed player bodies, found {self.player.num_instances}")
+
+    def _copy_terrain(self, source_root: str, destination_root: str) -> None:
+        from pxr import Sdf
+        layer = self.stage.GetEditTarget().GetLayer()
+        parent = destination_root.rsplit("/", 1)[0]
+        self.stage.DefinePrim(parent)
+        Sdf.CopySpec(layer, Sdf.Path(source_root), layer, Sdf.Path(destination_root))
+
+    def _set_root_offset(self, root: str, offset) -> None:
+        if offset == (0.0, 0.0, 0.0):
+            return
+        from pxr import Gf, UsdGeom
+        xform = UsdGeom.Xformable(self.stage.GetPrimAtPath(root))
+        xform.AddTranslateOp().Set(Gf.Vec3d(*offset))
 
     @staticmethod
     def _shifted(collider, offset):
@@ -537,11 +568,11 @@ class BatchedIsaacLayer1Env(gym.Env):
                     author_layer1_box_collision(
                         self.stage, slot.physical_blocks, half_thickness=self.cfg.terrain_extrusion_depth / 2,
                         physics_material=self.material, physics_material_path=self.material_path,
-                        root_path=root, world_offset=offset, only_chunks=[(cx, cy)],
+                        root_path=root, only_chunks=[(cx, cy)],   # local coordinates: the root carries the offset
                         contact_offset=self.cfg.terrain_contact_offset)
                 any_change = True
             slot.physical_dirty.clear()
-        if any_change:
+        if any_change and self.cfg.terrain_edit_scene_reset:
             root_state = self.player.data.root_link_state_w.detach().clone()
             self.sim.reset(soft=False)
             self.player.reset()

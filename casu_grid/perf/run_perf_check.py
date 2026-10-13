@@ -4,8 +4,8 @@
     python casu_grid/perf/run_perf_check.py --quick    # fewer windows, skip the unit tests
     python casu_grid/perf/run_perf_check.py --update-reference   # record the current machine/code as the reference
 
-Deterministic gates (never flaky): the unit suite and the batched-trajectory gate, which reruns three
-seeded workloads and requires the result to equal the stored pre-optimisation baseline
+Deterministic gates (never flaky): the unit suite and the batched-trajectory gate, which reruns
+seeded workloads (shared and independent terrain) and requires the result to equal the stored pre-optimisation baseline
 (``perf/baselines/trajectories``, recorded from revision f54f505) -- bit-identical by default.
 Throughput is compared to ``perf/baselines/throughput_reference_*.json`` with a relative noise margin
 (``--margin``, default 15%); only drops beyond the margin *and* beyond both runs' observed spread are
@@ -20,8 +20,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / "casu_grid/perf/baselines"
 OUT = ROOT / "casu_grid/perf/results"
-GATE_CONFIGS = (("e16_random_fixture", 16, "random", "fixture"), ("e4_run_fixture", 4, "run", "fixture"),
-                ("e4_random_canonical", 4, "random", "canonical"))
+GATE_CONFIGS = (("e16_random_fixture", 16, "random", "fixture", "shared", 80),
+                ("e4_run_fixture", 4, "run", "fixture", "shared", 80),
+                ("e4_random_canonical", 4, "random", "canonical", "shared", 80),
+                ("ind4_random_fixture", 4, "random", "fixture", "independent", 60),
+                ("ind4_run_fixture", 4, "run", "fixture", "independent", 60))
 
 p = argparse.ArgumentParser()
 p.add_argument("--quick", action="store_true")
@@ -49,10 +52,10 @@ if not args.quick and not args.update_reference:
     print("unit tests:", "passed" if ok else "FAILED", flush=True)
 
 if not args.update_reference:
-    for name, envs, workload, spawn in GATE_CONFIGS:
+    for name, envs, workload, spawn, terrain, steps in GATE_CONFIGS:
         out = OUT / "check_tmp" / f"{name}.json"
         r = run(["casu_grid/perf/trajectory_dump.py", "--envs", str(envs), "--workload", workload, "--spawn", spawn,
-                 "--macrosteps", "80", "--output", str(out)])
+                 "--terrain-mode", terrain, "--macrosteps", str(steps), "--output", str(out)])
         if r.returncode != 0 or not out.exists():
             summary["gates"][f"trajectory_{name}"] = {"status": "failed", "error": r.stdout[-400:] + r.stderr[-400:]}
             failed = True
