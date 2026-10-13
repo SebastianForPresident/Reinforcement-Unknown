@@ -67,6 +67,7 @@ def main():
     rng = np.random.default_rng(args.seed)
     depths, jumps, nonfinite, resets = [], 0, 0, 0
     previous_depth = np.zeros(n)
+    fast_samples, fast_worlds = 0, set()
     persistent = 0
     reasons = {}
     ends = []                                  # (reason, x, y, vy) of every episode end
@@ -92,6 +93,9 @@ def main():
                 if not all(math.isfinite(v) for v in values):
                     nonfinite += 1
                     continue
+                if abs(s.vy) > 40.0 or abs(s.vx) > 40.0:       # CasU never exceeds 31 m/s in 20,000 recorded ticks
+                    fast_samples += 1
+                    fast_worlds.add(i)
                 if not done[i]:
                     depth = embedding_depth(slot)
                     depths.append(depth)
@@ -121,6 +125,9 @@ def main():
               "embedded_samples": int((d > args.depth_threshold).sum()),
               "persistent_embedded_samples": int(persistent),          # embedded at two consecutive decisions of the same world
               "depth_percentiles": {str(q): float(np.percentile(d, q)) for q in (50, 90, 99, 99.9, 100)},
+              "samples_with_speed_over_40_at_decision_boundary": int(fast_samples),
+              "speed_over_40_rate_per_1000_decisions": 1000.0 * fast_samples / (args.envs * args.decisions),
+              "worlds_with_speed_over_40": len(fast_worlds),
               "implausible_jumps": int(jumps), "nonfinite_states": int(nonfinite), "episode_ends": int(resets),
               "termination_reasons": reasons, "episode_end_positions": ends, "mean_total_abs_x_travel": float(travelled.mean())}
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,7 @@
 # Convex-hull vs compound player collider — CasU evidence
 
+Follow-up: [`HULL_QUALIFICATION_III_REPORT.md`](HULL_QUALIFICATION_III_REPORT.md) answers the open item of §8–§9 with real CasU random-tape recordings.
+
 Status: **evidence only.** The compound collider stays the default, the convex hull stays an opt-in
 (`CASU_PLAYER_COLLIDER=convex_hull`), no default, baseline or fixture was changed, and no hull parameter was tuned.
 The physics-contract decision is separate. Raw data: `results/hull_evaluation/` (per-tick rows included); commands:

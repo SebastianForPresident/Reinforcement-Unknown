@@ -21,6 +21,7 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--trace", default=None, help="packed source trace name (e.g. flat_master)")
+parser.add_argument("--trace-root", type=Path, default=None, help="directory holding packed traces (default: the canonical fixture folder)")
 parser.add_argument("--legacy-probe", default=None, help="Mission-12 CasU collision probe (free-run only), see legacy_probe_traces.PROBES")
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--modes", default="teacher,free")
@@ -111,7 +112,7 @@ def free_running(env, trace, actions):
         for seq, ex, ey, block in trace.terrain_events:
             if seq == index + 1:
                 env.set_block(ex, ey, block)
-        env.step({"move_x": [row[0]], "jump": [row[1]], "crouch": [row[3]], "move_y": [row[2]]})
+        _, _, terminated, _, step_info = env.step({"move_x": [row[0]], "jump": [row[1]], "crouch": [row[3]], "move_y": [row[2]]})
         for record in env.last_tick_records:
             i = index * 10 + record.tick
             src = trace.post_physics[i]
@@ -121,6 +122,7 @@ def free_running(env, trace, actions):
                            "dvx": record.post_physics["vx"] - src["velocity"][0],
                            "dvy": record.post_physics["vy"] - src["velocity"][1],
                            "isaac_grounded": record.post_physics["grounded"],
+                           "terminated": bool(terminated[0]), "reason": step_info["termination_reason"],
                            "source_grounded": bool(trace.pre_fixed[min(i + 1, len(trace.pre_fixed) - 1)]["grounded"])})
     def first_exceeding(key, limit):
         for row in series:
@@ -202,7 +204,7 @@ def main():
         trace = load_probe(args.legacy_probe)
         args.modes = "free"
     else:
-        trace = load_source_trace(args.trace)
+        trace = load_source_trace(args.trace, args.trace_root) if args.trace_root else load_source_trace(args.trace)
     actions = trace.policy_actions()
     cfg = IsaacLayer1EnvConfig(record_ticks=True, crouch_levels=args.crouch_levels,
                                player_rest_offset=args.rest_offset,

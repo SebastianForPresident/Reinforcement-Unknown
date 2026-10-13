@@ -1,0 +1,190 @@
+{
+ "teacher_mean_position_error": {
+  "compound_mean": 0.019825122463517086,
+  "hull_mean": 0.01888306400310412,
+  "paired_difference_hull_minus_compound": {
+   "mean": -0.0009420584604129655,
+   "ci95": [
+    -0.0014629784480784751,
+    -0.0005754596324034848
+   ]
+  },
+  "sign_test": {
+   "hull_better": 10,
+   "hull_worse": 0,
+   "ties": 0,
+   "p_two_sided": 0.001953125
+  }
+ },
+ "teacher_mean_velocity_error": {
+  "compound_mean": 0.6698545694928861,
+  "hull_mean": 0.6344532450455491,
+  "paired_difference_hull_minus_compound": {
+   "mean": -0.03540132444733694,
+   "ci95": [
+    -0.05116602016683579,
+    -0.02121751193557514
+   ]
+  },
+  "sign_test": {
+   "hull_better": 10,
+   "hull_worse": 0,
+   "ties": 0,
+   "p_two_sided": 0.001953125
+  }
+ },
+ "segment_mean_position_error": {
+  "compound_mean": 0.3346437453340231,
+  "hull_mean": 0.2566424432479137,
+  "paired_difference_hull_minus_compound": {
+   "mean": -0.07800130208610942,
+   "ci95": [
+    -0.13037665550457792,
+    -0.04438463891235245
+   ]
+  },
+  "sign_test": {
+   "hull_better": 10,
+   "hull_worse": 0,
+   "ties": 0,
+   "p_two_sided": 0.001953125
+  }
+ },
+ "free_mean_position_error": {
+  "compound_mean": 17.113793788480386,
+  "hull_mean": 13.504416782804816,
+  "paired_difference_hull_minus_compound": {
+   "mean": -3.6093770056755723,
+   "ci95": [
+    -11.82892153428304,
+    4.4931990990094715
+   ]
+  },
+  "sign_test": {
+   "hull_better": 7,
+   "hull_worse": 3,
+   "ties": 0,
+   "p_two_sided": 0.34375
+  }
+ },
+ "free_error_at_decision_50": {
+  "compound_mean": 9.79188455241824,
+  "hull_mean": 9.939625480704084,
+  "paired_difference_hull_minus_compound": {
+   "mean": 0.1477409282858438,
+   "ci95": [
+    -4.893025737878633,
+    4.891213385110443
+   ]
+  },
+  "sign_test": {
+   "hull_better": 5,
+   "hull_worse": 5,
+   "ties": 0,
+   "p_two_sided": 1.0
+  }
+ },
+ "free_error_at_decision_200": {
+  "compound_mean": 31.42718708321023,
+  "hull_mean": 30.07455405479587,
+  "paired_difference_hull_minus_compound": {
+   "mean": -1.352633028414361,
+   "ci95": [
+    -22.628644224451733,
+    19.802005105318393
+   ]
+  },
+  "sign_test": {
+   "hull_better": 5,
+   "hull_worse": 5,
+   "ties": 0,
+   "p_two_sided": 1.0
+  }
+ },
+ "compound_median_decision_first_error_over_0p5m": 4,
+ "compound_terminations": {
+  "world_bounds": 7,
+  "none within 200 decisions": 1,
+  "ragdoll:hit_ground_hard": 2
+ },
+ "convex_hull_median_decision_first_error_over_0p5m": 4,
+ "convex_hull_terminations": {
+  "world_bounds": 6,
+  "ragdoll:hit_ground_hard": 4
+ },
+ "casu": {
+  "decisions": 2000,
+  "hard_landing_events": 0,
+  "deaths": 0,
+  "hard_landing_rate_per_decision_ci95": [
+   0.0,
+   0.001844439727056968
+  ],
+  "ragdoll_events_any_cause": 1,
+  "ragdoll_rate_per_decision_ci95": [
+   1.265890399214492e-05,
+   0.0027858216954694493
+  ]
+ },
+ "compound_hazard": {
+  "decisions_at_risk": 832,
+  "hard_landing_events": 2,
+  "world_top_exits": 7,
+  "hard_landing_rate_per_decision": 0.002403846153846154,
+  "hard_landing_rate_ci95": [
+   0.00029111692132688084,
+   0.00868351883139899
+  ],
+  "world_top_exit_rate_per_decision": 0.008413461538461538,
+  "world_top_exit_rate_ci95": [
+   0.0033826478984613742,
+   0.017334946348199973
+  ],
+  "ticks_speed_over_40": 13,
+  "ticks_observed": 8320
+ },
+ "compound_first_5cm_divergence_by_casu_contact_class": {
+  "ceiling": 7,
+  "ground": 1,
+  "airborne": 1,
+  "landing": 1
+ },
+ "convex_hull_hazard": {
+  "decisions_at_risk": 619,
+  "hard_landing_events": 4,
+  "world_top_exits": 6,
+  "hard_landing_rate_per_decision": 0.006462035541195477,
+  "hard_landing_rate_ci95": [
+   0.0017606871948729007,
+   0.01654537750469095
+  ],
+  "world_top_exit_rate_per_decision": 0.009693053311793215,
+  "world_top_exit_rate_ci95": [
+   0.0035571797310029883,
+   0.021097696320708702
+  ],
+  "ticks_speed_over_40": 11,
+  "ticks_observed": 6190
+ },
+ "convex_hull_first_5cm_divergence_by_casu_contact_class": {
+  "ceiling": 7,
+  "ground": 1,
+  "airborne": 1,
+  "landing": 1
+ },
+ "casu_tapes_with_ragdoll": 1,
+ "casu_tapes_dead": 0,
+ "casu_tapes_reaching_world_top": 9
+}
+
+tape       CasU ragdoll   top y | compound: first term / >0.5m / mean err | hull: first term / >0.5m / mean err
+rand_2001          None  511.89 | world_boun@115      5   15.662 | world_boun@102      5    4.430
+rand_2002          None  510.61 | -                   9    6.401 | world_boun@130      9   19.909
+rand_2003          None  511.87 | world_boun@67       7   35.945 | hit_ground@70       7    6.542
+rand_2004            80  511.87 | hit_ground@53      16   16.093 | world_boun@109     16    4.389
+rand_2005          None  511.89 | world_boun@14       4   20.410 | world_boun@16       4   18.340
+rand_2006          None  511.89 | world_boun@136      2   13.340 | world_boun@27       2   23.151
+rand_2007          None  511.89 | world_boun@24       2   11.558 | hit_ground@14       2    3.132
+rand_2008          None  511.89 | world_boun@38       2   33.103 | world_boun@38       2   48.885
+rand_2009          None  511.89 | world_boun@156      2    5.053 | hit_ground@84       2    3.995
+rand_2010          None  511.87 | hit_ground@38       1   13.572 | hit_ground@39       1    2.269

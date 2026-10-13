@@ -1,0 +1,23 @@
+{
+ "schema": "casu.policy-transfer-check.v1",
+ "collider": "compound",
+ "seed": 12,
+ "envs": 64,
+ "decisions": 400,
+ "checkpoint": "/tmp/claude-1000/-home-sebastian-Documents-Casualties-Unknown-Projects-Reinforcement-Unknown-Isaac/919ee011-e014-4f02-9c35-5b7de75a3190/scratchpad/soak3/run/latest.pt",
+ "checkpoint_update_count": 500,
+ "completed_episodes": 30,
+ "mean_return": 63.0,
+ "mean_length": 32.266666666666666,
+ "median_length": 28.0,
+ "terminations": {
+  "ragdoll:hit_ground_hard": 30
+ },
+ "action_frequencies": {
+  "action/advance/choice_0_fraction": 0.5094140625,
+  "action/advance/choice_1_fraction": 0.4905859375
+ },
+ "goal_reward_sum": 25471.0,
+ "physics_ticks": 256000,
+ "mean_reward_per_decision": 1.993593692779541
+}

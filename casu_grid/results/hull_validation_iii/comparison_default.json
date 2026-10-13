@@ -1,0 +1,1085 @@
+{
+ "schema": "casu.random-tape-comparison.v1",
+ "tapes": {
+  "rand_2001": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.88504,
+    "min_rb_y": 501.605835,
+    "ticks": 2000,
+    "first_decision_at_world_top": 102,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     96744.0,
+     4676865.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 114,
+    "ticks_before_first_termination": 1140,
+    "ticks_with_speed_over_40_before_termination": 3,
+    "first_speed_over_40": [
+     52,
+     5,
+     "airborne",
+     -47.5
+    ],
+    "max_abs_vy_before_termination": 49.73793029785156,
+    "first_termination": {
+     "decision": 115,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 4,
+     "tick": 5,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 5,
+    "first_error_over_2m": 17,
+    "position_error_at_decision": {
+     "10": 0.22050249227968688,
+     "25": 4.000533923298817,
+     "50": 9.151421429969956,
+     "100": 7.810207690004819,
+     "200": 8.802045748273724
+    },
+    "mean_position_error": 8.614237830823532,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.02852551573555074,
+     "mean_velocity_error": 0.7832603920621692
+    },
+    "segment_mean_position_error": 0.41019944708753114,
+    "ticks_with_isaac_above_casu_cap": 128
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 8,
+    "ticks_before_first_termination": 80,
+    "ticks_with_speed_over_40_before_termination": 8,
+    "first_speed_over_40": [
+     8,
+     2,
+     "ceiling",
+     -60.1
+    ],
+    "max_abs_vy_before_termination": 79.70838928222656,
+    "first_termination": {
+     "decision": 9,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 4,
+     "tick": 5,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 5,
+    "first_error_over_2m": 8,
+    "position_error_at_decision": {
+     "10": 1.611060733312163,
+     "25": 3.215087654537795,
+     "50": 9.059607348060442,
+     "100": 6.151145892342128e-05,
+     "200": 15.002206177432939
+    },
+    "mean_position_error": 6.788504127230404,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.023131798275959695,
+     "mean_velocity_error": 0.6686818985949767
+    },
+    "segment_mean_position_error": 0.329702241447093,
+    "ticks_with_isaac_above_casu_cap": 861
+   }
+  },
+  "rand_2002": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 510.6128,
+    "min_rb_y": 496.615234,
+    "ticks": 2000,
+    "first_decision_at_world_top": null,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     2168292.0,
+     4677365.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 200,
+    "ticks_before_first_termination": 2000,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 30.800182342529297,
+    "first_termination": null,
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 5,
+     "casu_contact_class": "ground"
+    },
+    "first_error_over_0p5m": 9,
+    "first_error_over_2m": 13,
+    "position_error_at_decision": {
+     "10": 1.4546636371524566,
+     "25": 8.29825273696668,
+     "50": 0.0049342668258738785,
+     "100": 3.5062486899360477,
+     "200": 2.1299508632747792
+    },
+    "mean_position_error": 3.4956969993522913,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.01253303624566277,
+     "mean_velocity_error": 0.49717662879124097
+    },
+    "segment_mean_position_error": 0.19417597178512422,
+    "ticks_with_isaac_above_casu_cap": 0
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 79,
+    "ticks_before_first_termination": 790,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.899997711181644,
+    "first_termination": {
+     "decision": 80,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 5,
+     "casu_contact_class": "ground"
+    },
+    "first_error_over_0p5m": 9,
+    "first_error_over_2m": 9,
+    "position_error_at_decision": {
+     "10": 0.1711584050105568,
+     "25": 12.551663325683817,
+     "50": 16.674498475162622,
+     "100": 21.22256077800872,
+     "200": 42.23487466700291
+    },
+    "mean_position_error": 23.0933097167751,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.012489102614062608,
+     "mean_velocity_error": 0.49618384602200155
+    },
+    "segment_mean_position_error": 0.20129381382724648,
+    "ticks_with_isaac_above_casu_cap": 1192
+   }
+  },
+  "rand_2003": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.86557,
+    "min_rb_y": 495.615448,
+    "ticks": 2000,
+    "first_decision_at_world_top": 46,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     1768930.0,
+     4862432.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 66,
+    "ticks_before_first_termination": 660,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 25.84261131286621,
+    "first_termination": {
+     "decision": 67,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 9,
+     "casu_contact_class": "airborne"
+    },
+    "first_error_over_0p5m": 8,
+    "first_error_over_2m": 8,
+    "position_error_at_decision": {
+     "10": 5.276434695177179,
+     "25": 9.379551629311404,
+     "50": 0.1320443119127936,
+     "100": 11.627026767244546,
+     "200": 10.978284343393966
+    },
+    "mean_position_error": 9.152791954883055,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.018162393840817248,
+     "mean_velocity_error": 0.7196380960098926
+    },
+    "segment_mean_position_error": 0.22483544789579812,
+    "ticks_with_isaac_above_casu_cap": 87
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 7,
+    "ticks_before_first_termination": 70,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.89999771118164,
+    "first_termination": {
+     "decision": 8,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 9,
+     "casu_contact_class": "airborne"
+    },
+    "first_error_over_0p5m": 7,
+    "first_error_over_2m": 8,
+    "position_error_at_decision": {
+     "10": 2.3983019851461953,
+     "25": 8.061930089624187,
+     "50": 0.23300552608592934,
+     "100": 6.4586005738089725,
+     "200": 41.79212019042121
+    },
+    "mean_position_error": 8.176357365899905,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.014856927870701506,
+     "mean_velocity_error": 0.6669328992791373
+    },
+    "segment_mean_position_error": 0.19400121610578022,
+    "ticks_with_isaac_above_casu_cap": 4
+   }
+  },
+  "rand_2004": {
+   "casu": {
+    "ragdoll_calls_in_tape": [
+     {
+      "fixedTime": 23.64,
+      "physicsFixedUpdateIndex": 1148,
+      "activeActionSequence": 80,
+      "completedPolicyPhysicsTicks": 7,
+      "bodyPosition": [
+       -24.0763874,
+       508.73172,
+       0.0
+      ],
+      "bodyVelocity": [
+       0.0,
+       -3.43768644
+      ],
+      "lastTimeStepVelocity": [
+       3.2047172e-08,
+       -2.3376863
+      ],
+      "conscious": false,
+      "consciousness": 0.0,
+      "grounded": false,
+      "ragdollAction": 0,
+      "caller": "at Body.DMD<Body::HandleBody> (Body , Painkillers ) [0x00000] in <ab887c07f51841"
+     }
+    ],
+    "first_ragdoll_decision": 80,
+    "dead_decision": null,
+    "max_rb_y": 511.87088,
+    "min_rb_y": 496.615326,
+    "ticks": 2000,
+    "first_decision_at_world_top": 101,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     224120.046875,
+     4868877.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 70,
+    "ticks_before_first_termination": 700,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.899997711181644,
+    "first_termination": {
+     "decision": 71,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 9,
+     "tick": 6,
+     "casu_contact_class": "landing"
+    },
+    "first_error_over_0p5m": 16,
+    "first_error_over_2m": 18,
+    "position_error_at_decision": {
+     "10": 0.2570057113464865,
+     "25": 3.4259892253907753,
+     "50": 2.4921454965473857,
+     "100": 6.068730824226019,
+     "200": 23.701540733448816
+    },
+    "mean_position_error": 7.307782426627888,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.017014613860560503,
+     "mean_velocity_error": 0.6562054913394455
+    },
+    "segment_mean_position_error": 0.21427457646968529,
+    "ticks_with_isaac_above_casu_cap": 176
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 63,
+    "ticks_before_first_termination": 630,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 28.647748947143555,
+    "first_termination": {
+     "decision": 64,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 9,
+     "tick": 6,
+     "casu_contact_class": "landing"
+    },
+    "first_error_over_0p5m": 16,
+    "first_error_over_2m": 18,
+    "position_error_at_decision": {
+     "10": 0.2568896039859382,
+     "25": 3.4259886686567596,
+     "50": 7.885443472200701,
+     "100": 0.6408690356724762,
+     "200": 9.44876132680588
+    },
+    "mean_position_error": 3.1743572193896785,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.01601716586459368,
+     "mean_velocity_error": 0.6099583697533875
+    },
+    "segment_mean_position_error": 0.18073268233121856,
+    "ticks_with_isaac_above_casu_cap": 42
+   }
+  },
+  "rand_2005": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.88504,
+    "min_rb_y": 501.615448,
+    "ticks": 2000,
+    "first_decision_at_world_top": 20,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     96122.0,
+     3695690.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 15,
+    "ticks_before_first_termination": 150,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.899997711181644,
+    "first_termination": {
+     "decision": 16,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 3,
+     "tick": 8,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 4,
+    "first_error_over_2m": 4,
+    "position_error_at_decision": {
+     "10": 2.0915379079517664,
+     "25": 4.777025172033043,
+     "50": 3.8091134387509156,
+     "100": 5.6405415026010415,
+     "200": 30.338756178901008
+    },
+    "mean_position_error": 8.22236953057928,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.06269008735546892,
+     "mean_velocity_error": 1.3056944692807464
+    },
+    "segment_mean_position_error": 0.6393522542673107,
+    "ticks_with_isaac_above_casu_cap": 1590
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 3,
+    "ticks_before_first_termination": 30,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.89999771118164,
+    "first_termination": {
+     "decision": 4,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 3,
+     "tick": 8,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 4,
+    "first_error_over_2m": 4,
+    "position_error_at_decision": {
+     "10": 9.830623431619696,
+     "25": 13.719458981396295,
+     "50": 33.15138830639249,
+     "100": 15.094672883453834,
+     "200": 10.062469705966176
+    },
+    "mean_position_error": 15.986259925161074,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.05256405108643115,
+     "mean_velocity_error": 1.1145210282159104
+    },
+    "segment_mean_position_error": 0.6194128730914894,
+    "ticks_with_isaac_above_casu_cap": 678
+   }
+  },
+  "rand_2006": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.885162,
+    "min_rb_y": 495.615448,
+    "ticks": 2000,
+    "first_decision_at_world_top": 27,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     1988212.0,
+     4857757.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 135,
+    "ticks_before_first_termination": 1350,
+    "ticks_with_speed_over_40_before_termination": 6,
+    "first_speed_over_40": [
+     24,
+     7,
+     "airborne",
+     -46.0
+    ],
+    "max_abs_vy_before_termination": 51.460575103759766,
+    "first_termination": {
+     "decision": 136,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 1,
+     "tick": 3,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 2,
+    "first_error_over_2m": 24,
+    "position_error_at_decision": {
+     "10": 0.6390171517335819,
+     "25": 5.000375958071037,
+     "50": 17.31270280026575,
+     "100": 3.6438805285124056,
+     "200": 8.450149052561093
+    },
+    "mean_position_error": 14.068005881272159,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.017039328718123307,
+     "mean_velocity_error": 0.7660139967759488
+    },
+    "segment_mean_position_error": 0.2575862678638014,
+    "ticks_with_isaac_above_casu_cap": 298
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 24,
+    "ticks_before_first_termination": 240,
+    "ticks_with_speed_over_40_before_termination": 3,
+    "first_speed_over_40": [
+     24,
+     7,
+     "airborne",
+     -61.3
+    ],
+    "max_abs_vy_before_termination": 63.48662567138672,
+    "first_termination": {
+     "decision": 25,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 1,
+     "tick": 3,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 2,
+    "first_error_over_2m": 24,
+    "position_error_at_decision": {
+     "10": 0.639019059787795,
+     "25": 5.097081006472173,
+     "50": 16.589186843494723,
+     "100": 14.365098766559536,
+     "200": 33.47498676812313
+    },
+    "mean_position_error": 19.823071177972885,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.014522465152348151,
+     "mean_velocity_error": 0.7081052770880256
+    },
+    "segment_mean_position_error": 0.14489649783162165,
+    "ticks_with_isaac_above_casu_cap": 636
+   }
+  },
+  "rand_2007": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.88504,
+    "min_rb_y": 496.6152,
+    "ticks": 2000,
+    "first_decision_at_world_top": 24,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     629300.0,
+     4504968.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 13,
+    "ticks_before_first_termination": 130,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.89999771118164,
+    "first_termination": {
+     "decision": 14,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 8,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 5,
+    "first_error_over_2m": 19,
+    "position_error_at_decision": {
+     "10": 1.4446914046381616,
+     "25": 0.2673721447458061,
+     "50": 16.46526103431465,
+     "100": 36.706209593679354,
+     "200": 14.568592218659337
+    },
+    "mean_position_error": 18.483374637865005,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.013754341750100558,
+     "mean_velocity_error": 0.6762077194837155
+    },
+    "segment_mean_position_error": 0.2043238803285655,
+    "ticks_with_isaac_above_casu_cap": 1657
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 18,
+    "ticks_before_first_termination": 180,
+    "ticks_with_speed_over_40_before_termination": 5,
+    "first_speed_over_40": [
+     18,
+     5,
+     "wall_air",
+     -53.8
+    ],
+    "max_abs_vy_before_termination": 102.75000762939453,
+    "first_termination": {
+     "decision": 19,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 8,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 14,
+    "first_error_over_2m": 16,
+    "position_error_at_decision": {
+     "10": 0.2605459431572617,
+     "25": 3.2440094366798307,
+     "50": 6.800926669058388,
+     "100": 10.082146095564081,
+     "200": 1.4810578387218911
+    },
+    "mean_position_error": 4.2711962814794715,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.012357721348929507,
+     "mean_velocity_error": 0.6150264318153309
+    },
+    "segment_mean_position_error": 0.19600294736857665,
+    "ticks_with_isaac_above_casu_cap": 18
+   }
+  },
+  "rand_2008": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.88504,
+    "min_rb_y": 496.615356,
+    "ticks": 2000,
+    "first_decision_at_world_top": 38,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     1391770.0,
+     4857757.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 42,
+    "ticks_before_first_termination": 420,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.89999771118164,
+    "first_termination": {
+     "decision": 43,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 1,
+     "tick": 3,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 2,
+    "first_error_over_2m": 3,
+    "position_error_at_decision": {
+     "10": 0.43723023160268737,
+     "25": 0.004226136273066475,
+     "50": 18.521076383454883,
+     "100": 17.520975463233427,
+     "200": 31.542538526895413
+    },
+    "mean_position_error": 16.896339897496468,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.016912115266782525,
+     "mean_velocity_error": 0.6339332191040684
+    },
+    "segment_mean_position_error": 0.2513520636600385,
+    "ticks_with_isaac_above_casu_cap": 1574
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 37,
+    "ticks_before_first_termination": 370,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.89999771118164,
+    "first_termination": {
+     "decision": 38,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 1,
+     "tick": 3,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 2,
+    "first_error_over_2m": 3,
+    "position_error_at_decision": {
+     "10": 0.9006738605611051,
+     "25": 0.003909253855147165,
+     "50": 5.88956234299064,
+     "100": 0.09193767498327915,
+     "200": 10.523166443539594
+    },
+    "mean_position_error": 3.5463955489956636,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.013748770911133967,
+     "mean_velocity_error": 0.5756662195083077
+    },
+    "segment_mean_position_error": 0.19542562340374503,
+    "ticks_with_isaac_above_casu_cap": 0
+   }
+  },
+  "rand_2009": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.88504,
+    "min_rb_y": 501.605743,
+    "ticks": 2000,
+    "first_decision_at_world_top": 156,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     96122.0,
+     4143949.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 39,
+    "ticks_before_first_termination": 390,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.899997711181644,
+    "first_termination": {
+     "decision": 40,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 8,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 4,
+    "first_error_over_2m": 7,
+    "position_error_at_decision": {
+     "10": 1.0766861207865752,
+     "25": 8.141618268419132,
+     "50": 15.810869738690418,
+     "100": 21.503094562017132,
+     "200": 10.763438852958489
+    },
+    "mean_position_error": 11.038387447015934,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.022524921372820812,
+     "mean_velocity_error": 0.7525878864047567
+    },
+    "segment_mean_position_error": 0.2918581668148216,
+    "ticks_with_isaac_above_casu_cap": 1578
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 40,
+    "ticks_before_first_termination": 400,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 24.899997711181644,
+    "first_termination": {
+     "decision": 41,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 2,
+     "tick": 8,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 6,
+    "first_error_over_2m": 18,
+    "position_error_at_decision": {
+     "10": 0.3696955063233142,
+     "25": 6.561835854674105,
+     "50": 5.005936625907367,
+     "100": 0.3582572702530033,
+     "200": 5.509736924593381
+    },
+    "mean_position_error": 2.944490742285948,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.019412463346327978,
+     "mean_velocity_error": 0.6676747522719566
+    },
+    "segment_mean_position_error": 0.23800734005547297,
+    "ticks_with_isaac_above_casu_cap": 41
+   }
+  },
+  "rand_2010": {
+   "casu": {
+    "ragdoll_calls_in_tape": [],
+    "first_ragdoll_decision": null,
+    "dead_decision": null,
+    "max_rb_y": 511.8748,
+    "min_rb_y": 501.6053,
+    "ticks": 2000,
+    "first_decision_at_world_top": 90,
+    "max_pain": 0.0,
+    "min_blood": 100.0,
+    "min_consciousness": 100.0,
+    "block_health_sum_range": [
+     629300.0,
+     4677165.0
+    ],
+    "attack_swings": 0.0
+   },
+   "compound": {
+    "decisions_observed_before_first_termination": 99,
+    "ticks_before_first_termination": 990,
+    "ticks_with_speed_over_40_before_termination": 0,
+    "first_speed_over_40": null,
+    "max_abs_vy_before_termination": 25.597074508666992,
+    "first_termination": {
+     "decision": 100,
+     "reason": "world_bounds"
+    },
+    "first_error_over_5cm": {
+     "decision": 1,
+     "tick": 3,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 1,
+    "first_error_over_2m": 2,
+    "position_error_at_decision": {
+     "10": 6.31998370795994,
+     "25": 7.071774672545437,
+     "50": 3.7167571989094674,
+     "100": 11.41928027695527,
+     "200": 21.56670166363929
+    },
+    "mean_position_error": 12.613111954296194,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.013217821199018948,
+     "mean_velocity_error": 0.5771490474300116
+    },
+    "segment_mean_position_error": 0.20258407882373422,
+    "ticks_with_isaac_above_casu_cap": 698
+   },
+   "convex_hull": {
+    "decisions_observed_before_first_termination": 66,
+    "ticks_before_first_termination": 660,
+    "ticks_with_speed_over_40_before_termination": 8,
+    "first_speed_over_40": [
+     66,
+     2,
+     "airborne",
+     -53.4
+    ],
+    "max_abs_vy_before_termination": 71.21337890625,
+    "first_termination": {
+     "decision": 67,
+     "reason": "ragdoll:hit_ground_hard"
+    },
+    "first_error_over_5cm": {
+     "decision": 1,
+     "tick": 3,
+     "casu_contact_class": "ceiling"
+    },
+    "first_error_over_0p5m": 1,
+    "first_error_over_2m": 2,
+    "position_error_at_decision": {
+     "10": 6.3438729475092295,
+     "25": 7.180957809650757,
+     "50": 3.8854524859762454,
+     "100": 5.338697059851552,
+     "200": 32.44698942863231
+    },
+    "mean_position_error": 11.743687022197589,
+    "teacher": {
+     "n": 1998,
+     "mean_position_error": 0.010962772488446968,
+     "mean_velocity_error": 0.545119914810073
+    },
+    "segment_mean_position_error": 0.17927451734742852,
+    "ticks_with_isaac_above_casu_cap": 168
+   }
+  }
+ },
+ "aggregate": {
+  "teacher_mean_position_error": {
+   "compound_mean": 0.022237417534490635,
+   "hull_mean": 0.01900632389589352,
+   "paired_difference_hull_minus_compound": {
+    "mean": -0.0032310936385971127,
+    "ci95": [
+     -0.0050516747205292065,
+     -0.001779131178335404
+    ]
+   },
+   "sign_test": {
+    "hull_better": 10,
+    "hull_worse": 0,
+    "ties": 0,
+    "p_two_sided": 0.001953125
+   }
+  },
+  "teacher_mean_velocity_error": {
+   "compound_mean": 0.7367866946681996,
+   "hull_mean": 0.6667870637359108,
+   "paired_difference_hull_minus_compound": {
+    "mean": -0.06999963093228885,
+    "ci95": [
+     -0.10301014486926574,
+     -0.042649974271098325
+    ]
+   },
+   "sign_test": {
+    "hull_better": 10,
+    "hull_worse": 0,
+    "ties": 0,
+    "p_two_sided": 0.001953125
+   }
+  },
+  "segment_mean_position_error": {
+   "compound_mean": 0.28905421549964105,
+   "hull_mean": 0.24787497528096725,
+   "paired_difference_hull_minus_compound": {
+    "mean": -0.04117924021867382,
+    "ci95": [
+     -0.06316098898760836,
+     -0.021526459304407233
+    ]
+   },
+   "sign_test": {
+    "hull_better": 9,
+    "hull_worse": 1,
+    "ties": 0,
+    "p_two_sided": 0.021484375
+   }
+  },
+  "free_mean_position_error": {
+   "compound_mean": 10.98920985602118,
+   "hull_mean": 9.954762912738772,
+   "paired_difference_hull_minus_compound": {
+    "mean": -1.0344469432824086,
+    "ci95": [
+     -6.7967435615984355,
+     5.2369587176845895
+    ]
+   },
+   "sign_test": {
+    "hull_better": 7,
+    "hull_worse": 3,
+    "ties": 0,
+    "p_two_sided": 0.34375
+   }
+  },
+  "free_error_at_decision_50": {
+   "compound_mean": 8.74163260996421,
+   "hull_mean": 10.517500809532955,
+   "paired_difference_hull_minus_compound": {
+    "mean": 1.7758681995687453,
+    "ci95": [
+     -5.211507704471627,
+     9.970368914330425
+    ]
+   },
+   "sign_test": {
+    "hull_better": 5,
+    "hull_worse": 5,
+    "ties": 0,
+    "p_two_sided": 1.0
+   }
+  },
+  "free_error_at_decision_200": {
+   "compound_mean": 16.28419981820059,
+   "hull_mean": 20.197636947123943,
+   "paired_difference_hull_minus_compound": {
+    "mean": 3.9134371289233507,
+    "ci95": [
+     -8.531626623125506,
+     17.11709961568003
+    ]
+   },
+   "sign_test": {
+    "hull_better": 5,
+    "hull_worse": 5,
+    "ties": 0,
+    "p_two_sided": 1.0
+   }
+  },
+  "compound_median_decision_first_error_over_0p5m": 5,
+  "compound_terminations": {
+   "world_bounds": 8,
+   "none within 200 decisions": 1,
+   "ragdoll:hit_ground_hard": 1
+  },
+  "convex_hull_median_decision_first_error_over_0p5m": 6,
+  "convex_hull_terminations": {
+   "ragdoll:hit_ground_hard": 9,
+   "world_bounds": 1
+  },
+  "casu": {
+   "decisions": 2000,
+   "hard_landing_events": 0,
+   "deaths": 0,
+   "hard_landing_rate_per_decision_ci95": [
+    0.0,
+    0.001844439727056968
+   ],
+   "ragdoll_events_any_cause": 1,
+   "ragdoll_rate_per_decision_ci95": [
+    1.265890399214492e-05,
+    0.0027858216954694493
+   ]
+  },
+  "compound_hazard": {
+   "decisions_at_risk": 793,
+   "hard_landing_events": 1,
+   "world_top_exits": 8,
+   "hard_landing_rate_per_decision": 0.0012610340479192938,
+   "hard_landing_rate_ci95": [
+    3.192661788687244e-05,
+    0.00702603201883846
+   ],
+   "world_top_exit_rate_per_decision": 0.01008827238335435,
+   "world_top_exit_rate_ci95": [
+    0.004355399970679066,
+    0.019877918310458154
+   ],
+   "ticks_speed_over_40": 9,
+   "ticks_observed": 7930
+  },
+  "compound_first_5cm_divergence_by_casu_contact_class": {
+   "ceiling": 7,
+   "ground": 1,
+   "airborne": 1,
+   "landing": 1
+  },
+  "convex_hull_hazard": {
+   "decisions_at_risk": 345,
+   "hard_landing_events": 9,
+   "world_top_exits": 1,
+   "hard_landing_rate_per_decision": 0.02608695652173913,
+   "hard_landing_rate_ci95": [
+    0.01192861767356037,
+    0.04952116942440339
+   ],
+   "world_top_exit_rate_per_decision": 0.002898550724637681,
+   "world_top_exit_rate_ci95": [
+    7.3384950679101e-05,
+    0.01614969098822869
+   ],
+   "ticks_speed_over_40": 24,
+   "ticks_observed": 3450
+  },
+  "convex_hull_first_5cm_divergence_by_casu_contact_class": {
+   "ceiling": 7,
+   "ground": 1,
+   "airborne": 1,
+   "landing": 1
+  },
+  "casu_tapes_with_ragdoll": 1,
+  "casu_tapes_dead": 0,
+  "casu_tapes_reaching_world_top": 9
+ }
+}

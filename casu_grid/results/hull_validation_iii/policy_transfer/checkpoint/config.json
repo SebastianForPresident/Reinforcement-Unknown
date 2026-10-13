@@ -1,0 +1,125 @@
+{
+  "schema": "casu.training-run.v1",
+  "run_id": "run",
+  "created_utc": "2026-10-13T18:54:56Z",
+  "seed": 391728405,
+  "git_revision": "a147692207172246f9bc7de9d558e73d370e6511",
+  "working_tree_status": [
+    " D Instructions.txt",
+    " D PPO_Python/matched_pairs.json",
+    " D PPO_Python/matched_pairs_fixed_60hz_10x.json",
+    " D PPO_Python/matched_pairs_fixed_60hz_10x_results.csv",
+    " D PPO_Python/matched_pairs_fixed_action_10x.json",
+    " D PPO_Python/matched_pairs_fixed_action_10x_results.csv",
+    " D PPO_Python/matched_pairs_repaired_10x.json",
+    " D PPO_Python/matched_pairs_repaired_10x_results.csv",
+    " D PPO_Python/matched_pairs_results.csv",
+    "?? Instructions_old.txt",
+    "?? integration.txt",
+    "?? optimization.txt",
+    "?? optimization2.txt",
+    "?? usability.txt",
+    "?? usability2.txt"
+  ],
+  "config_path": "/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac/casu_grid/workbench/engineering_smoke.py",
+  "experiment": {
+    "name": "engineering_smoke",
+    "description": "",
+    "hypothesis": "",
+    "notes": "",
+    "parent": null
+  },
+  "config_sha256": "1d903ddf8b71b40350c3ad75957feffced26d30439060a24b614f531f2c2962e",
+  "config_snapshot_path": "/tmp/claude-1000/-home-sebastian-Documents-Casualties-Unknown-Projects-Reinforcement-Unknown-Isaac/919ee011-e014-4f02-9c35-5b7de75a3190/scratchpad/soak3/run/research_config.py",
+  "contracts": {
+    "actions": {
+      "heads": [
+        {
+          "name": "advance",
+          "kind": "categorical",
+          "size": 2,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        }
+      ],
+      "mapping": {
+        "advance": {
+          "0": "stay",
+          "1": "advance"
+        }
+      }
+    },
+    "observations": {
+      "spatial": [],
+      "scalar": [
+        {
+          "name": "player_state",
+          "shape": [
+            8
+          ],
+          "source": "engineering.player_state",
+          "normalization": "custom",
+          "normalization_params": {},
+          "mask": null
+        }
+      ],
+      "coordinate_convention": "world-x-right, world-y-up; grids x-first"
+    },
+    "rewards": {
+      "terms": [
+        {
+          "name": "progress_delta",
+          "source": "engineering.progress_delta",
+          "weight": 1.0,
+          "terminal": false
+        },
+        {
+          "name": "goal",
+          "source": "engineering.goal_reached",
+          "weight": 2.0,
+          "terminal": true
+        }
+      ],
+      "terminal_penalty": -0.25
+    },
+    "model": {
+      "spatial_channels": [],
+      "spatial_kernels": [],
+      "scalar_layers": [
+        16
+      ],
+      "fusion_layers": [
+        16
+      ],
+      "recurrent": false,
+      "recurrent_size": 128
+    },
+    "ppo": {
+      "version": 1,
+      "learning_rate": 0.001,
+      "rollout_steps": 32,
+      "minibatch_size": 16,
+      "epochs": 2,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "value_coefficient": 0.5,
+      "entropy_coefficient": 0.01,
+      "max_grad_norm": 0.5,
+      "target_kl": null
+    }
+  },
+  "environment": {
+    "canonical_seed": 391728405,
+    "num_envs": 64,
+    "geometry_scope": "full",
+    "terrain_mode": "shared",
+    "episode_steps": null,
+    "physics_dt": 0.02,
+    "action_decimation": 10
+  },
+  "resume_from": null,
+  "run_kind": "direct_training",
+  "config_source_sha256": "1d903ddf8b71b40350c3ad75957feffced26d30439060a24b614f531f2c2962e"
+}
