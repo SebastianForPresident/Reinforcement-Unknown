@@ -1,0 +1,49 @@
+{
+  "schema": "casu.ppo-update-bench.v1",
+  "envs": 64,
+  "config": "/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac/casu_grid/workbench/engineering_smoke.py",
+  "threads": 8,
+  "samples_per_update": 2048,
+  "minibatch": 16,
+  "epochs": 2,
+  "reference": {
+    "update_seconds": {
+      "mean": 0.32617925367473316,
+      "std": 0.004387112544059089,
+      "min": 0.3199981029902119,
+      "samples": [
+        0.32549231001758017,
+        0.3199981029902119,
+        0.323132796009304,
+        0.3332041130051948,
+        0.3249786030210089,
+        0.33026959700509906
+      ]
+    },
+    "optimizer_batches": 256
+  },
+  "optimized": {
+    "update_seconds": {
+      "mean": 0.2970466350040321,
+      "std": 0.0023552002204255424,
+      "min": 0.2940527070022654,
+      "samples": [
+        0.3004943410051055,
+        0.2940527070022654,
+        0.29909265000605956,
+        0.29490600602002814,
+        0.298208424996119,
+        0.29552568099461496
+      ]
+    },
+    "optimizer_batches": 256
+  },
+  "equivalence": {
+    "metrics_identical": true,
+    "parameters_bit_identical": true,
+    "rng_state_identical": true,
+    "optimizer_state_bit_identical": true,
+    "max_abs_parameter_difference": 0.0
+  },
+  "speedup": 1.0980742255178404
+}

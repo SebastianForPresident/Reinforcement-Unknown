@@ -99,7 +99,10 @@ class PPOTrainer:
         torch.manual_seed(seed)
         np.random.seed(seed)
         self.model = ConfigurableActorCritic(actions, observations, model).to(self.device)
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
+        # foreach Adam applies the same elementwise operations as the default single-tensor loop (checked
+        # bit-identical, perf/ppo_update_bench.py); CASU_PPO_EXECUTION=reference keeps the default loop
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate,
+                                          foreach=os.environ.get("CASU_PPO_EXECUTION", "optimized") != "reference")
         self.update_count = 0
         self.total_steps = 0
         self.rng = np.random.default_rng(seed)
@@ -277,6 +280,79 @@ class PPOTrainer:
                 physics_step_seconds, physics_ticks)
 
     def _update(self, records, last_value):
+        """PPO update. ``CASU_PPO_EXECUTION=reference`` selects the original literal implementation;
+        the default executes the same mathematics with fewer, larger tensor operations (feed-forward
+        models only; recurrent models always use the reference path). Equivalence is tested bit for bit
+        by ``casu_grid/perf/ppo_update_bench.py`` and ``tests/test_ppo_execution.py``."""
+        if os.environ.get("CASU_PPO_EXECUTION", "optimized") == "reference" or self.model.recurrent:
+            return self._update_reference(records, last_value)
+        return self._update_optimized(records, last_value)
+
+    def _update_optimized(self, records, last_value):
+        cfg = self.config
+        rewards = torch.stack(records["reward"])
+        dones = torch.stack(records["done"])
+        terminated = torch.stack(records["terminated"])
+        next_values = torch.stack(records["next_value"])
+        values = torch.stack(records["value"])
+        log_probs = torch.stack(records["log_prob"])
+        advantages, returns = _generalized_advantage_estimate(
+            rewards, values, dones, terminated, next_values, cfg.gamma, cfg.gae_lambda)
+        advantages = (advantages - advantages.mean()) / advantages.std(unbiased=False).clamp_min(1e-8)
+        obs = {k: torch.stack([row[k] for row in records["obs"]]).flatten(0, 1) for k in records["obs"][0]}
+        actions = {k: torch.stack([row[k] for row in records["actions"]]).flatten(0, 1) for k in records["actions"][0]}
+        old_log_prob, advantage_flat, return_flat = log_probs.flatten(), advantages.flatten(), returns.flatten()
+        count = len(old_log_prob)
+        minibatch = min(cfg.minibatch_size, count)
+        batches, completed_epochs = 0, 0
+        stats = []          # one (5,) float32 row per minibatch; converted once, summed in the reference order
+        for _ in range(cfg.epochs):
+            permutation = torch.randperm(count, device=self.device)
+            # one gather per epoch; minibatches are contiguous slices of the permuted copies (same values
+            # and memory layout as the reference's per-minibatch ``v[idx]`` gathers)
+            p_obs = {k: v[permutation] for k, v in obs.items()}
+            p_actions = {k: v[permutation] for k, v in actions.items()}
+            p_old, p_adv, p_ret = old_log_prob[permutation], advantage_flat[permutation], return_flat[permutation]
+            stop_epoch = False
+            for start in range(0, count, minibatch):
+                part = slice(start, start + minibatch)
+                new_log_prob, entropy, new_value = self.model.evaluate_actions(
+                    {k: v[part] for k, v in p_obs.items()}, {k: v[part] for k, v in p_actions.items()})
+                old_log, adv, ret = p_old[part], p_adv[part], p_ret[part]
+                ratio = (new_log_prob - old_log).exp()
+                policy = -torch.minimum(
+                    ratio * adv,
+                    ratio.clamp(1.0 - cfg.clip_range, 1.0 + cfg.clip_range) * adv,
+                ).mean()
+                value_loss = 0.5 * (new_value - ret).square().mean()
+                entropy_mean = entropy.mean()
+                loss = policy + cfg.value_coefficient * value_loss - cfg.entropy_coefficient * entropy_mean
+                self.optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                grad_norm = clip_grad_norm_(self.model.parameters(), cfg.max_grad_norm)
+                if not torch.isfinite(loss) or not torch.isfinite(grad_norm):
+                    raise FloatingPointError("non-finite PPO loss or gradient norm")
+                self.optimizer.step()
+                approx_kl = ((ratio - 1.0) - (new_log_prob - old_log)).mean()
+                stats.append(torch.stack((policy, value_loss, entropy_mean, approx_kl, grad_norm)).detach())
+                batches += 1
+                if cfg.target_kl is not None and float(approx_kl.detach()) > cfg.target_kl:
+                    stop_epoch = True
+                    break
+            completed_epochs += 1
+            if stop_epoch:
+                break
+        totals = {"policy_loss": 0.0, "value_loss": 0.0, "entropy": 0.0, "approx_kl": 0.0, "grad_norm": 0.0}
+        for row in torch.stack(stats).tolist():
+            for key, value in zip(totals, row):
+                totals[key] += value
+        self.update_count += 1
+        return {key: value / max(1, batches) for key, value in totals.items()} | {
+            "optimizer_batches": batches, "epochs_completed": completed_epochs,
+            "parameters": count_parameters(self.model),
+        }
+
+    def _update_reference(self, records, last_value):
         cfg = self.config
         rewards = torch.stack(records["reward"])
         dones = torch.stack(records["done"])

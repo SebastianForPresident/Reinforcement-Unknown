@@ -2,12 +2,19 @@
 from __future__ import annotations
 
 import math
+import os
 
 import torch
 from torch import nn
 from torch.distributions import Categorical, Normal
 
 from .contracts import ActionContract, ModelContract, ObservationContract
+
+
+def _validate_args() -> bool:
+    """Distribution argument validation costs ~20 us per construction and only turns bad inputs into a different
+    error (non-finite values are still caught by the sampler / loss checks); kept on for the reference path."""
+    return os.environ.get("CASU_PPO_EXECUTION", "optimized") == "reference"
 
 
 def _mlp(input_size: int, hidden: tuple[int, ...]) -> tuple[nn.Sequential, int]:
@@ -149,11 +156,11 @@ class ConfigurableActorCritic(nn.Module):
         distributions = {}
         for head in self.action_contract.heads:
             if head.kind == "categorical":
-                distributions[head.name] = Categorical(logits=self.actor_heads[head.name](features))
+                distributions[head.name] = Categorical(logits=self.actor_heads[head.name](features), validate_args=_validate_args())
             else:
                 mean = self.actor_heads[head.name](features)
                 std = self.log_stds[head.name].exp().expand_as(mean)
-                distributions[head.name] = Normal(mean, std)
+                distributions[head.name] = Normal(mean, std, validate_args=_validate_args())
         values = self.critic(features).squeeze(-1)
         return (distributions, values, state) if return_state else (distributions, values)
 
