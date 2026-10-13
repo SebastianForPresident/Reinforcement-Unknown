@@ -1,0 +1,30 @@
+{
+  "schema": "casu.ab-equivalence.v1",
+  "note": "CasU-vs-Isaac player A/B (teacher/segment/free) re-run on the optimized code; every mode's summary equals the stored pre-optimization result exactly",
+  "traces": {
+    "flat_master": {
+      "segment": true,
+      "teacher": true,
+      "free": true
+    },
+    "course_v1": {
+      "segment": true,
+      "teacher": true,
+      "free": true
+    },
+    "ice_run": {
+      "segment": true,
+      "teacher": true,
+      "free": true
+    },
+    "immersed_standing": {
+      "segment": true,
+      "teacher": true,
+      "free": true
+    },
+    "destroy_support_d31": {
+      "free": true,
+      "segment": true
+    }
+  }
+}

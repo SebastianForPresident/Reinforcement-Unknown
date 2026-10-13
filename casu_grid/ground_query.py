@@ -61,23 +61,31 @@ class GroundWorld:
                         if self.polygons else np.zeros((0, 2)))
         self.poly_pack = (self._pverts, self._poffs, self._aabb, self._bucket)
 
-    def _build_buckets(self) -> None:
-        """Coarse occupancy of ``BUCKET``-sized cells by polygon boxes (1-cell margin): lets the compiled
-        controller reject "no polygon near this query" without scanning every polygon."""
-        self._bucket[...] = 0
-        for x0, y0, x1, y1 in self._aabb:
+    def _paint_buckets(self, aabb_rows) -> None:
+        """Mark ``BUCKET`` cells (1-cell margin) covered by the given boxes. Marking is additive: stale
+        cells left by a moved polygon only cost the compiled controller an extra exact box test."""
+        for x0, y0, x1, y1 in aabb_rows:
             i0 = min(max(int(math.floor((x0 + HALF_WORLD) / BUCKET)) - 1, 0), BUCKETS - 1)
             i1 = min(max(int(math.floor((x1 + HALF_WORLD) / BUCKET)) + 1, 0), BUCKETS - 1)
             j0 = min(max(int(math.floor((y0 + HALF_WORLD) / BUCKET)) - 1, 0), BUCKETS - 1)
             j1 = min(max(int(math.floor((y1 + HALF_WORLD) / BUCKET)) + 1, 0), BUCKETS - 1)
             self._bucket[i0:i1 + 1, j0:j1 + 1] = 1
 
+    def _build_buckets(self) -> None:
+        """Coarse occupancy of ``BUCKET``-sized cells by polygon boxes: lets the compiled controller reject
+        "no polygon near this query" without scanning every polygon."""
+        self._bucket[...] = 0
+        self._paint_buckets(self._aabb)
+
     def set_polygon(self, index: int, name: str, poly: np.ndarray) -> None:
-        """Replace one convex polygon (scripted movers) and refresh its culling box."""
+        """Replace one convex polygon (scripted movers) and refresh its culling data."""
         self.polygons[index] = (name, poly)
-        self._aabb[index] = (poly[:, 0].min(), poly[:, 1].min(), poly[:, 0].max(), poly[:, 1].max())
-        self._build_buckets()
         start, stop = self._poffs[index], self._poffs[index + 1]
+        if len(poly) == stop - start and np.array_equal(self._pverts[start:stop], poly):
+            return                      # unchanged (e.g. doors reset to their closed pose)
+        box = (poly[:, 0].min(), poly[:, 1].min(), poly[:, 0].max(), poly[:, 1].max())
+        self._aabb[index] = box
+        self._paint_buckets([box])
         if len(poly) == stop - start:
             self._pverts[start:stop] = poly
         else:

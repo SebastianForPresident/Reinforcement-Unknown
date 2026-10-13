@@ -1,0 +1,138 @@
+{
+  "schema": "casu.isaac-throughput.v2",
+  "label": "workers=4 worker physx threads=4",
+  "terrain_mode": "shared",
+  "workload": "random",
+  "system": {
+    "git_revision": "ee440308a1cccbad05b5e4a1bb4e3c1a335cc05c",
+    "casu_grid_dirty_files": [
+      "asu_grid/workbench/README.md",
+      "casu_grid/workbench/lab.py",
+      "casu_grid/workbench/replay.py",
+      "casu_grid/workbench/test_lab.py",
+      "casu_grid/workbench/train.py",
+      "casu_grid/perf/results/ab_equivalence_20261013.json",
+      "casu_grid/perf/results/final_threads2_w4.json",
+      "casu_grid/perf/results/final_threads3_w4.json",
+      "casu_grid/workbench/GUI_ACCEPTANCE_REPORT.md",
+      "casu_grid/workbench/REWARD_COMPONENTS.md",
+      "casu_grid/workbench/components.py",
+      "casu_grid/workbench/gui.py",
+      "casu_grid/workbench/observation_probe.py",
+      "casu_grid/workbench/test_components.py",
+      "casu_grid/workbench/test_gui.py"
+    ],
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "cpu_count": 16,
+    "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "python": "3.10.15",
+    "gpu": "NVIDIA GeForce RTX 3070, 615.71.09, 8192 MiB",
+    "backend": {
+      "requested": "auto",
+      "active": "numba",
+      "compiled_controller": true,
+      "numba_version": "0.59.1",
+      "kernel_version": 1
+    }
+  },
+  "rows": [
+    {
+      "num_envs": 64,
+      "terrain_mode": "shared",
+      "workload": "random",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": 4,
+      "construct_seconds": 14.828120571997715,
+      "geometry_build_seconds": 5.398668734007515,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 12026.019801395074,
+        "std": 130.7447872238336,
+        "min": 11902.187584423134,
+        "max": 12206.8496837223,
+        "samples": [
+          11969.02213603979,
+          11902.187584423134,
+          12206.8496837223
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 1202.6019801395075,
+        "std": 13.074478722383313,
+        "min": 1190.2187584423134,
+        "max": 1220.6849683722298,
+        "samples": [
+          1196.9022136039791,
+          1190.2187584423134,
+          1220.6849683722298
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 187.90655939679803,
+        "std": 2.0428873003724,
+        "min": 185.97168100661148,
+        "max": 190.73202630816093,
+        "samples": [
+          187.01597087562172,
+          185.97168100661148,
+          190.73202630816093
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 0.009803947840125612,
+        "std": 0.0003169827462686224,
+        "min": 0.009367767749591758,
+        "max": 0.010111633022617757,
+        "samples": [
+          0.009367767749591758,
+          0.010111633022617757,
+          0.009932442748167323
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.0958843670991233,
+        "tensor_write": 0.05171273601322222,
+        "physx_step": 0.23953088288261512,
+        "tensor_read": 0.02266396734254554,
+        "controller_post_and_shapes": 0.4997237856464036,
+        "sharded_straggler_wait": 0.06378387432629203,
+        "sharded_ipc_overhead": 0.007226363351491794
+      },
+      "reset_all_seconds": 0.1296665059926454,
+      "reset_one_world_seconds": 0.008807999023701996,
+      "snapshot_seconds": 0.2583814070094377,
+      "restore_seconds": 2.2165019709791522,
+      "num_workers": 4,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 4,
+        "worlds": 64,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          16,
+          16,
+          16,
+          16
+        ],
+        "physx_threads_per_worker": 4,
+        "worker_log_dir": "/tmp/casu_workers_850813_2j41xs1s"
+      },
+      "peak_rss_gib": 12.44931411743164,
+      "gpu_after_build": {
+        "utilization_percent": 1.0,
+        "memory_used_mib": 1511.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 1511.0
+      }
+    }
+  ]
+}

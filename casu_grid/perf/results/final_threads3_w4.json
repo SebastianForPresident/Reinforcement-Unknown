@@ -1,0 +1,137 @@
+{
+  "schema": "casu.isaac-throughput.v2",
+  "label": "workers=4 worker physx threads=3",
+  "terrain_mode": "shared",
+  "workload": "random",
+  "system": {
+    "git_revision": "ee440308a1cccbad05b5e4a1bb4e3c1a335cc05c",
+    "casu_grid_dirty_files": [
+      "asu_grid/workbench/README.md",
+      "casu_grid/workbench/lab.py",
+      "casu_grid/workbench/replay.py",
+      "casu_grid/workbench/test_lab.py",
+      "casu_grid/workbench/train.py",
+      "casu_grid/perf/results/ab_equivalence_20261013.json",
+      "casu_grid/perf/results/final_threads2_w4.json",
+      "casu_grid/workbench/GUI_ACCEPTANCE_REPORT.md",
+      "casu_grid/workbench/REWARD_COMPONENTS.md",
+      "casu_grid/workbench/components.py",
+      "casu_grid/workbench/gui.py",
+      "casu_grid/workbench/observation_probe.py",
+      "casu_grid/workbench/test_components.py",
+      "casu_grid/workbench/test_gui.py"
+    ],
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "cpu_count": 16,
+    "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "python": "3.10.15",
+    "gpu": "NVIDIA GeForce RTX 3070, 615.71.09, 8192 MiB",
+    "backend": {
+      "requested": "auto",
+      "active": "numba",
+      "compiled_controller": true,
+      "numba_version": "0.59.1",
+      "kernel_version": 1
+    }
+  },
+  "rows": [
+    {
+      "num_envs": 64,
+      "terrain_mode": "shared",
+      "workload": "random",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": 3,
+      "construct_seconds": 14.79162952300976,
+      "geometry_build_seconds": 5.438473582995357,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 12094.688546909494,
+        "std": 150.23257516199612,
+        "min": 11915.480406870798,
+        "max": 12283.126173313354,
+        "samples": [
+          11915.480406870798,
+          12283.126173313354,
+          12085.459060544326
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 1209.4688546909495,
+        "std": 15.023257516199617,
+        "min": 1191.54804068708,
+        "max": 1228.3126173313356,
+        "samples": [
+          1191.54804068708,
+          1228.3126173313356,
+          1208.5459060544326
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 188.97950854546085,
+        "std": 2.3473839869061894,
+        "min": 186.17938135735622,
+        "max": 191.92384645802116,
+        "samples": [
+          186.17938135735622,
+          191.92384645802116,
+          188.8352978210051
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 0.009929708762600877,
+        "std": 0.00027495683608886484,
+        "min": 0.00954135630988429,
+        "max": 0.01014087533680011,
+        "samples": [
+          0.00954135630988429,
+          0.010106894641118233,
+          0.01014087533680011
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.09516968666672321,
+        "tensor_write": 0.051446437514974325,
+        "physx_step": 0.24311336115595705,
+        "tensor_read": 0.022874187983184333,
+        "controller_post_and_shapes": 0.496414527304282,
+        "sharded_straggler_wait": 0.0638160354649816,
+        "sharded_ipc_overhead": 0.007495062476229768
+      },
+      "reset_all_seconds": 0.134675110981334,
+      "reset_one_world_seconds": 0.00911027699476108,
+      "snapshot_seconds": 0.2555030630028341,
+      "restore_seconds": 2.2458121620002203,
+      "num_workers": 4,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 4,
+        "worlds": 64,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          16,
+          16,
+          16,
+          16
+        ],
+        "physx_threads_per_worker": 3,
+        "worker_log_dir": "/tmp/casu_workers_847900_s1rrta2v"
+      },
+      "peak_rss_gib": 12.462581634521484,
+      "gpu_after_build": {
+        "utilization_percent": 1.0,
+        "memory_used_mib": 1511.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 4.0,
+        "memory_used_mib": 1511.0
+      }
+    }
+  ]
+}
