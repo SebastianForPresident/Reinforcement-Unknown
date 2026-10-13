@@ -117,3 +117,16 @@ class RoundedBoxCollider:
         for attr in self._attrs(level):
             attr.Set(True)
         self.active_level = level
+
+
+def set_levels(colliders, levels) -> None:
+    """Switch each collider to its target crouch level, skipping unchanged ones.
+
+    Deliberately *not* wrapped in one ``Sdf.ChangeBlock``: batching the 12 attribute writes of all
+    worlds into a single USD notice is ~2x cheaper but changes PhysX's shape update ordering and
+    therefore the physics (0.1 m divergence within the first macrostep on the batched tape), so the
+    sequential, baseline-identical order is kept. See ``perf/OPTIMIZATION_LOG.md``.
+    """
+    for collider, level in zip(colliders, levels):
+        if level != collider.active_level:
+            collider.set_level(level)

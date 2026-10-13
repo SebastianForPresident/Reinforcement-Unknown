@@ -11,6 +11,8 @@ from typing import Any, Iterable
 
 import numpy as np
 
+from . import backend as _backend
+
 
 BLOCK_HEALTH = {
     0: 0.0, 1: 100.0, 2: 25.0, 3: 60.0, 4: 20.0, 5: 800.0,
@@ -95,7 +97,7 @@ class CasUGridState:
 
     def __init__(self, width: int = 65, height: int = 64,
                  camera_x: int | None = None, camera_y: int | None = None,
-                 decisions: Iterable[bool] = ()):
+                 decisions: Iterable[bool] = (), backend: str | None = None):
         if width < 3 or height < 3:
             raise ValueError("dimensions must be >= 3 for source clamping rules")
         self.width, self.height = int(width), int(height)
@@ -115,6 +117,9 @@ class CasUGridState:
         self.last_chunk_update: tuple[int, int] | None = None
         self.block_revision = 0
         self.dirty_chunks: set[tuple[int, int]] = set()
+        # compiled fluid sweep (None -> readable reference implementation); see casu_grid.backend
+        self._k = _backend.kernels_for(backend)
+        self._counters = np.zeros(3, dtype=np.int64)
 
     @staticmethod
     def world_to_cell(x: float, y: float, width: int, height: int) -> tuple[int, int]:
@@ -233,6 +238,16 @@ class CasUGridState:
         column start cannot become relevant before their own visit.
         """
         (xmin, xmax), (ymin, ymax) = self.simulation_range_index()
+        if self._k is not None and decision_budget is None and isinstance(self.rng, SeededDecisionStream):
+            counters = self._counters
+            counters[0], counters[1], counters[2] = self.tile_cooldown, self.water_move_count, self.push_events
+            self.rng.position += self._k.fluid_sweep(
+                self.fluids, self.blocks, xmin, xmax, ymin, ymax, self.width, self.height,
+                counters, self.fluid_push_enabled, self.rng.rng)
+            self.tile_cooldown, self.water_move_count, self.push_events = (
+                int(counters[0]), int(counters[1]), int(counters[2]))
+            self.tick += 1
+            return
         if not self.fluids[xmin:xmax, ymin:ymax].any():
             self.tick += 1
             return

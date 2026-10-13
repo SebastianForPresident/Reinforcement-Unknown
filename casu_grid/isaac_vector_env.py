@@ -27,6 +27,7 @@ from gymnasium import spaces
 from .body_model import BodyConfig, PolicyAction
 from .env_slot import EnvSlot
 from .isaac_navigation_env import IsaacLayer1EnvConfig
+from .isaac_player_body import set_levels
 from .player_controller import StandingAction
 from .player_runtime import post_physics_phase, pre_physics_phase
 from .reference import load_layer1_reference
@@ -295,43 +296,57 @@ class BatchedIsaacLayer1Env(gym.Env):
             door_body.write_data_to_sim()
 
     def _read_states(self):
-        pos = self.player.data.root_pos_w
-        vel = self.player.data.root_lin_vel_w
-        out = []
-        for i in range(self.count):
-            out.append((float(pos[i, 0]) - float(self.offsets[i, 0]), float(pos[i, 2]) - float(self.offsets[i, 2]),
-                        float(vel[i, 0]), float(vel[i, 2])))
-        return out
+        pos = self.player.data.root_pos_w.numpy()
+        vel = self.player.data.root_lin_vel_w.numpy()
+        x = pos[:, 0].astype(np.float64) - self.offsets[:, 0].astype(np.float64)
+        y = pos[:, 2].astype(np.float64) - self.offsets[:, 2].astype(np.float64)
+        return list(zip(x.tolist(), y.tolist(), vel[:, 0].astype(np.float64).tolist(),
+                        vel[:, 2].astype(np.float64).tolist()))
+
+    def _staging(self):
+        """Persistent CPU staging buffers (numpy views over torch tensors) for the per-tick writes."""
+        if getattr(self, "_stage_pose", None) is None:
+            n, device = self.count, self.sim.device
+            self._stage_pose = torch.zeros((n, 7), dtype=torch.float32, device=device)
+            self._stage_pose[:, 3] = 1.0
+            self._stage_vel = torch.zeros((n, 6), dtype=torch.float32, device=device)
+            self._stage_force = torch.zeros((n, 1, 3), dtype=torch.float32, device=device)
+            self._stage_torque = torch.zeros((n, 1, 3), dtype=torch.float32, device=device)
+            self._np_pose, self._np_vel, self._np_force = (
+                self._stage_pose.numpy(), self._stage_vel.numpy(), self._stage_force.numpy())
+            self._off_x = self.offsets[:, 0].astype(np.float64)
+            self._off_z = self.offsets[:, 2].astype(np.float64)
+        return self._stage_pose
 
     def _physics_tick(self, completed: int):
         clock = time.perf_counter
         timers = self.timers
-        count, device = self.count, self.sim.device
+        count = self.count
+        self._staging()
         t0 = clock()
-        poses = torch.zeros((count, 7), dtype=torch.float32, device=device)
-        poses[:, 3] = 1.0
-        vels = torch.zeros((count, 6), dtype=torch.float32, device=device)
-        forces = torch.zeros((count, 1, 3), dtype=torch.float32, device=device)
-        for i, slot in enumerate(self.slots):
+        xs, ys, vxs, vys, fxs, fys = [], [], [], [], [], []
+        for slot in self.slots:
             (fx, fy), _ = pre_physics_phase(slot.model, pre_tick_hook=slot.pre_tick, post_fixed_hook=slot.post_fixed)
             s = slot.model.s
-            poses[i, 0], poses[i, 2] = s.x + float(self.offsets[i, 0]), s.y + float(self.offsets[i, 2])
-            vels[i, 0], vels[i, 2] = s.vx, s.vy
-            forces[i, 0, 0], forces[i, 0, 2] = fx, fy
+            xs.append(s.x); ys.append(s.y); vxs.append(s.vx); vys.append(s.vy); fxs.append(fx); fys.append(fy)
+        pose, vel, force = self._np_pose, self._np_vel, self._np_force
+        pose[:, 0] = np.add(xs, self._off_x)          # float64 sum, rounded to float32 on store
+        pose[:, 2] = np.add(ys, self._off_z)
+        vel[:, 0], vel[:, 2] = vxs, vys
+        force[:, 0, 0], force[:, 0, 2] = fxs, fys
         t1 = clock()
         if self.terrain_mode == "independent":
             stale = [i for i, slot in enumerate(self.slots) if slot.physical_dirty]
             if stale:
                 self._rebuild_dirty(stale)
-        current = self.player.data.root_pos_w
-        moved = [i for i in range(count)
-                 if abs(float(current[i, 0]) - float(poses[i, 0])) > 1e-6
-                 or abs(float(current[i, 2]) - float(poses[i, 2])) > 1e-6]
-        if moved:
-            ids = torch.as_tensor(moved, dtype=torch.int32, device=device)
-            self.player.write_root_pose_to_sim(poses[moved], env_ids=ids)
-        self.player.write_root_velocity_to_sim(vels)
-        self.player.set_external_force_and_torque(forces, torch.zeros_like(forces), is_global=True)
+        current = self.player.data.root_pos_w.numpy()
+        moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[:, 0].astype(np.float64)) > 1e-6)
+                               | (np.abs(current[:, 2].astype(np.float64) - pose[:, 2].astype(np.float64)) > 1e-6))
+        if moved.size:
+            ids = torch.as_tensor(moved, dtype=torch.int32, device=self.sim.device)
+            self.player.write_root_pose_to_sim(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)], env_ids=ids)
+        self.player.write_root_velocity_to_sim(self._stage_vel)
+        self.player.set_external_force_and_torque(self._stage_force, self._stage_torque, is_global=True)
         self.player.write_data_to_sim()
         t2 = clock()
         self.sim.step(render=False)
@@ -339,12 +354,14 @@ class BatchedIsaacLayer1Env(gym.Env):
         self.player.update(self.cfg.physics_dt)
         states = self._read_states()
         t4 = clock()
+        levels = []
         for slot, state, collider in zip(self.slots, states, self.colliders):
             s = slot.model.s
             s.x, s.y, s.vx, s.vy = state
             post_physics_phase(slot.model, slot.ground_world, slot.runtime, completed,
                                self.cfg.action_decimation, post_tick_hook=slot.post_tick)
-            collider.set_level(collider.level_for_crouch(s.crouch_amount))
+            levels.append(collider.level_for_crouch(s.crouch_amount))
+        set_levels(self.colliders, levels)
         t5 = clock()
         timers["controller_and_fluid_pre"] += t1 - t0
         timers["tensor_write"] += t2 - t1

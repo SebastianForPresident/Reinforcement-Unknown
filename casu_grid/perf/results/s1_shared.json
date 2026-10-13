@@ -1,0 +1,257 @@
+{
+  "schema": "casu.isaac-throughput.v2",
+  "label": "stage1: numba kernels (fluid+tile queries) + numpy staging",
+  "terrain_mode": "shared",
+  "workload": "random",
+  "system": {
+    "git_revision": "1f1c59f7edaf930b8c40b5bc1193a1fdbce8d1f7",
+    "casu_grid_dirty_files": [
+      "asu_grid/ground_query.py",
+      "casu_grid/isaac_player_body.py",
+      "casu_grid/isaac_throughput_benchmark.py",
+      "casu_grid/isaac_vector_env.py",
+      "casu_grid/state.py",
+      "casu_grid/backend.py",
+      "casu_grid/kernels.py",
+      "casu_grid/perf/",
+      "casu_grid/tests/test_kernels.py",
+      "casu_grid/tools/compare_throughput.py",
+      "casu_grid/tools/compare_trajectories.py"
+    ],
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "cpu_count": 16,
+    "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "python": "3.10.15",
+    "gpu": "NVIDIA GeForce RTX 3070, 615.71.09, 8192 MiB",
+    "backend": {
+      "requested": "auto",
+      "active": "numba",
+      "numba_version": "0.59.1",
+      "kernel_version": 1
+    }
+  },
+  "rows": [
+    {
+      "num_envs": 1,
+      "terrain_mode": "shared",
+      "workload": "random",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "construct_seconds": 6.820146660989849,
+      "geometry_build_seconds": 4.929581992008025,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 1149.0683018709715,
+        "std": 13.996922651299997,
+        "min": 1137.3373134631372,
+        "max": 1168.741717670522,
+        "samples": [
+          1137.3373134631372,
+          1168.741717670522,
+          1141.1258744792553
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 114.90683018709713,
+        "std": 1.399692265129994,
+        "min": 113.73373134631372,
+        "max": 116.87417176705218,
+        "samples": [
+          113.73373134631372,
+          116.87417176705218,
+          114.11258744792553
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 1149.0683018709715,
+        "std": 13.996922651299997,
+        "min": 1137.3373134631372,
+        "max": 1168.741717670522,
+        "samples": [
+          1137.3373134631372,
+          1168.741717670522,
+          1141.1258744792553
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 2.12457399903122,
+        "std": 0.005997640586002273,
+        "min": 2.11609994274278,
+        "max": 2.1291277548400953,
+        "samples": [
+          2.11609994274278,
+          2.1291277548400953,
+          2.128494299510784
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.0797376799811134,
+        "tensor_write": 0.1460886297799542,
+        "physx_step": 0.40651092641902276,
+        "tensor_read": 0.08110512991247788,
+        "controller_post_and_shapes": 0.26932394859246517
+      },
+      "reset_all_seconds": 0.004075309989275411,
+      "reset_one_world_seconds": 0.003825169987976551,
+      "snapshot_seconds": 0.0015243619855027646,
+      "restore_seconds": 1.5220759820076637,
+      "peak_rss_gib": 2.6483154296875,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 771.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 771.0
+      }
+    },
+    {
+      "num_envs": 4,
+      "terrain_mode": "shared",
+      "workload": "random",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "construct_seconds": 6.729093439003918,
+      "geometry_build_seconds": 4.60699269399629,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 2363.5185362480224,
+        "std": 27.383252726775325,
+        "min": 2328.7807022637467,
+        "max": 2395.710609530517,
+        "samples": [
+          2395.710609530517,
+          2328.7807022637467,
+          2366.0642969498035
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 236.35185362480226,
+        "std": 2.738325272677541,
+        "min": 232.87807022637466,
+        "max": 239.57106095305173,
+        "samples": [
+          239.57106095305173,
+          232.87807022637466,
+          236.60642969498033
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 590.8796340620056,
+        "std": 6.845813181693831,
+        "min": 582.1951755659367,
+        "max": 598.9276523826293,
+        "samples": [
+          598.9276523826293,
+          582.1951755659367,
+          591.5160742374509
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.7864300939163373,
+        "std": 0.008882301092980143,
+        "min": 1.7760498015843589,
+        "max": 1.7977464181230414,
+        "samples": [
+          1.7977464181230414,
+          1.7760498015843589,
+          1.7854940620416118
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.11828276704965242,
+        "tensor_write": 0.0836895159377406,
+        "physx_step": 0.314098159982926,
+        "tensor_read": 0.043813216550750655,
+        "controller_post_and_shapes": 0.42820918153228654
+      },
+      "reset_all_seconds": 0.010331297991797328,
+      "reset_one_world_seconds": 0.003916177025530487,
+      "snapshot_seconds": 0.004038348997710273,
+      "restore_seconds": 1.5699724570149556,
+      "peak_rss_gib": 2.6928253173828125,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 763.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 763.0
+      }
+    },
+    {
+      "num_envs": 16,
+      "terrain_mode": "shared",
+      "workload": "random",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "construct_seconds": 7.959766599000432,
+      "geometry_build_seconds": 4.6368020299996715,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 3256.7843796691427,
+        "std": 17.840641565617215,
+        "min": 3231.572937239177,
+        "max": 3270.238696877306,
+        "samples": [
+          3268.5415048909445,
+          3270.238696877306,
+          3231.572937239177
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 325.67843796691426,
+        "std": 1.7840641565617315,
+        "min": 323.1572937239177,
+        "max": 327.0238696877306,
+        "samples": [
+          326.8541504890945,
+          327.0238696877306,
+          323.1572937239177
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 203.54902372932142,
+        "std": 1.115040097851076,
+        "min": 201.97330857744856,
+        "max": 204.38991855483164,
+        "samples": [
+          204.28384405568403,
+          204.38991855483164,
+          201.97330857744856
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.468198021259376,
+        "std": 0.0014908899502497708,
+        "min": 1.4661638593154678,
+        "max": 1.4696954855731523,
+        "samples": [
+          1.468734718889508,
+          1.4696954855731523,
+          1.4661638593154678
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.14371119958020473,
+        "tensor_write": 0.03573291524719168,
+        "physx_step": 0.20167934275203248,
+        "tensor_read": 0.016943221784836638,
+        "controller_post_and_shapes": 0.5946301104376669
+      },
+      "reset_all_seconds": 0.038958069984801114,
+      "reset_one_world_seconds": 0.00395400999695994,
+      "snapshot_seconds": 0.015860610001254827,
+      "restore_seconds": 1.8318468230136205,
+      "peak_rss_gib": 2.8628578186035156,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 763.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 763.0
+      }
+    }
+  ]
+}

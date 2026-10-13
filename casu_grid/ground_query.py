@@ -19,6 +19,8 @@ import math
 
 import numpy as np
 
+from . import backend as _backend
+
 HALF_WORLD = 512.0
 BOX_CAST_SKIN = 0.0055
 
@@ -33,8 +35,12 @@ class Hit:
 class GroundWorld:
     """Ground-layer geometry: occupancy tiles plus optional convex polygons."""
 
-    def __init__(self, blocks: np.ndarray, polygons=()):
+    def __init__(self, blocks: np.ndarray, polygons=(), backend: str | None = None):
         self.blocks = blocks
+        # compiled tile kernels (None -> readable reference implementation below)
+        self._k = _backend.kernels_for(backend)
+        self._near_buf = np.empty(64, dtype=np.int64)
+        self._chunk_buf = np.empty(16, dtype=np.int64)
         self.width, self.height = blocks.shape
         # polygons: iterable of (name, np.ndarray[N,2] counter-clockwise vertices)
         self.polygons = list(polygons)
@@ -51,6 +57,10 @@ class GroundWorld:
         """Indices of polygons whose bounding box intersects the query box."""
         if not len(self.polygons):
             return ()
+        if self._k is not None:
+            count = self._k.polygons_near(self._aabb, float(x0), float(y0), float(x1), float(y1), self._near_buf)
+            if count >= 0:
+                return self._near_buf[:count].tolist()
         a = self._aabb
         return np.flatnonzero((a[:, 0] <= x1) & (a[:, 2] >= x0) & (a[:, 1] <= y1) & (a[:, 3] >= y0))
 
@@ -94,13 +104,19 @@ class GroundWorld:
         x0, x1 = cx - hw - (reach_x if dx < 0 else 0.0), cx + hw + (reach_x if dx > 0 else 0.0)
         y0, y1 = cy - hh - (reach_y if dy < 0 else 0.0), cy + hh + (reach_y if dy > 0 else 0.0)
         eps = 1e-9
-        for rx, ry in self._tile_rects(x0 - eps - BOX_CAST_SKIN, x1 + eps + BOX_CAST_SKIN,
-                                       y0 - eps - BOX_CAST_SKIN, y1 + eps + BOX_CAST_SKIN):
-            hit = self._sweep_rect(cx, cy, hw, hh, dx, dy, distance,
-                                   rx - BOX_CAST_SKIN, ry - BOX_CAST_SKIN,
-                                   rx + 1.0 + BOX_CAST_SKIN, ry + 1.0 + BOX_CAST_SKIN)
-            if hit is not None and (best is None or hit.distance < best.distance):
-                best = hit
+        if self._k is not None:
+            found, dist, nx, ny, px, py = self._k.box_cast_tiles(
+                self.blocks, float(cx), float(cy), hw, hh, float(dx), float(dy), float(distance))
+            if found:
+                best = Hit(dist, (nx, ny), (px, py))
+        else:
+            for rx, ry in self._tile_rects(x0 - eps - BOX_CAST_SKIN, x1 + eps + BOX_CAST_SKIN,
+                                           y0 - eps - BOX_CAST_SKIN, y1 + eps + BOX_CAST_SKIN):
+                hit = self._sweep_rect(cx, cy, hw, hh, dx, dy, distance,
+                                       rx - BOX_CAST_SKIN, ry - BOX_CAST_SKIN,
+                                       rx + 1.0 + BOX_CAST_SKIN, ry + 1.0 + BOX_CAST_SKIN)
+                if hit is not None and (best is None or hit.distance < best.distance):
+                    best = hit
         for index in self._polygons_near(x0 - BOX_CAST_SKIN, y0 - BOX_CAST_SKIN,
                                          x1 + BOX_CAST_SKIN, y1 + BOX_CAST_SKIN):
             hit = self._sweep_polygon(cx, cy, hw, hh, dx, dy, distance, self.polygons[index][1])
@@ -160,11 +176,17 @@ class GroundWorld:
         dx, dy = dx / norm, dy / norm
         best: Hit | None = None
         ex, ey = ox + dx * distance, oy + dy * distance
-        for rx, ry in self._tile_rects(min(ox, ex) - 1e-9, max(ox, ex) + 1e-9,
-                                       min(oy, ey) - 1e-9, max(oy, ey) + 1e-9):
-            hit = _ray_rect(ox, oy, dx, dy, distance, rx, ry, rx + 1.0, ry + 1.0)
-            if hit is not None and (best is None or hit.distance < best.distance):
-                best = hit
+        if self._k is not None:
+            found, dist, nx, ny, px, py = self._k.raycast_tiles(
+                self.blocks, float(ox), float(oy), float(dx), float(dy), float(distance))
+            if found:
+                best = Hit(dist, (nx, ny), (px, py))
+        else:
+            for rx, ry in self._tile_rects(min(ox, ex) - 1e-9, max(ox, ex) + 1e-9,
+                                           min(oy, ey) - 1e-9, max(oy, ey) + 1e-9):
+                hit = _ray_rect(ox, oy, dx, dy, distance, rx, ry, rx + 1.0, ry + 1.0)
+                if hit is not None and (best is None or hit.distance < best.distance):
+                    best = hit
         for index in self._polygons_near(min(ox, ex) - 1e-9, min(oy, ey) - 1e-9,
                                          max(ox, ex) + 1e-9, max(oy, ey) + 1e-9):
             t = _ray_polygon_distance(self.polygons[index][1], (ox, oy), (dx, dy))
@@ -182,12 +204,18 @@ class GroundWorld:
         cx, cy = center
         hw, hh = size[0] / 2.0, size[1] / 2.0
         found = set()
-        for rx, ry in self._tile_rects(cx - hw - reach, cx + hw + reach,
-                                       cy - hh - reach, cy + hh + reach):
-            dx = max(rx - (cx + hw), (cx - hw) - (rx + 1.0), 0.0)
-            dy = max(ry - (cy + hh), (cy - hh) - (ry + 1.0), 0.0)
-            if math.hypot(dx, dy) <= reach:
-                found.add(("chunk", int((rx + HALF_WORLD) // 64), int((ry + HALF_WORLD) // 64)))
+        count = -1
+        if self._k is not None:
+            count = self._k.touching_chunks(self.blocks, float(cx), float(cy), hw, hh, float(reach), self._chunk_buf)
+            for chunk in self._chunk_buf[:count].tolist() if count >= 0 else ():
+                found.add(("chunk", chunk >> 16, chunk & 0xFFFF))
+        if count < 0:   # reference path (also the kernel's near-boundary / overflow fallback)
+            for rx, ry in self._tile_rects(cx - hw - reach, cx + hw + reach,
+                                           cy - hh - reach, cy + hh + reach):
+                dx = max(rx - (cx + hw), (cx - hw) - (rx + 1.0), 0.0)
+                dy = max(ry - (cy + hh), (cy - hh) - (ry + 1.0), 0.0)
+                if math.hypot(dx, dy) <= reach:
+                    found.add(("chunk", int((rx + HALF_WORLD) // 64), int((ry + HALF_WORLD) // 64)))
         for index in self._polygons_near(cx - hw - reach, cy - hh - reach, cx + hw + reach, cy + hh + reach):
             found.add(("object", int(index)))
         return found
@@ -195,10 +223,14 @@ class GroundWorld:
     def overlap_box(self, center, size) -> bool:
         cx, cy = center
         hw, hh = size[0] / 2.0, size[1] / 2.0
-        for rx, ry in self._tile_rects(cx - hw, cx + hw, cy - hh, cy + hh):
-            if min(cx + hw, rx + 1.0) - max(cx - hw, rx) > 1e-9 and \
-                    min(cy + hh, ry + 1.0) - max(cy - hh, ry) > 1e-9:
+        if self._k is not None:
+            if self._k.overlap_box_tiles(self.blocks, float(cx), float(cy), hw, hh):
                 return True
+        else:
+            for rx, ry in self._tile_rects(cx - hw, cx + hw, cy - hh, cy + hh):
+                if min(cx + hw, rx + 1.0) - max(cx - hw, rx) > 1e-9 and \
+                        min(cy + hh, ry + 1.0) - max(cy - hh, ry) > 1e-9:
+                    return True
         corners = None
         for index in self._polygons_near(cx - hw, cy - hh, cx + hw, cy + hh):
             if corners is None:
