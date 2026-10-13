@@ -78,6 +78,21 @@ class SeededDecisionStream:
         self.position += 1
         return bool(self.rng.integers(0, 2))
 
+    _MASK64 = (1 << 64) - 1
+
+    def export_state(self, out) -> None:
+        """Fill a uint64[6] array ``[state_lo, state_hi, inc_lo, inc_hi, has_uint32, uinteger]`` (compiled kernels)."""
+        st = self.rng.bit_generator.state
+        s, inc = st["state"]["state"], st["state"]["inc"]
+        out[0], out[1], out[2], out[3] = s & self._MASK64, s >> 64, inc & self._MASK64, inc >> 64
+        out[4], out[5] = st["has_uint32"], st["uinteger"]
+
+    def import_state(self, arr) -> None:
+        st = self.rng.bit_generator.state
+        st["state"]["state"] = int(arr[0]) | (int(arr[1]) << 64)
+        st["has_uint32"], st["uinteger"] = int(arr[4]), int(arr[5])
+        self.rng.bit_generator.state = st
+
     def snapshot(self) -> dict[str, Any]:
         return {"algorithm": "numpy.PCG64", "seed": self.seed,
                 "position": self.position, "state": copy.deepcopy(self.rng.bit_generator.state)}
@@ -120,6 +135,7 @@ class CasUGridState:
         # compiled fluid sweep (None -> readable reference implementation); see casu_grid.backend
         self._k = _backend.kernels_for(backend)
         self._counters = np.zeros(3, dtype=np.int64)
+        self._rstate = np.zeros(6, dtype=np.uint64)
 
     @staticmethod
     def world_to_cell(x: float, y: float, width: int, height: int) -> tuple[int, int]:
@@ -241,9 +257,13 @@ class CasUGridState:
         if self._k is not None and decision_budget is None and isinstance(self.rng, SeededDecisionStream):
             counters = self._counters
             counters[0], counters[1], counters[2] = self.tile_cooldown, self.water_move_count, self.push_events
-            self.rng.position += self._k.fluid_sweep(
+            self.rng.export_state(self._rstate)
+            draws = self._k.fluid_sweep(
                 self.fluids, self.blocks, xmin, xmax, ymin, ymax, self.width, self.height,
-                counters, self.fluid_push_enabled, self.rng.rng)
+                counters, self.fluid_push_enabled, self._rstate)
+            if draws:
+                self.rng.import_state(self._rstate)
+            self.rng.position += draws
             self.tile_cooldown, self.water_move_count, self.push_events = (
                 int(counters[0]), int(counters[1]), int(counters[2]))
             self.tick += 1

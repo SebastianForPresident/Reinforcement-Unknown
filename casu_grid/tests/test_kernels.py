@@ -126,6 +126,45 @@ class QueryKernelTests(unittest.TestCase):
                                  self.fast.box_cast(pos, (1.6, 5.0), direction, 4.0))
 
 
+@unittest.skipUnless(HAVE_NUMBA, "numba backend not available")
+class CompiledRandomStreamTests(unittest.TestCase):
+    def test_pcg64_port_matches_numpy_integers_0_2_over_millions_of_draws(self):
+        from casu_grid import kernels
+        import numpy as np
+        for seed, preface in ((1, 0), (391728405, 1), (7, 3), (99, 10)):
+            rng = np.random.default_rng(seed)
+            for _ in range(preface):
+                rng.integers(0, 2)           # leave a buffered 32-bit word in the generator
+            stream = SeededDecisionStream(seed)
+            stream.rng = rng
+            state = np.zeros(6, dtype=np.uint64)
+            stream.export_state(state)
+            reference = np.random.default_rng(seed)
+            for _ in range(preface):
+                reference.integers(0, 2)
+            drawn = np.array([kernels.rng_next_bit(state) for _ in range(200_000)])
+            expected = reference.integers(0, 2, size=200_000)      # same stream, drawn in bulk
+            self.assertTrue(np.array_equal(drawn, expected))
+            stream.import_state(state)                              # state written back must continue identically
+            self.assertEqual(stream.rng.bit_generator.state, reference.bit_generator.state)
+            self.assertEqual(int(stream.rng.integers(0, 2)), int(reference.integers(0, 2)))
+
+    def test_kernel_calls_do_not_leak_memory(self):
+        """numba leaks ~600 B per call when a numpy Generator is passed; the state-array interface must not."""
+        import numpy as np
+        grid = _grid("numba", np.zeros((70, 70), np.uint16), np.ones((70, 70), np.uint8), (35, 35), 1, False)
+
+        def rss_mb():
+            with open("/proc/self/status") as handle:
+                return int(handle.read().split("VmRSS:")[1].split()[0]) / 1024
+        for _ in range(2000):
+            grid.simulation_step()
+        before = rss_mb()
+        for _ in range(60_000):
+            grid.simulation_step()
+        self.assertLess(rss_mb() - before, 12.0)       # a leak of 600 B/call would add ~36 MB
+
+
 class BackendSelectionTests(unittest.TestCase):
     def test_reference_backend_always_available_and_described(self):
         self.assertIsNone(backend.kernels_for("reference-python"))

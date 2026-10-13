@@ -13,8 +13,8 @@ iteration order, tie-breaking and floating-point operation order, so results are
 
 Convex static-object polygons stay in the Python reference code; the kernels only report which
 polygons are near a query so the rare polygon case reuses the reference arithmetic exactly.
-The fluid kernel draws from the same ``numpy.random.Generator`` (numba shares its bit-generator
-state in place), consuming exactly one ``integers(0, 2)`` draw per two-sided move, like the oracle.
+The fluid kernel advances a numpy-compatible PCG64 state array, consuming exactly one ``integers(0, 2)`` draw per
+two-sided move, like the oracle (see the PCG64 section; a Generator object is never passed to numba).
 """
 from __future__ import annotations
 
@@ -23,10 +23,60 @@ import math
 import numpy as np
 from numba import njit
 
-KERNEL_VERSION = 1
+KERNEL_VERSION = 3
 HALF_WORLD = 512.0
 BOX_CAST_SKIN = 0.0055
 _NO_HIT = (False, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+# ------------------------------------------------------------------ PCG64 (numpy-compatible)
+# Passing a ``numpy.random.Generator`` into a numba function leaks ~600 bytes per call (numba 0.59), which showed up as
+# steady memory growth in long training runs. The fluid kernels therefore take the generator *state* as a uint64 array
+# ``[state_lo, state_hi, inc_lo, inc_hi, has_uint32, uinteger]`` and advance it with this port of numpy's PCG64
+# XSL-RR 128/64 and of ``Generator.integers(0, 2)`` (one buffered 32-bit output per draw, result = its top bit).
+# ``SeededDecisionStream.export_state/import_state`` move the state between numpy and this array; the test suite
+# checks the port against numpy over millions of draws.
+_M_HI = np.uint64(0x2360ED051FC65DA4)
+_M_LO = np.uint64(0x4385DF649FCCF645)
+_U32 = np.uint64(0xFFFFFFFF)
+_S32 = np.uint64(32)
+
+
+@njit(cache=True)
+def _mul64(a, b):
+    a_lo, a_hi = a & _U32, a >> _S32
+    b_lo, b_hi = b & _U32, b >> _S32
+    ll, lh, hl, hh = a_lo * b_lo, a_lo * b_hi, a_hi * b_lo, a_hi * b_hi
+    mid = (ll >> _S32) + (lh & _U32) + (hl & _U32)
+    return hh + (lh >> _S32) + (hl >> _S32) + (mid >> _S32), (ll & _U32) | (mid << _S32)
+
+
+@njit(cache=True)
+def _next_uint64(P):
+    s_lo, s_hi = P[0], P[1]
+    hi, lo = _mul64(s_lo, _M_LO)
+    hi = hi + s_hi * _M_LO + s_lo * _M_HI
+    new_lo = lo + P[2]
+    carry = np.uint64(1) if new_lo < lo else np.uint64(0)
+    new_hi = hi + P[3] + carry
+    P[0], P[1] = new_lo, new_hi
+    xored = new_hi ^ new_lo
+    rot = new_hi >> np.uint64(58)
+    return (xored >> rot) | (xored << ((np.uint64(64) - rot) & np.uint64(63)))
+
+
+@njit(cache=True)
+def rng_next_bit(P):
+    """``Generator.integers(0, 2)``: advances the state; returns 0 or 1."""
+    if P[4] != np.uint64(0):
+        P[4] = np.uint64(0)
+        word = P[5]
+    else:
+        value = _next_uint64(P)
+        P[4] = np.uint64(1)
+        P[5] = value >> _S32
+        word = value & _U32
+    return (word >> np.uint64(31)) & np.uint64(1)
 
 
 # ------------------------------------------------------------------------ fluid
@@ -52,11 +102,11 @@ def _incr_move(counters, push_enabled):
 
 
 @njit(cache=True)
-def fluid_sweep(fluids, blocks, xmin, xmax, ymin, ymax, width, height, counters, push_enabled, rng):
+def fluid_sweep(fluids, blocks, xmin, xmax, ymin, ymax, width, height, counters, push_enabled, rstate):
     """One sweep over ``[xmin,xmax) x [ymin,ymax)``.
 
-    ``counters`` = int64[tile_cooldown, water_move_count, push_events]. Returns the number of
-    decisions drawn from ``rng``.
+    ``counters`` = int64[tile_cooldown, water_move_count, push_events]; ``rstate`` = the PCG64 state array
+    (advanced in place). Returns the number of decisions drawn.
     """
     draws = 0
     for x in range(xmin, xmax):
@@ -81,7 +131,7 @@ def fluid_sweep(fluids, blocks, xmin, xmax, ymin, ymax, width, height, counters,
             right = _empty(fluids, blocks, x + 1, y, width, height)
             left = _empty(fluids, blocks, x - 1, y, width, height)
             if right and left:
-                direction = 1 if rng.integers(0, 2) else -1
+                direction = 1 if rng_next_bit(rstate) else -1
                 draws += 1
                 tmp = fluids[x, y]
                 fluids[x, y] = fluids[x + direction, y]

@@ -57,6 +57,7 @@ class FastSlot:
         self.ticks = ticks
         self.G = np.zeros(CK.N_GRID, dtype=np.int64)          # grid scheduler state during a macrostep
         self.S_before_fixed = np.zeros(CK.N_STATE)
+        self.rstate = np.zeros(6, dtype=np.uint64)             # fluid-stream PCG64 state during a macrostep
         self.fallbacks = 0
         self.liquid_before = slot.cfg.liquid_affect_phase == "before_controller"
 
@@ -114,6 +115,7 @@ class FastSlot:
         G[CK.G_SIM_INDEX], G[CK.G_TICK] = grid.sim_index, grid.tick
         G[CK.G_CAM_X], G[CK.G_CAM_Y] = grid.camera_x, grid.camera_y
         G[CK.G_RNG_POSITION] = 0          # draws made during this macrostep
+        grid.rng.export_state(self.rstate)
 
     def _unpack_grid(self) -> None:
         grid, G = self.slot.grid, self.G
@@ -121,6 +123,8 @@ class FastSlot:
             int(G[CK.G_TILE_COOLDOWN]), int(G[CK.G_WATER_MOVE]), int(G[CK.G_PUSH_EVENTS]))
         grid.sim_index, grid.tick = int(G[CK.G_SIM_INDEX]), int(G[CK.G_TICK])
         grid.camera_x, grid.camera_y = int(G[CK.G_CAM_X]), int(G[CK.G_CAM_Y])
+        if G[CK.G_RNG_POSITION]:
+            grid.rng.import_state(self.rstate)
         grid.rng.position += int(G[CK.G_RNG_POSITION])
         G[CK.G_RNG_POSITION] = 0
 
@@ -158,7 +162,7 @@ class FastSlot:
         slot.apply_due_edits()
         grid, world = slot.grid, slot.ground_world
         flag = CK.pre_tick(S, self.S_before_fixed, self.C, G, grid.fluids, grid.blocks, world.blocks,
-                           world.poly_pack, grid.rng.rng, grid.fluid_push_enabled,
+                           world.poly_pack, self.rstate, grid.fluid_push_enabled,
                            self.liquid_before, _BUOYANCY, _DRAG, self.R)
         slot.physics_ticks += 1
         slot.was_water = bool(self.R[3])

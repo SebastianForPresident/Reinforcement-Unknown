@@ -25,7 +25,7 @@ from numba import njit
 
 from . import kernels as K
 
-KERNEL_VERSION = 2
+KERNEL_VERSION = 3
 OK, FALLBACK = 0, 1
 
 # ---- state layout (float64; booleans are 0.0/1.0) -------------------------------------------
@@ -466,7 +466,7 @@ def _apply_liquid(S, fluids, width, height, buoyancy, drag):
 
 
 @njit(cache=True)
-def pre_tick(S, S_before_fixed, C, G, fluids, grid_blocks, blocks, poly, rng, push_enabled,
+def pre_tick(S, S_before_fixed, C, G, fluids, grid_blocks, blocks, poly, rstate, push_enabled,
              liquid_before, buoyancy, drag, R):
     """``EnvSlot.pre_tick`` (liquid flags, camera, one fluid sweep, liquid drag) + ``Body.FixedUpdate``.
 
@@ -488,7 +488,7 @@ def pre_tick(S, S_before_fixed, C, G, fluids, grid_blocks, blocks, poly, rng, pu
         G[G_SIM_INDEX] = 0
     counters = G[0:3]
     G[G_RNG_POSITION] += K.fluid_sweep(fluids, grid_blocks, xmin, xmax, ymin, ymax, width, height,
-                                       counters, push_enabled, rng)
+                                       counters, push_enabled, rstate)
     G[G_TICK] += 1
     if liquid_before:
         _apply_liquid(S, fluids, width, height, buoyancy, drag)
