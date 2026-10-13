@@ -1,0 +1,28 @@
+{
+ "schema": "casu.collider-stress.v1",
+ "collider": "compound",
+ "hull_segments": 8,
+ "envs": 64,
+ "decisions": 1200,
+ "tape": "run",
+ "seed": 1,
+ "samples": 76672,
+ "embedded_threshold_m": 0.15,
+ "embedded_fraction": 0.0,
+ "embedded_samples": 0,
+ "persistent_embedded_samples": 0,
+ "depth_percentiles": {
+  "50": 0.0,
+  "90": 0.0,
+  "99": 0.0,
+  "99.9": 0.0,
+  "100": 0.00911941528320348
+ },
+ "implausible_jumps": 0,
+ "nonfinite_states": 0,
+ "episode_ends": 128,
+ "termination_reasons": {
+  "time_limit": 128
+ },
+ "mean_total_abs_x_travel": 53.01267144083977
+}

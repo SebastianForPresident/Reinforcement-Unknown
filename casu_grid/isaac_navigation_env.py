@@ -72,6 +72,7 @@ class IsaacLayer1EnvConfig:
     # "compound" = validated cuboids+cylinders (default); "convex_hull" = EXPERIMENTAL single convex hull of the same
     # rounded rectangle (cheap crouch switching). Environment override: CASU_PLAYER_COLLIDER.
     player_collider: str = field(default_factory=lambda: os.environ.get("CASU_PLAYER_COLLIDER", "compound"))
+    player_hull_segments: int = 8           # convex_hull only: facets per quarter-circle corner (hullVertexLimit 255 allows <= 30)
     rounded_player_collider: bool = True   # retained for config compatibility; always modelled
     fluid_rng_seed: int = 391728405
     liquid_affect_phase: str = "before_controller"  # before_controller or after_controller
@@ -117,6 +118,8 @@ class IsaacLayer1EnvConfig:
             raise ValueError("crouch_levels must be at least 2")
         if self.player_collider not in ("compound", "convex_hull"):
             raise ValueError("player_collider must be 'compound' or 'convex_hull'")
+        if not 2 <= self.player_hull_segments <= 30:
+            raise ValueError("player_hull_segments must be in [2, 30] (PhysX hull vertex limit 255)")
         if self.num_workers < 0 or self.worker_physx_threads < 2 or self.worker_timeout_seconds <= 0:
             raise ValueError("num_workers must be >= 0 (0 = auto), worker_physx_threads >= 2, worker_timeout_seconds > 0")
         if self.liquid_affect_phase not in {"before_controller", "after_controller"}:
@@ -316,7 +319,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
             edge_radius=self.controller_config.edge_radius, depth=self.cfg.player_depth,
             material_path=self.material_path, levels=self.cfg.crouch_levels,
             rest_offset=self.cfg.player_rest_offset, contact_offset=self.cfg.player_contact_offset,
-            representation=self.cfg.player_collider)
+            representation=self.cfg.player_collider, hull_segments=self.cfg.player_hull_segments)
 
         anchor = UsdGeom.Xform.Define(self.stage, "/World/CasuPlanarAnchor")
         UsdGeom.Xformable(anchor).AddTranslateOp().Set(Gf.Vec3d(initial.x, 0.0, initial.y))

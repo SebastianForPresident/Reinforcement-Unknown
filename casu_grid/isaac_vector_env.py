@@ -220,7 +220,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 edge_radius=self.controller_config.edge_radius, depth=self.cfg.player_depth,
                 material_path=self.material_path, levels=self.cfg.crouch_levels,
                 rest_offset=self.cfg.player_rest_offset, contact_offset=self.cfg.player_contact_offset,
-                representation=self.cfg.player_collider))
+                representation=self.cfg.player_collider, hull_segments=self.cfg.player_hull_segments))
             member_paths = [path]
             for k, door in enumerate(slot.door_defs):
                 door_path = f"/World/Env_{i:05d}/ShuttleDoor{'LR'[k]}"

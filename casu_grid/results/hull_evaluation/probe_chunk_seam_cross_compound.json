@@ -1,0 +1,167 @@
+{
+ "schema": "casu.isaac-player-ab.v1",
+ "trace": "probe:chunk_seam_cross",
+ "rest_offset": 0.0155,
+ "contact_offset": 0.04,
+ "crouch_levels": 32,
+ "modes": {
+  "free": {
+   "ticks": 10,
+   "position_x": {
+    "n": 10,
+    "mean_abs": 0.1263032236328172,
+    "p95_abs": 0.38595284570314436,
+    "max_abs": 0.42465207226564416
+   },
+   "position_y": {
+    "n": 10,
+    "mean_abs": 0.08139199765625164,
+    "p95_abs": 0.21285610878907021,
+    "max_abs": 0.2134895751953252
+   },
+   "velocity_x": {
+    "n": 10,
+    "mean_abs": 2.1481426603031,
+    "p95_abs": 4.296285643026123,
+    "max_abs": 4.296285663867188
+   },
+   "velocity_y": {
+    "n": 10,
+    "mean_abs": 1.0957083491595405,
+    "p95_abs": 3.2856108624876437,
+    "max_abs": 3.285610917687988
+   },
+   "first_x_error_over_0p05": {
+    "action": 1,
+    "tick": 5,
+    "value": -0.08041362304686572
+   },
+   "first_x_error_over_0p5": null,
+   "first_y_error_over_0p05": {
+    "action": 1,
+    "tick": 5,
+    "value": 0.06369060644530578
+   },
+   "first_y_error_over_0p5": null,
+   "per_action_max_abs_dx": [
+    0.42465207226564416
+   ],
+   "per_action_max_abs_dy": [
+    0.2134895751953252
+   ],
+   "grounded_flag_mismatch_ticks": 2,
+   "rows": [
+    {
+     "i": 0,
+     "action": 1,
+     "tick": 0,
+     "dx": -8.984375199361239e-08,
+     "dy": 9.033203127728484e-06,
+     "dvx": -5.236815425746499e-10,
+     "dvy": -5.4293432185659185e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 1,
+     "action": 1,
+     "tick": 1,
+     "dx": 3.164062718497007e-07,
+     "dy": 9.033203127728484e-06,
+     "dvx": -1.0473630851492999e-09,
+     "dvy": -1.4807541447225958e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 2,
+     "action": 1,
+     "tick": 2,
+     "dx": 4.2578125203363015e-07,
+     "dy": -6.225585934771516e-06,
+     "dvx": 1.0842895470375424e-07,
+     "dvy": 7.742855814285576e-07,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 3,
+     "action": 1,
+     "tick": 3,
+     "dx": 2.382812454015948e-07,
+     "dy": 9.033203127728484e-06,
+     "dvx": -2.0947261702985998e-09,
+     "dvy": -0.0001751402742229402,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 4,
+     "action": 1,
+     "tick": 4,
+     "dx": 3.075390623052954e-05,
+     "dy": 9.033203127728484e-06,
+     "dvx": 3.2421874962551556e-07,
+     "dvy": -6.06255844104453e-06,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 5,
+     "action": 1,
+     "tick": 5,
+     "dx": -0.08041362304686572,
+     "dy": 0.06369060644530578,
+     "dvx": -4.296284572296143,
+     "dvy": 3.285610676953125,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 6,
+     "action": 1,
+     "tick": 6,
+     "dx": -0.16662611914063064,
+     "dy": 0.1294249423828262,
+     "dvx": -4.296284702819824,
+     "dvy": 3.2856107950205566,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 7,
+     "action": 1,
+     "tick": 7,
+     "dx": -0.2526548066406349,
+     "dy": 0.19519062207029947,
+     "dvx": -4.296285610180664,
+     "dvy": 3.285610917687988,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 8,
+     "action": 1,
+     "tick": 8,
+     "dx": -0.33865379101564486,
+     "dy": 0.2134895751953252,
+     "dvx": -4.296285663867188,
+     "dvy": 1.0396302938461304,
+     "isaac_grounded": false,
+     "source_grounded": true
+    },
+    {
+     "i": 9,
+     "action": 1,
+     "tick": 9,
+     "dx": -0.42465207226564416,
+     "dy": 0.21208187207031415,
+     "dvx": -4.2962856175537105,
+     "dvy": -0.06036972999572754,
+     "isaac_grounded": false,
+     "source_grounded": true
+    }
+   ]
+  }
+ }
+}

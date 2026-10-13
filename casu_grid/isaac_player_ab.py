@@ -20,7 +20,8 @@ import traceback
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--trace", required=True, help="packed source trace name (e.g. flat_master)")
+parser.add_argument("--trace", default=None, help="packed source trace name (e.g. flat_master)")
+parser.add_argument("--legacy-probe", default=None, help="Mission-12 CasU collision probe (free-run only), see legacy_probe_traces.PROBES")
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--modes", default="teacher,free")
 parser.add_argument("--rest-offset", type=float, default=0.0155)
@@ -34,6 +35,8 @@ parser.add_argument("--player-collider", choices=("compound", "convex_hull"), de
 parser.add_argument("--no-ccd", action="store_true", help="EXPERIMENT ONLY: disable CCD (GPU studies)")
 parser.add_argument("--cuda", action="store_true", help="EXPERIMENTAL: PhysX GPU pipeline (not the validated reference)")
 parser.add_argument("--step-clear", type=float, default=0.0)
+parser.add_argument("--detail", action="store_true", help="also store the per-tick / per-decision rows (for paired comparisons)")
+parser.add_argument("--hull-segments", type=int, default=8, help="convex_hull only: facets per quarter-circle corner")
 parser.add_argument("--collider-delay", type=int, default=0, help="terrain_collider_delay_ticks")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
@@ -96,7 +99,7 @@ def teacher_forced(env, trace, actions):
         entry["dvx"].append(vx - svx); entry["dvy"].append(vy - svy)
         rows.append({"i": i, "class": cls, "dx": x - sx, "dy": y - sy, "dvx": vx - svx, "dvy": vy - svy})
     return {"classes": {k: {m: stats(v) for m, v in d.items()} for k, d in per_class.items()},
-            "tick_count": len(rows),
+            "tick_count": len(rows), **({"rows": rows} if args.detail else {}),
             "worst": sorted(rows, key=lambda r: -max(abs(r["dx"]), abs(r["dy"]), abs(r["dvx"]) / 25, abs(r["dvy"]) / 25))[:12]}
 
 
@@ -135,6 +138,7 @@ def free_running(env, trace, actions):
         "per_action_max_abs_dy": [max(abs(r["dy"]) for r in series if r["action"] == a)
                                   for a in range(1, len(trace.actions) + 1)],
         "grounded_flag_mismatch_ticks": sum(r["isaac_grounded"] != r["source_grounded"] for r in series),
+        **({"rows": series} if args.detail else {}),
     }
 
 
@@ -187,25 +191,31 @@ def segment_resync(env, trace, actions):
                 "grounded_mismatches": sum(not r["grounded_match"] for r in sel)}
     kinds = sorted({r["kind"] for r in rows})
     return {"all": group(lambda r: True), **{k: group(lambda r, k=k: r["kind"] == k) for k in kinds},
+            **({"rows": rows} if args.detail else {}),
             "worst": sorted(rows, key=lambda r: -max(abs(r["dx"]), abs(r["dy"]), abs(r["dvx"]) / 25,
                                                      abs(r["dvy"]) / 25))[:8]}
 
 
 def main():
-    trace = load_source_trace(args.trace)
+    if args.legacy_probe:
+        from casu_grid.legacy_probe_traces import load_probe
+        trace = load_probe(args.legacy_probe)
+        args.modes = "free"
+    else:
+        trace = load_source_trace(args.trace)
     actions = trace.policy_actions()
     cfg = IsaacLayer1EnvConfig(record_ticks=True, crouch_levels=args.crouch_levels,
                                player_rest_offset=args.rest_offset,
                                player_contact_offset=args.contact_offset, terrain_contact_offset=args.terrain_contact_offset,
                                physx_solver_type=args.solver, max_depenetration_velocity=args.max_depen,
                                step_up_clearance=args.step_clear,
-                               terrain_collider_delay_ticks=args.collider_delay, use_cuda=args.cuda, physx_ccd=not args.no_ccd, player_collider=args.player_collider)
+                               terrain_collider_delay_ticks=args.collider_delay, use_cuda=args.cuda, physx_ccd=not args.no_ccd, player_collider=args.player_collider, player_hull_segments=args.hull_segments)
     env = IsaacLayer1NavigationEnv(cfg)
     try:
         env.reset(seed=391728405)
         if trace.terrain_edits:
             env.apply_block_edits(trace.terrain_edits)
-        result = {"schema": "casu.isaac-player-ab.v1", "trace": args.trace,
+        result = {"schema": "casu.isaac-player-ab.v1", "trace": args.trace or f"probe:{args.legacy_probe}",
                   "rest_offset": args.rest_offset, "contact_offset": args.contact_offset,
                   "crouch_levels": args.crouch_levels, "modes": {}}
         for mode in args.modes.split(","):

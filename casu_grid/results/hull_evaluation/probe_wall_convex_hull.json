@@ -1,0 +1,275 @@
+{
+ "schema": "casu.isaac-player-ab.v1",
+ "trace": "probe:wall",
+ "rest_offset": 0.0155,
+ "contact_offset": 0.04,
+ "crouch_levels": 32,
+ "modes": {
+  "free": {
+   "ticks": 20,
+   "position_x": {
+    "n": 20,
+    "mean_abs": 0.004914330957035418,
+    "p95_abs": 0.004983223046886634,
+    "max_abs": 0.0973507656249808
+   },
+   "position_y": {
+    "n": 20,
+    "mean_abs": 0.0004746798828165311,
+    "p95_abs": 0.0010672779296840014,
+    "max_abs": 0.007873927734351582
+   },
+   "velocity_x": {
+    "n": 20,
+    "mean_abs": 0.4874174148755509,
+    "p95_abs": 0.490425469004556,
+    "max_abs": 9.740259170532227
+   },
+   "velocity_y": {
+    "n": 20,
+    "mean_abs": 0.0007052010762822469,
+    "p95_abs": 0.0019143558456562462,
+    "max_abs": 0.0021093019749969244
+   },
+   "first_x_error_over_0p05": {
+    "action": 1,
+    "tick": 5,
+    "value": 0.0973507656249808
+   },
+   "first_x_error_over_0p5": null,
+   "first_y_error_over_0p05": null,
+   "first_y_error_over_0p5": null,
+   "per_action_max_abs_dx": [
+    0.0973507656249808,
+    9.186132814420489e-05
+   ],
+   "per_action_max_abs_dy": [
+    0.007873927734351582,
+    6.0550781256552e-05
+   ],
+   "grounded_flag_mismatch_ticks": 0,
+   "rows": [
+    {
+     "i": 0,
+     "action": 1,
+     "tick": 0,
+     "dx": 0.00012177343751318404,
+     "dy": 0.007873927734351582,
+     "dvx": -5.236815425746499e-10,
+     "dvy": 7.838476534516303e-10,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 1,
+     "action": 1,
+     "tick": 1,
+     "dx": 1.210937500673026e-05,
+     "dy": 0.0007090332031225444,
+     "dvx": -1.0473630851492999e-09,
+     "dvy": -0.00019591530144680291,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 2,
+     "action": 1,
+     "tick": 2,
+     "dx": 2.1875001721127774e-07,
+     "dy": 0.00015303320310522395,
+     "dvx": 1.0842895470375424e-07,
+     "dvy": -4.901777720078826e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 3,
+     "action": 1,
+     "tick": 3,
+     "dx": 7.031249992905941e-06,
+     "dy": 6.15156250205473e-05,
+     "dvx": -2.0947261702985998e-09,
+     "dvy": -2.5476532755419612e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 4,
+     "action": 1,
+     "tick": 4,
+     "dx": 3.0546874995707185e-05,
+     "dy": 9.20332031455473e-05,
+     "dvx": 3.2421874962551556e-07,
+     "dvy": 2.528246841393411e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 5,
+     "action": 1,
+     "tick": 5,
+     "dx": 0.0973507656249808,
+     "dy": 3.0033203131552e-05,
+     "dvx": 9.740259170532227,
+     "dvy": -9.282637620344758e-06,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 6,
+     "action": 1,
+     "tick": 6,
+     "dx": -6.134375001920489e-05,
+     "dy": 3.0033203131552e-05,
+     "dvx": 0.003592116292566061,
+     "dvy": -5.320575655787252e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 7,
+     "action": 1,
+     "tick": 7,
+     "dx": -3.082617189420489e-05,
+     "dy": -4.843749934480002e-07,
+     "dvx": -0.0003012448432855308,
+     "dvy": -0.0021093019749969244,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 8,
+     "action": 1,
+     "tick": 8,
+     "dx": -6.134375001920489e-05,
+     "dy": 3.0033203131552e-05,
+     "dvx": 0.0007588159060105681,
+     "dvy": -0.00011013274342985824,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 9,
+     "action": 1,
+     "tick": 9,
+     "dx": -3.085937692048901e-07,
+     "dy": 6.0550781256552e-05,
+     "dvx": -0.00027214823057875037,
+     "dvy": -0.0019040955230593681,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 10,
+     "action": 2,
+     "tick": 0,
+     "dx": -9.186132814420489e-05,
+     "dy": 3.0033203131552e-05,
+     "dvx": 0.00034368890919722617,
+     "dvy": -4.519389767665416e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 11,
+     "action": 2,
+     "tick": 1,
+     "dx": 3.020898435579511e-05,
+     "dy": 6.0550781256552e-05,
+     "dvx": -0.000269763550022617,
+     "dvy": -0.0018763679545372725,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 12,
+     "action": 2,
+     "tick": 2,
+     "dx": -9.186132814420489e-05,
+     "dy": 3.0033203131552e-05,
+     "dvx": 0.00037730421172454953,
+     "dvy": -4.495807661442086e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 13,
+     "action": 2,
+     "tick": 3,
+     "dx": 3.020898435579511e-05,
+     "dy": 6.0550781256552e-05,
+     "dvx": -0.0002676988369785249,
+     "dvy": -0.0018584580393508077,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 14,
+     "action": 2,
+     "tick": 4,
+     "dx": -9.186132814420489e-05,
+     "dy": 3.0033203131552e-05,
+     "dvx": 0.00035838811891153455,
+     "dvy": -4.393031485960819e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 15,
+     "action": 2,
+     "tick": 5,
+     "dx": 3.020898435579511e-05,
+     "dy": 6.0550781256552e-05,
+     "dvx": -0.00026481994427740574,
+     "dvy": -0.0018829074688255787,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 16,
+     "action": 2,
+     "tick": 6,
+     "dx": -9.186132814420489e-05,
+     "dy": 3.0033203131552e-05,
+     "dvx": 0.00037661383976228535,
+     "dvy": -4.42560703959316e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 17,
+     "action": 2,
+     "tick": 7,
+     "dx": 3.020898435579511e-05,
+     "dy": 6.0550781256552e-05,
+     "dvx": -0.0002732007415033877,
+     "dvy": -0.0019020178588107228,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 18,
+     "action": 2,
+     "tick": 8,
+     "dx": -9.186132814420489e-05,
+     "dy": 3.0033203131552e-05,
+     "dvx": 0.0003630307037383318,
+     "dvy": -4.7048426495166495e-05,
+     "isaac_grounded": true,
+     "source_grounded": true
+    },
+    {
+     "i": 19,
+     "action": 2,
+     "tick": 9,
+     "dx": 3.020898435579511e-05,
+     "dy": 6.0550781256552e-05,
+     "dvx": -0.00026985653676092625,
+     "dvy": -0.0018771719187498093,
+     "isaac_grounded": true,
+     "source_grounded": true
+    }
+   ]
+  }
+ }
+}

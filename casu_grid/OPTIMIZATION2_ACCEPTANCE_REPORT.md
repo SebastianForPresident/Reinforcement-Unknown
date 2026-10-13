@@ -95,7 +95,7 @@ Hull vs compound (both CPU PhysX) against recorded CasU traces, `isaac_player_ab
 | destroy_support free-run mean |dx| / |dy| | 0.192 / 0.207 m | 0.192 / 0.207 m (identical) |
 
 Scenario suite hull vs compound: ≤ 0.0007 (crouch tunnel), 0.0000 (junction), 0.0003 (landing), 0.0225 (standing tunnel), 0.061 (walls). The hull is closer
-to CasU on most traces but not uniformly; it must not be mixed with compound runs in one comparison.
+to CasU on most traces but not uniformly; it must not be mixed with compound runs in one comparison. The full follow-up evidence (paired per-tick statistics, seams and edges, the `flat_master` landing event, probes, facet sensitivity) is in [`HULL_EVALUATION_REPORT.md`](HULL_EVALUATION_REPORT.md).
 
 ## 7. PPO execution results (workstream D)
 
