@@ -42,6 +42,15 @@ class ControllerReplayTests(unittest.TestCase):
     def test_course_update_and_actions(self):
         self.check_update("course_v1", max_crouch_rows=6)
 
+    def test_geometry_derived_collision_events_stay_close(self):
+        # Engine-independent contact-begin events (what the Isaac env can compute)
+        # misplace only a handful of landing-squash ticks.
+        for name, limit in (("flat_master", 12), ("course_v1", 14)):
+            report = validate_update(name, event_source="geometry", contact_reach=0.125)
+            self.assertLessEqual(report["mismatching_rows"].get("crouch_amount", 0), limit, name)
+            for key in ("grounded", "sliding_left", "sliding_right", "vy_after_jump"):
+                self.assertEqual(report["mismatching_rows"].get(key, 0), 0, (name, key))
+
 
 if __name__ == "__main__":
     unittest.main()

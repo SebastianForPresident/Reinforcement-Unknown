@@ -155,6 +155,28 @@ class GroundWorld:
                 best = Hit(t, (0.0, 0.0), (ox + dx * t, oy + dy * t))
         return best
 
+    def touching_colliders(self, center, size, reach: float) -> set:
+        """Collider identities within ``reach`` of an axis-aligned core box.
+
+        Tiles belong to their 64x64 chunk's TilemapCollider2D (one collider per
+        chunk); static objects are individual colliders. ``reach`` is the player's
+        rounded-edge radius plus the contact tolerance.
+        """
+        cx, cy = center
+        hw, hh = size[0] / 2.0, size[1] / 2.0
+        found = set()
+        for rx, ry in self._tile_rects(cx - hw - reach, cx + hw + reach,
+                                       cy - hh - reach, cy + hh + reach):
+            dx = max(rx - (cx + hw), (cx - hw) - (rx + 1.0), 0.0)
+            dy = max(ry - (cy + hh), (cy - hh) - (ry + 1.0), 0.0)
+            if math.hypot(dx, dy) <= reach:
+                found.add(("chunk", int((rx + HALF_WORLD) // 64), int((ry + HALF_WORLD) // 64)))
+        for index, (_, poly) in enumerate(self.polygons):
+            if poly[:, 0].min() - reach <= cx + hw and poly[:, 0].max() + reach >= cx - hw and \
+                    poly[:, 1].min() - reach <= cy + hh and poly[:, 1].max() + reach >= cy - hh:
+                found.add(("object", index))
+        return found
+
     def overlap_box(self, center, size) -> bool:
         cx, cy = center
         hw, hh = size[0] / 2.0, size[1] / 2.0

@@ -57,7 +57,15 @@ def validate_fixed_update(trace_name: str, config: BodyConfig | None = None):
     return {"rows": len(trace.pre_fixed) - 1, "max_abs_error": dict(err), "worst_row": worst}
 
 
-def validate_update(trace_name: str, config: BodyConfig | None = None, tolerance: float = 1e-4):
+def _geometry_pairs(world, post_fixed_row: dict, reach: float, post_physics_row: dict | None = None) -> set:
+    """Collider identities predicted from geometry at the pre- or post-physics pose."""
+    size, offset = post_fixed_row["collider_size"], post_fixed_row["collider_offset"]
+    x, y = (post_physics_row or post_fixed_row)["extra"]["body_position"]
+    return world.touching_colliders((x + offset[0], y + offset[1]), size, reach)
+
+
+def validate_update(trace_name: str, config: BodyConfig | None = None, tolerance: float = 1e-4,
+                    event_source: str = "contacts", contact_reach: float = 0.13):
     trace = load_source_trace(trace_name)
     world = GroundWorld(terrain_for_trace(trace))
     actions = trace.policy_actions()
@@ -74,7 +82,13 @@ def validate_update(trace_name: str, config: BodyConfig | None = None, tolerance
         model.fixed_update()
         state.x, state.y = post_physics["extra"]["body_position"]
         state.vx, state.vy = post_physics["velocity"]
-        for _ in range(len(_chunk_pairs(post_physics) - _chunk_pairs(trace.post_physics[i - 1]))):
+        if event_source == "contacts":
+            entered = len(_chunk_pairs(post_physics) - _chunk_pairs(trace.post_physics[i - 1]))
+        else:
+            entered = len(
+                _geometry_pairs(world, trace.post_fixed[i], contact_reach, trace.post_physics[i])
+                - _geometry_pairs(world, trace.post_fixed[i - 1], contact_reach, trace.post_physics[i - 1]))
+        for _ in range(entered):
             model.on_collision_enter()
         for _ in range(2 if (tick + 1) % 5 == 0 else 1):
             model.update()
