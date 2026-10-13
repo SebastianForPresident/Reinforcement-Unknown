@@ -12,10 +12,11 @@ body-fluid impulses use the source LiquidAffect coefficients.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Any
 import copy
 import math
+import os
 import time
 
 import numpy as np
@@ -31,6 +32,11 @@ from .reference import load_layer1_reference
 from .world_objects import ground_polygons, load_physics_audit
 
 PLAYER_PATH = "/World/CasuPlayer"
+
+
+def _default_workers() -> int:
+    """Worker processes for the batched environment (``CASU_NUM_WORKERS``, default 1 = in-process)."""
+    return int(os.environ.get("CASU_NUM_WORKERS", "1"))
 
 
 @dataclass(frozen=True)
@@ -63,6 +69,10 @@ class IsaacLayer1EnvConfig:
     solver_velocity_iterations: int = 8
     record_ticks: bool = False          # keep per-tick samples of the last macrostep (A/B tooling)
     use_cuda: bool = False
+    # Execution layout only (never changes the simulated experiment): split the worlds over this
+    # many independent Isaac processes. 1 keeps everything in-process. See isaac_sharded_env.py.
+    num_workers: int = field(default_factory=_default_workers)
+    worker_physx_threads: int = 2       # PhysX CPU threads per worker when num_workers > 1
 
     def validate(self):
         if self.seed != 391728405:
@@ -85,6 +95,8 @@ class IsaacLayer1EnvConfig:
             raise ValueError("contact_friction cannot be negative")
         if self.crouch_levels < 2:
             raise ValueError("crouch_levels must be at least 2")
+        if self.num_workers < 1 or self.worker_physx_threads < 1:
+            raise ValueError("num_workers and worker_physx_threads must be positive")
         if self.liquid_affect_phase not in {"before_controller", "after_controller"}:
             raise ValueError("liquid_affect_phase must be before_controller or after_controller")
 

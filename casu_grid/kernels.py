@@ -281,3 +281,179 @@ def polygons_near(aabb, x0, y0, x1, y1, out):
             out[count] = k
             count += 1
     return count
+
+
+# ------------------------------------------------------------------ convex static-object polygons
+# Polygons are passed as ``verts`` (float64 [total, 2], counter-clockwise) plus ``offs`` (int64
+# [P + 1] start index of each polygon); ``aabb`` (float64 [P, 4]) holds their bounding boxes.
+# These are literal ports of ``ground_query._sweep_polygon`` / ``_ray_polygon_distance`` /
+# ``_convex_overlap`` including the reference's ``round(x, 12)`` hull coordinates.
+@njit(cache=True)
+def _two_product(a, b):
+    """Error-free product (Dekker/Veltkamp): ``a * b == p + e`` exactly, without FMA."""
+    p = a * b
+    t = 134217729.0 * a
+    ah = t - (t - a)
+    al = a - ah
+    t = 134217729.0 * b
+    bh = t - (t - b)
+    bl = b - bh
+    e = ((ah * bh - p) + ah * bl + al * bh) + al * bl
+    return p, e
+
+
+@njit(cache=True)
+def round12(x):
+    """Python's ``round(x, 12)`` (correctly rounded decimal, half-even) for |x| < 9007."""
+    if abs(x) >= 9007.0:
+        return x
+    hi, lo = _two_product(x, 1e12)
+    k = np.rint(hi)
+    r = (hi - k) + lo
+    if r > 0.5:
+        k += 1.0
+    elif r < -0.5:
+        k -= 1.0
+    return k / 1e12
+
+
+@njit(cache=True)
+def _hull(px, py, n, out):
+    """Monotone-chain hull of ``n`` already rounded, unique, lexicographically sorted points.
+
+    Returns the vertex count (hull vertices are written to ``out``), or 0 when fewer than 3 points.
+    """
+    if n < 3:
+        return 0
+    lower = np.empty((n, 2))
+    upper = np.empty((n, 2))
+    nl = 0
+    for i in range(n):
+        while nl >= 2 and ((lower[nl - 1, 0] - lower[nl - 2, 0]) * (py[i] - lower[nl - 2, 1])
+                           - (lower[nl - 1, 1] - lower[nl - 2, 1]) * (px[i] - lower[nl - 2, 0])) <= 0:
+            nl -= 1
+        lower[nl, 0] = px[i]
+        lower[nl, 1] = py[i]
+        nl += 1
+    nu = 0
+    for i in range(n - 1, -1, -1):
+        while nu >= 2 and ((upper[nu - 1, 0] - upper[nu - 2, 0]) * (py[i] - upper[nu - 2, 1])
+                           - (upper[nu - 1, 1] - upper[nu - 2, 1]) * (px[i] - upper[nu - 2, 0])) <= 0:
+            nu -= 1
+        upper[nu, 0] = px[i]
+        upper[nu, 1] = py[i]
+        nu += 1
+    m = 0
+    for i in range(nl - 1):
+        out[m, 0] = lower[i, 0]
+        out[m, 1] = lower[i, 1]
+        m += 1
+    for i in range(nu - 1):
+        out[m, 0] = upper[i, 0]
+        out[m, 1] = upper[i, 1]
+        m += 1
+    return m
+
+
+@njit(cache=True)
+def _ray_poly(vx, vy, n, ox, oy, dx, dy):
+    """``_ray_polygon_distance``: (found, t)."""
+    best = 0.0
+    found = False
+    for i in range(n):
+        ax, ay = vx[i], vy[i]
+        j = i + 1 if i + 1 < n else 0
+        bx, by = vx[j], vy[j]
+        ex, ey = bx - ax, by - ay
+        denom = dx * ey - dy * ex
+        if abs(denom) < 1e-12:
+            continue
+        t = ((ax - ox) * ey - (ay - oy) * ex) / denom
+        u = ((ax - ox) * dy - (ay - oy) * dx) / denom
+        if t >= -1e-12 and -1e-12 <= u <= 1 + 1e-12 and ((not found) or t < best):
+            best = max(t, 0.0)
+            found = True
+    return found, best
+
+
+@njit(cache=True)
+def sweep_polygon(verts, offs, k, cx, cy, hw, hh, dx, dy, distance):
+    """``GroundWorld._sweep_polygon``: (found, distance, nx, ny, px, py) for polygon ``k``."""
+    start, stop = offs[k], offs[k + 1]
+    n = stop - start
+    total = n * 4
+    xs = np.empty(total)
+    ys = np.empty(total)
+    cxs = np.array([-hw, hw, hw, -hw])
+    cys = np.array([-hh, -hh, hh, hh])
+    idx = 0
+    for i in range(n):
+        for j in range(4):
+            xs[idx] = round12((verts[start + i, 0] - cxs[j]) - cx)
+            ys[idx] = round12((verts[start + i, 1] - cys[j]) - cy)
+            idx += 1
+    order = np.argsort(ys, kind="mergesort")
+    order = order[np.argsort(xs[order], kind="mergesort")]
+    ux = np.empty(total)
+    uy = np.empty(total)
+    m = 0
+    for q in range(total):
+        i = order[q]
+        if m > 0 and ux[m - 1] == xs[i] and uy[m - 1] == ys[i]:
+            continue
+        ux[m] = xs[i]
+        uy[m] = ys[i]
+        m += 1
+    hull = np.empty((2 * m + 2, 2))
+    hn = _hull(ux, uy, m, hull)
+    if hn == 0:
+        return _NO_HIT
+    inside = True
+    for i in range(hn):
+        j = i + 1 if i + 1 < hn else 0
+        if (hull[j, 0] - hull[i, 0]) * (0.0 - hull[i, 1]) - (hull[j, 1] - hull[i, 1]) * (0.0 - hull[i, 0]) <= 1e-12:
+            inside = False
+            break
+    if inside:
+        return True, 0.0, -dx, -dy, cx, cy
+    found, t = _ray_poly(hull[:hn, 0], hull[:hn, 1], hn, 0.0, 0.0, dx, dy)
+    if (not found) or t > distance + 1e-9:
+        return _NO_HIT
+    return True, t, -dx, -dy, cx + dx * t, cy + dy * t
+
+
+@njit(cache=True)
+def ray_polygon(verts, offs, k, ox, oy, dx, dy):
+    start, stop = offs[k], offs[k + 1]
+    return _ray_poly(verts[start:stop, 0], verts[start:stop, 1], stop - start, ox, oy, dx, dy)
+
+
+@njit(cache=True)
+def convex_overlap(verts, offs, k, cx, cy, hw, hh):
+    """``_convex_overlap(polygon, query box corners)`` (separating-axis test)."""
+    start, stop = offs[k], offs[k + 1]
+    n = stop - start
+    bx = np.array([cx - hw, cx + hw, cx + hw, cx - hw])
+    by = np.array([cy - hh, cy - hh, cy + hh, cy + hh])
+    for which in range(2):
+        m = n if which == 0 else 4
+        for i in range(m):
+            j = i + 1 if i + 1 < m else 0
+            if which == 0:
+                ex = verts[start + j, 0] - verts[start + i, 0]
+                ey = verts[start + j, 1] - verts[start + i, 1]
+            else:
+                ex, ey = bx[j] - bx[i], by[j] - by[i]
+            ax, ay = -ey, ex
+            pa_max, pa_min, pb_max, pb_min = -np.inf, np.inf, -np.inf, np.inf
+            for q in range(n):
+                v = verts[start + q, 0] * ax + verts[start + q, 1] * ay
+                pa_max = max(pa_max, v)
+                pa_min = min(pa_min, v)
+            for q in range(4):
+                v = bx[q] * ax + by[q] * ay
+                pb_max = max(pb_max, v)
+                pb_min = min(pb_min, v)
+            if pa_max <= pb_min + 1e-12 or pb_max <= pa_min + 1e-12:
+                return False
+    return True

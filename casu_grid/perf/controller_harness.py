@@ -113,12 +113,74 @@ def run(slots, macrosteps: int, workload="random", seed=0, record=None):
     return timers
 
 
+def run_compiled(slots, macrosteps: int, workload="random", seed=0, record=None):
+    """Same loop as :func:`run`, driven by the compiled per-world runtime (``fast_runtime.FastSlot``)."""
+    from .. import backend
+    from ..fast_runtime import FastSlot
+    controller = backend.controller_for("numba")
+    n = len(slots)
+    rows, results = np.zeros((n, controller.N_STATE)), np.zeros((n, 4))
+    vector = controller.pack_config(slots[0].body_config)
+    fast = [FastSlot(slot, rows[i], vector, 10, results[i]) for i, slot in enumerate(slots)]
+    engines = [KinematicEngine(slot.ground_world) for slot in slots]
+    rng = np.random.default_rng(seed)
+    clock = time.perf_counter
+    timers = {"pre": 0.0, "engine": 0.0, "post": 0.0}
+
+    class _Shim:   # the stub engine reads/writes the packed row through a BodyState-like view
+        def __init__(self, S):
+            self.S = S
+
+        @property
+        def s(self):
+            S = self.S
+            view = type("V", (), {})()
+            view.x, view.y, view.vx, view.vy = S[0], S[1], S[2], S[3]
+            view.col_size, view.col_offset = (S[9], S[10]), (S[11], S[12])
+            return view
+
+    shims = [_Shim(rows[i]) for i in range(n)]
+    for step in range(macrosteps):
+        move, jump, crouch = tape(step, rng, n, workload)
+        for i, f in enumerate(fast):
+            f.begin_macrostep(PolicyAction(move=int(move[i]) - 1, jump=int(jump[i]), crouch=int(crouch[i])))
+        for tick in range(10):
+            t0 = clock()
+            for f in fast:
+                f.pre_tick()
+            t1 = clock()
+            for i, eng in enumerate(engines):
+                rows[i, 0:4] = eng.integrate(shims[i], results[i, 0], results[i, 1])
+            t2 = clock()
+            for f in fast:
+                f.post_tick(tick + 1)
+            t3 = clock()
+            timers["pre"] += t1 - t0; timers["engine"] += t2 - t1; timers["post"] += t3 - t2
+            if record is not None:
+                record.append([tuple(rows[i, 0:4]) for i in range(n)])
+        for f in fast:
+            f.end_macrostep()
+    return timers
+
+
+def digest_of_run(slots, macrosteps, compiled, workload="random", seed=0) -> str:
+    (run_compiled if compiled else run)(slots, macrosteps, workload, seed)
+    return digest(slots)
+
+
 def digest(slots) -> str:
+    """Hash of everything a run must reproduce: body state, grid arrays and scheduler/RNG state, runtime."""
     h = hashlib.sha256()
     for slot in slots:
         s = slot.model.s
-        h.update(repr((s.x, s.y, s.vx, s.vy, s.grounded, s.crouch_amount, s.jump_cooldown)).encode())
-        h.update(slot.grid.fluids.tobytes())
+        h.update(repr((s.x, s.y, s.vx, s.vy, s.grounded, s.crouch_amount, s.jump_cooldown, s.time_since_grounded,
+                       s.ground_normal, s.slippery, s.standing_on, s.last_action, s.current_action, s.look_x,
+                       s.ragdoll_event, s.col_size, s.col_offset)).encode())
+        g = slot.grid
+        h.update(repr((g.tile_cooldown, g.water_move_count, g.push_events, g.sim_index, g.tick, g.camera_x,
+                       g.camera_y, g.rng.position, g.rng.rng.bit_generator.state, slot.physics_ticks,
+                       slot.was_water, sorted(slot.runtime.touching))).encode())
+        h.update(g.fluids.tobytes())
     return h.hexdigest()
 
 
@@ -128,14 +190,15 @@ if __name__ == "__main__":
     p.add_argument("--macrosteps", type=int, default=30)
     p.add_argument("--workload", default="random")
     p.add_argument("--profile", action="store_true")
+    p.add_argument("--compiled", action="store_true", help="drive the compiled FastSlot runtime")
     a = p.parse_args()
     cfg, slots = build_slots(a.envs)
-    run(slots, 2, a.workload)  # warm up
+    (run_compiled if a.compiled else run)(slots, 2, a.workload)  # warm up
     if a.profile:
         import cProfile, pstats
         pr = cProfile.Profile(); pr.enable()
     t = time.perf_counter()
-    timers = run(slots, a.macrosteps, a.workload)
+    timers = (run_compiled if a.compiled else run)(slots, a.macrosteps, a.workload)
     wall = time.perf_counter() - t
     if a.profile:
         pr.disable(); pstats.Stats(pr).sort_stats("tottime").print_stats(25)

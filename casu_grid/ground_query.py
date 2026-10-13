@@ -23,6 +23,8 @@ from . import backend as _backend
 
 HALF_WORLD = 512.0
 BOX_CAST_SKIN = 0.0055
+BUCKET = 8.0          # world units per culling bucket (see GroundWorld._build_buckets)
+BUCKETS = 128
 
 
 @dataclass(frozen=True)
@@ -47,11 +49,39 @@ class GroundWorld:
         self._aabb = np.zeros((len(self.polygons), 4))
         for index, (_, poly) in enumerate(self.polygons):
             self._aabb[index] = (poly[:, 0].min(), poly[:, 1].min(), poly[:, 0].max(), poly[:, 1].max())
+        self._bucket = np.zeros((BUCKETS, BUCKETS), dtype=np.uint8)
+        self._build_buckets()
+        self._build_vertex_arrays()
+
+    def _build_vertex_arrays(self) -> None:
+        """Flat vertex storage (``verts``, ``offs``) for the compiled controller; ``poly_pack`` is what it takes."""
+        counts = [len(poly) for _, poly in self.polygons]
+        self._poffs = np.concatenate(([0], np.cumsum(counts))).astype(np.int64)
+        self._pverts = (np.concatenate([np.asarray(poly, dtype=np.float64) for _, poly in self.polygons])
+                        if self.polygons else np.zeros((0, 2)))
+        self.poly_pack = (self._pverts, self._poffs, self._aabb, self._bucket)
+
+    def _build_buckets(self) -> None:
+        """Coarse occupancy of ``BUCKET``-sized cells by polygon boxes (1-cell margin): lets the compiled
+        controller reject "no polygon near this query" without scanning every polygon."""
+        self._bucket[...] = 0
+        for x0, y0, x1, y1 in self._aabb:
+            i0 = min(max(int(math.floor((x0 + HALF_WORLD) / BUCKET)) - 1, 0), BUCKETS - 1)
+            i1 = min(max(int(math.floor((x1 + HALF_WORLD) / BUCKET)) + 1, 0), BUCKETS - 1)
+            j0 = min(max(int(math.floor((y0 + HALF_WORLD) / BUCKET)) - 1, 0), BUCKETS - 1)
+            j1 = min(max(int(math.floor((y1 + HALF_WORLD) / BUCKET)) + 1, 0), BUCKETS - 1)
+            self._bucket[i0:i1 + 1, j0:j1 + 1] = 1
 
     def set_polygon(self, index: int, name: str, poly: np.ndarray) -> None:
         """Replace one convex polygon (scripted movers) and refresh its culling box."""
         self.polygons[index] = (name, poly)
         self._aabb[index] = (poly[:, 0].min(), poly[:, 1].min(), poly[:, 0].max(), poly[:, 1].max())
+        self._build_buckets()
+        start, stop = self._poffs[index], self._poffs[index + 1]
+        if len(poly) == stop - start:
+            self._pverts[start:stop] = poly
+        else:
+            self._build_vertex_arrays()
 
     def _polygons_near(self, x0, y0, x1, y1):
         """Indices of polygons whose bounding box intersects the query box."""

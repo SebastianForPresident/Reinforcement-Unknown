@@ -22,6 +22,8 @@ parser.add_argument("--windows", type=int, default=3, help="repeated measurement
 parser.add_argument("--warmup", type=int, default=3, help="untimed macrosteps before each window")
 parser.add_argument("--terrain-mode", choices=("shared", "independent"), default="shared")
 parser.add_argument("--workload", choices=("random", "run"), default="random")
+parser.add_argument("--physx-threads", type=int, default=None, help="override /persistent/physics/numThreads (experiment)")
+parser.add_argument("--workers", type=int, default=1, help="worker processes (ShardedBatchedEnv); 1 = in-process")
 parser.add_argument("--label", default="", help="free-text tag stored in the result (e.g. the optimisation under test)")
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--single", type=int, default=0, help=argparse.SUPPRESS)
@@ -57,6 +59,16 @@ def system_info() -> dict:
             "backend": backend_info()}
 
 
+def _hwm_gib(pid: int) -> float:
+    try:
+        for line in open(f"/proc/{pid}/status"):
+            if line.startswith("VmHWM:"):
+                return int(line.split()[1]) / (1024 ** 2)
+    except OSError:
+        pass
+    return 0.0
+
+
 def gpu_sample() -> dict:
     try:
         out = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu,memory.used", "--format=csv,noheader,nounits"],
@@ -74,6 +86,8 @@ if not args.single:
         subprocess.run([sys.executable, __file__, "--single", str(n), "--macrosteps", str(args.macrosteps),
                         "--windows", str(args.windows), "--warmup", str(args.warmup),
                         "--terrain-mode", args.terrain_mode, "--workload", args.workload,
+                        "--workers", str(args.workers),
+                        *(["--physx-threads", str(args.physx_threads)] if args.physx_threads is not None else []),
                         "--output", str(part), "--headless"], check=True)
         rows.append(json.loads(part.read_text()))
         part.unlink()
@@ -87,8 +101,13 @@ if not args.single:
               f"{r['aggregate_policy_decisions_per_second']['mean']:7.1f} rss={r['peak_rss_gib']:.2f} GiB", flush=True)
     raise SystemExit(0)
 
-from isaaclab.app import AppLauncher
-app = AppLauncher(headless=True).app
+app = None
+if args.workers == 1:   # sharded runs need no Kit in the launching process: every worker starts its own
+    from isaaclab.app import AppLauncher
+    app = AppLauncher(headless=True).app
+if args.physx_threads is not None and app is not None:
+    import carb.settings
+    carb.settings.get_settings().set("/persistent/physics/numThreads", int(args.physx_threads))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import numpy as np
 from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig
@@ -103,7 +122,9 @@ def stats(values):
 
 try:
     n = args.single
-    cfg = IsaacLayer1EnvConfig(num_envs=n, spawn_mode="fixture", fixture_grid_xy=(483, 1010))
+    import dataclasses
+    extra = {"num_workers": args.workers} if "num_workers" in {f.name for f in dataclasses.fields(IsaacLayer1EnvConfig)} else {}
+    cfg = IsaacLayer1EnvConfig(num_envs=n, spawn_mode="fixture", fixture_grid_xy=(483, 1010), **extra)
     started = time.perf_counter()
     env = BatchedIsaacLayer1Env(cfg, terrain_mode=args.terrain_mode)
     construct = time.perf_counter() - started
@@ -139,7 +160,7 @@ try:
     t = time.perf_counter(); env.restore(snap); restore_s = time.perf_counter() - t
     t = time.perf_counter(); env.reset_done(np.asarray([True] + [False] * (n - 1))); reset_one = time.perf_counter() - t
     row = {"num_envs": n, "terrain_mode": args.terrain_mode, "workload": args.workload,
-           "macrosteps_per_window": args.macrosteps, "windows": args.windows, "warmup_macrosteps": args.warmup,
+           "macrosteps_per_window": args.macrosteps, "windows": args.windows, "warmup_macrosteps": args.warmup, "physx_threads": args.physx_threads,
            "construct_seconds": construct, "geometry_build_seconds": env.geometry_build_seconds,
            "aggregate_physics_ticks_per_second": stats(ticks_per_s),
            "aggregate_policy_decisions_per_second": stats(decisions_per_s),
@@ -148,7 +169,9 @@ try:
            "phase_fraction": phase_fraction,
            "reset_all_seconds": reset_all, "reset_one_world_seconds": reset_one,
            "snapshot_seconds": snapshot_s, "restore_seconds": restore_s,
-           "peak_rss_gib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 ** 2),
+           "num_workers": args.workers, "layout": env.performance_info() if hasattr(env, "performance_info") else {"note": "pre-backend revision"},
+           "peak_rss_gib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 ** 2) + sum(
+               _hwm_gib(pid) for pid in getattr(env, "worker_pids", [])),
            "gpu_after_build": vram_after_build, "gpu_during_last_window": gpu_during}
     Path(args.output).write_text(json.dumps(row, indent=2) + "\n")
     env.close()
@@ -156,4 +179,5 @@ except BaseException:
     traceback.print_exc()
     raise
 finally:
-    app.close()
+    if app is not None:
+        app.close()

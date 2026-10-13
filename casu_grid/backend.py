@@ -61,6 +61,29 @@ def kernels_for(name: str | None = None):
     return module
 
 
+_controller = None
+_controller_loaded = False
+
+
+def controller_for(name: str | None = None):
+    """Compiled controller kernels, or ``None`` (reference controller).
+
+    Needs the numba backend; ``CASU_COMPILED_CONTROLLER=0`` keeps the compiled queries/fluid but runs
+    the reference controller (used to attribute speedups and for debugging).
+    """
+    global _controller, _controller_loaded
+    if kernels_for(name) is None or os.environ.get("CASU_COMPILED_CONTROLLER", "1") == "0":
+        return None
+    if not _controller_loaded:
+        _controller_loaded = True
+        try:
+            from . import controller_kernels
+            _controller = controller_kernels
+        except Exception:
+            _controller = None
+    return _controller
+
+
 def active_name(name: str | None = None) -> str:
     return NUMBA if kernels_for(name) is not None else REFERENCE
 
@@ -70,6 +93,7 @@ def describe() -> dict:
     module = kernels_for()
     info = {"requested": requested(), "active": NUMBA if module is not None else REFERENCE}
     if module is not None:
+        info["compiled_controller"] = controller_for() is not None
         import numba
         info["numba_version"] = numba.__version__
         info["kernel_version"] = module.KERNEL_VERSION

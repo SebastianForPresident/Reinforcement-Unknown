@@ -60,11 +60,19 @@ class BatchedIsaacLayer1Env(gym.Env):
 
     metadata = {"render_modes": []}
 
+    def __new__(cls, config=None, *args, **kwargs):
+        # ``config.num_workers > 1`` transparently returns the multi-process wrapper (same API),
+        # so existing launchers need no change. Workers construct this class with num_workers=1.
+        if cls is BatchedIsaacLayer1Env and config is not None and getattr(config, "num_workers", 1) > 1:
+            from .isaac_sharded_env import ShardedBatchedEnv
+            return ShardedBatchedEnv(config, *args, **kwargs)
+        return super().__new__(cls)
+
     def __init__(self, config: IsaacLayer1EnvConfig, *,
                  action_decoder: Callable[[dict[str, Any]], StandingAction] | None = None,
                  observation_encoder: Callable[[Any], dict[str, Any]] | None = None,
                  reward_function: Callable[..., tuple[float, dict[str, float]]] | None = None,
-                 terrain_mode: str = "shared"):
+                 terrain_mode: str = "shared", world_offset: int = 0):
         if config.num_envs < 1:
             raise ValueError("BatchedIsaacLayer1Env requires num_envs >= 1")
         if config.seed != 391728405 or config.physics_dt != 0.02 or config.action_decimation != 10:
@@ -75,6 +83,7 @@ class BatchedIsaacLayer1Env(gym.Env):
             raise ValueError("the batched environment builds full canonical geometry")
         self.cfg = config
         self.terrain_mode = terrain_mode
+        self.world_offset = int(world_offset)   # global index of this batch's first world (fluid seeds)
         self.count = int(config.num_envs)
         self.reference = load_layer1_reference()
         self.controller_config = BodyConfig(step_up_clearance=config.step_up_clearance)
@@ -96,11 +105,12 @@ class BatchedIsaacLayer1Env(gym.Env):
             object_polygons = ground_polygons(
                 [c for c in self.world_objects.colliders if "shuttledoor" not in c.name])
         self.slots = [EnvSlot(config, self.reference, object_polygons=object_polygons, door_defs=door_defs,
-                              fluid_seed=config.fluid_rng_seed + i, body_config=self.controller_config)
+                              fluid_seed=config.fluid_rng_seed + self.world_offset + i, body_config=self.controller_config)
                       for i in range(self.count)]
         for i, slot in enumerate(self.slots):
             slot.on_doors_changed = lambda i=i: self._apply_door_state([i])
         self.views = [_SlotView(self, i) for i in range(self.count)]
+        self._fast = self._build_fast_runtime()
         self.geometry_build_seconds = 0.0
         self._construct_simulation()
         self.action_space = spaces.Dict({
@@ -253,6 +263,35 @@ class BatchedIsaacLayer1Env(gym.Env):
             group = UsdPhysics.CollisionGroup(self.stage.GetPrimAtPath(path))
             group.CreateFilteredGroupsRel().SetTargets([p for j, p in enumerate(group_paths) if j != i])
 
+    def slot_summaries(self) -> list[dict]:
+        """Compact per-world discrete state (crouch, grounded, fluid tick and digest) for validation tools."""
+        import hashlib
+        return [{"crouch": float(s.model.s.crouch_amount), "grounded": bool(s.model.s.grounded),
+                 "fluid_tick": int(s.grid.tick),
+                 "fluid_digest": hashlib.sha256(s.grid.fluids.tobytes()).hexdigest()[:16],
+                 "shuttle_doors": None if s.shuttle_doors is None else s.shuttle_doors.snapshot(),
+                 "elapsed_steps": int(s.elapsed_steps)} for s in self.slots]
+
+    def _build_fast_runtime(self):
+        """Compiled per-world tick runtime (``fast_runtime.FastSlot``), or ``None`` for the reference path."""
+        from . import backend
+        controller = backend.controller_for()
+        if controller is None:
+            return None
+        from .fast_runtime import FastSlot
+        self._state_rows = np.zeros((self.count, controller.N_STATE))
+        self._result_rows = np.zeros((self.count, 4))
+        vector = controller.pack_config(self.controller_config)
+        return [FastSlot(slot, self._state_rows[i], vector, self.cfg.action_decimation, self._result_rows[i])
+                for i, slot in enumerate(self.slots)]
+
+    def performance_info(self) -> dict:
+        """Execution layout and compute backend, for run metadata and benchmark results."""
+        from . import backend
+        return {"backend": backend.describe(), "num_workers": 1, "worlds": self.count,
+                "compiled_controller": self._fast is not None,
+                "terrain_mode": self.terrain_mode, "worlds_per_worker": [self.count]}
+
     # --------------------------------------------------------------- physics I/O
     @property
     def episode_step_seconds(self):
@@ -319,6 +358,59 @@ class BatchedIsaacLayer1Env(gym.Env):
         return self._stage_pose
 
     def _physics_tick(self, completed: int):
+        if self._fast is None:
+            return self._physics_tick_reference(completed)
+        from . import controller_kernels as CK
+        clock = time.perf_counter
+        timers = self.timers
+        self._staging()
+        S, R = self._state_rows, self._result_rows
+        t0 = clock()
+        for fast in self._fast:
+            fast.pre_tick()
+        pose, vel, force = self._np_pose, self._np_vel, self._np_force
+        pose[:, 0] = np.add(S[:, CK.X], self._off_x)          # float64 sum, rounded to float32 on store
+        pose[:, 2] = np.add(S[:, CK.Y], self._off_z)
+        vel[:, 0], vel[:, 2] = S[:, CK.VX], S[:, CK.VY]
+        force[:, 0, 0], force[:, 0, 2] = R[:, 0], R[:, 1]
+        t1 = clock()
+        if self.terrain_mode == "independent":
+            stale = [i for i, slot in enumerate(self.slots) if slot.physical_dirty]
+            if stale:
+                self._rebuild_dirty(stale)
+        current = self.player.data.root_pos_w.numpy()
+        moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[:, 0].astype(np.float64)) > 1e-6)
+                               | (np.abs(current[:, 2].astype(np.float64) - pose[:, 2].astype(np.float64)) > 1e-6))
+        if moved.size:
+            ids = torch.as_tensor(moved, dtype=torch.int32, device=self.sim.device)
+            self.player.write_root_pose_to_sim(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)], env_ids=ids)
+        self.player.write_root_velocity_to_sim(self._stage_vel)
+        self.player.set_external_force_and_torque(self._stage_force, self._stage_torque, is_global=True)
+        self.player.write_data_to_sim()
+        t2 = clock()
+        self.sim.step(render=False)
+        t3 = clock()
+        self.player.update(self.cfg.physics_dt)
+        pos = self.player.data.root_pos_w.numpy()
+        lin = self.player.data.root_lin_vel_w.numpy()
+        S[:, CK.X] = pos[:, 0].astype(np.float64) - self._off_x
+        S[:, CK.Y] = pos[:, 2].astype(np.float64) - self._off_z
+        S[:, CK.VX] = lin[:, 0]
+        S[:, CK.VY] = lin[:, 2]
+        t4 = clock()
+        for fast in self._fast:
+            fast.post_tick(completed)
+        crouch = S[:, CK.CROUCH]
+        levels = np.rint(np.clip(crouch, 0.0, 1.0) * self.cfg.crouch_levels).astype(np.int64).tolist()
+        set_levels(self.colliders, levels)
+        t5 = clock()
+        timers["controller_and_fluid_pre"] += t1 - t0
+        timers["tensor_write"] += t2 - t1
+        timers["physx_step"] += t3 - t2
+        timers["tensor_read"] += t4 - t3
+        timers["controller_post_and_shapes"] += t5 - t4
+
+    def _physics_tick_reference(self, completed: int):
         clock = time.perf_counter
         timers = self.timers
         count = self.count
@@ -462,10 +554,17 @@ class BatchedIsaacLayer1Env(gym.Env):
         actions = self._decode_actions(action_dict)
         if len(actions) != self.count:
             raise ValueError("action decoder must return one action per environment")
-        for slot, action in zip(self.slots, actions):
-            slot.model.apply_actions(latch=self._policy_action(action))
+        if self._fast is not None:
+            for fast, action in zip(self._fast, actions):
+                fast.begin_macrostep(self._policy_action(action))
+        else:
+            for slot, action in zip(self.slots, actions):
+                slot.model.apply_actions(latch=self._policy_action(action))
         for tick in range(self.cfg.action_decimation):
             self._physics_tick(tick + 1)
+        if self._fast is not None:
+            for fast in self._fast:
+                fast.end_macrostep()
         rewards = np.zeros(self.count, dtype=np.float32)
         terminated = np.zeros(self.count, dtype=bool)
         truncated = np.zeros(self.count, dtype=bool)
