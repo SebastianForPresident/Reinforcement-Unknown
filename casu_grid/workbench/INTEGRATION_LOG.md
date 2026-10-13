@@ -20,7 +20,7 @@
 
 - `python -m compileall -q casu_grid/workbench`: passed.
 - `python -m unittest discover -s casu_grid -p 'test_*.py'`: 28 tests passed, including GUI offscreen construction, config lifecycle, metadata presentation, injected early launcher failure/log preservation, process-group cancellation state, resume restoration options and replay partition helper coverage. The bundled-Python `PYTHONPATH` case is included.
-- Isaac-free simulator/workbench regression suite under the bundled Isaac Lab Python: 114 tests passed via `"$ISAAC_LAB/isaaclab.sh" -p -m unittest discover -s casu_grid/tests -p 'test_*.py'`. Running the same suite under system Python is unsupported here because it has no NumPy.
+- Isaac-free simulator/workbench regression suite under the bundled Isaac Lab Python: 115 tests passed via `"$ISAAC_LAB/isaaclab.sh" -p -m unittest discover -s casu_grid/tests -p 'test_*.py'`. The added worker-failure injection verifies the supervisor raises `WorkerFailure`, preserves the worker log tail, and terminates all owned sibling processes. Running the suite under system Python is unsupported here because it has no NumPy.
 - `git diff --check`: passed.
 - A real single-process engineering-only smoke completed one PPO update (32 environment decisions, one metrics row), with trajectory and `latest.pt` checkpoint. Artifacts were in `/tmp/casu-integration-single-2`; its `RUNNING` marker was removed after the run. The metadata was manually normalized after execution to reflect the effective backend because the single-env backend report was missing; the code now supplies that report directly.
 - A real two-worker/two-environment engineering-only CLI smoke completed one PPO update (64 aggregate policy decisions) and wrote `latest.pt`, metrics, trajectories and a completed manifest to `/tmp/casu-integration-sharded-2`. `environment.json` records backend `reference-python`, 2 effective workers and `worlds_per_worker=[1,1]`; no worker processes remained afterward.
@@ -45,7 +45,7 @@ No files were removed as part of this integration campaign. No archival checkout
 
 ## Remaining acceptance work
 
-- Run worker-failure recovery and repeated live cancel/restart on an idle simulator host. Sharded training/replay, actual checkpoint resume, process-group cancellation contract (automated fake-child test), single-process replay and mismatch rejection have been verified.
+- Run a process-kill worker-failure recovery and repeated live cancel/restart on an idle simulator host. Sharded worker-failure propagation/cleanup is covered by an automated fake-process test. Sharded training/replay, actual checkpoint resume, process-group cancellation state (automated fake-child test), single-process replay and mismatch rejection have been verified.
 - Test environment-startup failure against the actual Isaac shutdown failure mode; unit tests currently cover status interpretation and pure-workbench paths, not Kit teardown.
 - Inspect the full GUI manually on a desktop. Automated GUI coverage proves construction and selected widget behavior only, not day-to-day usability.
 - Complete cleanup review of any uncertain inherited artifacts only when dependency/history evidence is available; no uncertain material was deleted.

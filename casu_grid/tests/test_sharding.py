@@ -3,10 +3,34 @@ import unittest
 from unittest import mock
 
 from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig
-from casu_grid.isaac_sharded_env import resolve_worker_count, shard_sizes
+from casu_grid.isaac_sharded_env import ShardedBatchedEnv, WorkerFailure, resolve_worker_count, shard_sizes
 
 
 class ShardingPlanTests(unittest.TestCase):
+    def test_worker_failure_is_raised_and_terminates_owned_siblings(self):
+        import tempfile
+        from pathlib import Path
+
+        class FakeProcess:
+            def __init__(self): self.terminated = False
+            def poll(self): return -15 if self.terminated else None
+            def terminate(self): self.terminated = True
+            def wait(self, timeout=None): return -15
+
+        first, failed = FakeProcess(), FakeProcess()
+        with tempfile.TemporaryDirectory() as tmp:
+            env = object.__new__(ShardedBatchedEnv)
+            env._procs = [first, failed]
+            env.log_dir = Path(tmp)
+            env.closed = False
+            (env.log_dir / "worker_1.log").write_text("worker traceback evidence")
+            with self.assertRaisesRegex(WorkerFailure, "worker 1 reported an error") as caught:
+                env._fail("worker 1 reported an error", 1)
+            self.assertIn("worker traceback evidence", str(caught.exception))
+            self.assertTrue(first.terminated)
+            self.assertTrue(failed.terminated)
+            self.assertTrue(env.closed)
+
     def test_shards_are_contiguous_balanced_and_complete(self):
         for total in range(1, 40):
             for workers in range(1, 9):

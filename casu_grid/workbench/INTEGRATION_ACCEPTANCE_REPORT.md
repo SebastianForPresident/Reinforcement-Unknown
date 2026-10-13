@@ -8,7 +8,7 @@ The workbench now records the execution layout reported by a live environment, p
 
 - GUI and CLI share configuration and run services. Offscreen GUI construction, safe experiment discovery, typed model/PPO controls and plotting-view behavior are covered by automated tests. A manual desktop usability review remains necessary.
 - Workbench tests: `python -m unittest discover -s casu_grid -p 'test_*.py'` — 28 passed, including injected early-launcher failure/log preservation, process-group cancellation state, replay partition preflight and resume execution restoration.
-- Simulator/workbench Python regressions: 114 passed under the bundled Isaac Lab Python (`"$ISAAC_LAB/isaaclab.sh" -p -m unittest discover -s casu_grid/tests -p 'test_*.py'`). This does not launch Kit.
+- Simulator/workbench Python regressions: 115 passed under the bundled Isaac Lab Python (`"$ISAAC_LAB/isaaclab.sh" -p -m unittest discover -s casu_grid/tests -p 'test_*.py'`). This does not launch Kit. An injected worker error test verifies traceback-tail reporting and sibling process termination.
 - Syntax: `python -m compileall -q casu_grid/workbench` — passed.
 - Formatting check: `git diff --check` — passed.
 - Single-process CLI lifecycle: engineering smoke configuration, one PPO update, 32 environment decisions, real metrics, checkpoint, trajectories, completed status and inspectable environment metadata. Evidence: `/tmp/casu-integration-single-2`.
@@ -24,7 +24,7 @@ The workbench now records the execution layout reported by a live environment, p
 
 ## Not verified in this environment
 
-Worker crash recovery, repeated live cancellation/restart, actual Kit initialization failure injection, and GUI-launched training/replay remain unverified live. Automated coverage is not a substitute for those runtime checks. Process-group cancellation state and early launcher failure/log retention have automated fake-child coverage. One short single-process replay overlapped with an optimizer-owned GPU benchmark that started after an idle check; it completed and is not treated as performance evidence. The optimizer benchmark was left undisturbed.
+Process-kill worker crash recovery, repeated live cancellation/restart, actual Kit initialization failure injection, and GUI-launched training/replay remain unverified live. Automated coverage is not a substitute for those runtime checks. Worker error propagation/sibling cleanup, process-group cancellation state and early launcher failure/log retention have automated fake-process coverage. One short single-process replay overlapped with an optimizer-owned GPU benchmark that started after an idle check; it completed and is not treated as performance evidence. The optimizer benchmark was left undisturbed.
 
 The single-process bounded smoke's manifest and metrics were produced by the real trainer. During that run, inspection found that the single-environment adapter lacked `performance_info()` and the launcher could leave a stale `RUNNING` marker; code fixes now address both. The already-created smoke's environment report was updated manually for accurate inspection after evidence capture. The separate two-worker run exercised the new metadata path end to end.
 
