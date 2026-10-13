@@ -1,5 +1,5 @@
 diff --git a/PPO_Harness/Plugin.cs b/PPO_Harness/Plugin.cs
-index cf85062..5629724 100644
+index cf85062..a0f79f4 100644
 --- a/PPO_Harness/Plugin.cs
 +++ b/PPO_Harness/Plugin.cs
 @@ -12,6 +12,7 @@ using System;
@@ -495,7 +495,64 @@ index cf85062..5629724 100644
          if (CounterfactualMode && counterfactualBodyClockInitialized &&
              resetComplete && !awaitingPolicyAction)
              counterfactualBodyClock += Time.fixedDeltaTime;
-@@ -2984,6 +3318,7 @@ public static partial class PPOBridge
+@@ -2930,6 +3264,21 @@ public static partial class PPOBridge
+         }
+     }
+ 
++    static long lastTickGateTrace;
++    static void TraceTickGate(string gate, Body body, bool reset)
++    {
++        long now = System.Diagnostics.Stopwatch.GetTimestamp();
++        if (now - lastTickGateTrace < System.Diagnostics.Stopwatch.Frequency * 5) return;
++        lastTickGateTrace = now;
++        PPOBridge.TraceProtocol("tick_gate",
++            "gate=" + gate + " body=" + (body == null ? "null" : body.GetInstanceID().ToString()) +
++            " camera=" + (PlayerCamera.main == null ? "null" : "set") +
++            " camera_body=" + (PlayerCamera.main == null || PlayerCamera.main.body == null ? "null" :
++                PlayerCamera.main.body.GetInstanceID().ToString()) +
++            " reset_complete=" + (reset ? "1" : "0") + " time_scale=" + Time.timeScale +
++            " global_items=" + (Item.GlobalItems == null ? "null" : "set"));
++    }
++
+     static void Tick(Body body)
+     {
+         if (shutdownRequested)
+@@ -2943,7 +3292,10 @@ public static partial class PPOBridge
+         // The game may contain other Body instances. Only the camera-owned
+         // player defines the PPO physics clock and reset source.
+         if (body == null || PlayerCamera.main == null || PlayerCamera.main.body != body)
++        {
++            TraceTickGate("body_gate", body, resetComplete);
+             return;
++        }
+ 
+         if (TryStartPendingReset(body))
+             return;
+@@ -2980,10 +3332,31 @@ public static partial class PPOBridge
+                 !RadiationLine.line.active &&
+                 freshLiveBody;
+ 
++            if (!worldReady)
++            {
++                long gateNow = System.Diagnostics.Stopwatch.GetTimestamp();
++                if (gateNow - lastTickGateTrace >= System.Diagnostics.Stopwatch.Frequency * 5)
++                {
++                    lastTickGateTrace = gateNow;
++                    PPOBridge.TraceProtocol("world_not_ready",
++                        "world=" + (world == null ? "null" : world.GetInstanceID().ToString()) +
++                        " source_world=" + resetSourceWorldInstanceId +
++                        " seeded_world=" + seededWorldInstanceId +
++                        " applied_seed=" + appliedWorldSeed + " active_seed=" + activeWorldSeed +
++                        " seed_pending=" + worldSeedApplicationPending +
++                        " exists=" + (world != null && world.worldExists) +
++                        " generating=" + (world != null && world.generatingWorld) +
++                        " gen_finished=" + generationFinished + " loading_finished=" + loadingFinished +
++                        " layer_time=" + (world == null ? -1f : world.layerTimeSpent) +
++                        " radline=" + (RadiationLine.line == null ? "null" : (RadiationLine.line.active ? "active" : "idle")) +
++                        " fresh_body=" + freshLiveBody);
++                }
++            }
+             if (worldReady)
              {
                  resetComplete = true;
                  initialObservationPending = true;
@@ -503,7 +560,7 @@ index cf85062..5629724 100644
                  // The first policy boundary must be quiescent. The game can
                  // restore timeScale from a loading/clock update after the
                  // scene is ready; allowing even one variable wall-clock
-@@ -3000,6 +3335,7 @@ public static partial class PPOBridge
+@@ -3000,6 +3373,7 @@ public static partial class PPOBridge
                      counterfactualBodyClock = currentBody.tempCheckTime;
                      counterfactualBodyClockInitialized = true;
                  }
@@ -511,7 +568,15 @@ index cf85062..5629724 100644
                  awaitingPolicyAction = true;
                  macrostepPhysicsTicks = 0;
                  macrostepAttackSwingsExecuted = 0;
-@@ -3052,6 +3388,11 @@ public static partial class PPOBridge
+@@ -3047,11 +3421,19 @@ public static partial class PPOBridge
+         }
+ 
+         if (Item.GlobalItems == null)
++        {
++            TraceTickGate("global_items_null", body, resetComplete);
+             return;
++        }
+         
          if (!StartRan) Start();
  
          EnsureCompletionProtocol();
@@ -523,7 +588,7 @@ index cf85062..5629724 100644
  
          // Procedural generation runs on Unity's main thread. Do not open the
          // diagnostic connection or enter the blocking policy wait until the
-@@ -3060,7 +3401,16 @@ public static partial class PPOBridge
+@@ -3060,7 +3442,16 @@ public static partial class PPOBridge
          if (CounterfactualMode && !CounterfactualRuntimeReadyToConnect(body))
              return;
  
@@ -540,7 +605,7 @@ index cf85062..5629724 100644
          if (!connected || !actionConnected)
              return;
  
-@@ -3154,11 +3504,24 @@ public static partial class PPOBridge
+@@ -3154,11 +3545,24 @@ public static partial class PPOBridge
  
      static void EnsureConnections()
      {
@@ -565,7 +630,7 @@ index cf85062..5629724 100644
                  obsClient = new TcpClient();
                  // A transport reattach must not discard the serialized
                  // observation held at the policy boundary.  The writer is
-@@ -3172,9 +3535,14 @@ public static partial class PPOBridge
+@@ -3172,9 +3576,14 @@ public static partial class PPOBridge
                  obsPipe = obsClient.GetStream();
                  connected = true;
                  Debug.Log("Observation TCP stream connected.");
@@ -580,7 +645,7 @@ index cf85062..5629724 100644
                  Debug.LogWarning(
                      $"Failed to connect to observation TCP stream. " +
                      $"Is the Server process running? {ex.Message}"
-@@ -3187,6 +3555,12 @@ public static partial class PPOBridge
+@@ -3187,6 +3596,12 @@ public static partial class PPOBridge
              try
              {
                  Debug.Log("Connecting action TCP stream...");
@@ -593,7 +658,7 @@ index cf85062..5629724 100644
                  actionClient = new TcpClient();
                  actionClient.Connect(TcpHost, ActionPort);
                  actionPipe = actionClient.GetStream();
-@@ -3200,9 +3574,14 @@ public static partial class PPOBridge
+@@ -3200,9 +3615,14 @@ public static partial class PPOBridge
                  Debug.Log($"After StartActionReader alive={actionThread?.IsAlive}");
  
                  actionConnected = true;
@@ -608,7 +673,7 @@ index cf85062..5629724 100644
                  Debug.LogWarning(
                      $"Failed to connect to action TCP stream. " +
                      $"Is the Server process running? {ex.Message}"
-@@ -3597,7 +3976,13 @@ public static partial class PPOBridge
+@@ -3597,7 +4017,13 @@ public static partial class PPOBridge
                  Stopwatch.GetTimestamp() >= counterfactualReconnectNotBefore &&
                  (!connected || !actionConnected))
              {
@@ -622,7 +687,7 @@ index cf85062..5629724 100644
              }
              ProcessCounterfactualCommands();
              if (shuttingDown)
-@@ -3642,7 +4027,7 @@ public static partial class PPOBridge
+@@ -3642,7 +4068,7 @@ public static partial class PPOBridge
                      SendActionAcknowledgement("RESUMED");
                  }
  
@@ -631,7 +696,7 @@ index cf85062..5629724 100644
                  {
                      PlayerCamera playerCamera = PlayerCamera.main;
                      if (playerCamera == null || playerCamera.body != body)
-@@ -3686,13 +4071,237 @@ public static partial class PPOBridge
+@@ -3686,13 +4112,237 @@ public static partial class PPOBridge
          finally { counterfactualInsideBoundary = false; }
      }
  
@@ -870,7 +935,7 @@ index cf85062..5629724 100644
              if (latestActionSequence <= activeActionSequence)
                  return false;
  
-@@ -3709,6 +4318,9 @@ public static partial class PPOBridge
+@@ -3709,6 +4359,9 @@ public static partial class PPOBridge
          awaitingPolicyAction = false;
          newMacrostepAction = true;
  
@@ -880,7 +945,7 @@ index cf85062..5629724 100644
          float capturedTimeScale = Time.timeScale > 0f
              ? Time.timeScale
              : policyResumeTimeScale;
-@@ -3773,7 +4385,7 @@ public static partial class PPOBridge
+@@ -3773,7 +4426,7 @@ public static partial class PPOBridge
          if (!resetComplete || resetRequested)
              return;
  
@@ -889,7 +954,7 @@ index cf85062..5629724 100644
          if (awaitingPolicyAction)
              return;
  
-@@ -4385,6 +4997,7 @@ public static partial class PPOBridge
+@@ -4385,6 +5038,7 @@ public static partial class PPOBridge
  
          try
          {
@@ -897,7 +962,7 @@ index cf85062..5629724 100644
              Debug.Log($"PPO reset loading scene: {sceneName}.");
  		    SceneManager.LoadScene(sceneName);
          }
-@@ -4404,6 +5017,7 @@ public static partial class PPOBridge
+@@ -4404,6 +5058,7 @@ public static partial class PPOBridge
      public static void MarkGenerationFinished(WorldGeneration world)
      {
          generationFinishedWorldInstanceId = world == null ? 0 : world.GetInstanceID();
@@ -905,7 +970,7 @@ index cf85062..5629724 100644
          Debug.Log(
              $"PPO generation finished: world=" +
              $"{generationFinishedWorldInstanceId}, " +
-@@ -4415,6 +5029,11 @@ public static partial class PPOBridge
+@@ -4415,6 +5070,11 @@ public static partial class PPOBridge
      
      public static void Shutdown()
      {
@@ -917,7 +982,7 @@ index cf85062..5629724 100644
          shuttingDown = true;
          SignalActionWaiters();
  
-@@ -4434,6 +5053,7 @@ public static class WorldGenerationSeedPatch
+@@ -4434,6 +5094,7 @@ public static class WorldGenerationSeedPatch
  {
      static void Prefix(WorldGeneration __instance)
      {
@@ -925,7 +990,7 @@ index cf85062..5629724 100644
          PPOBridge.ApplyPendingWorldSeed(__instance);
      }
  }
-@@ -4455,11 +5075,14 @@ public static class WorldGenerationGenerateSeedPatch
+@@ -4455,11 +5116,14 @@ public static class WorldGenerationGenerateSeedPatch
  {
      static void Prefix(WorldGeneration __instance)
      {

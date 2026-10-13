@@ -62,7 +62,10 @@ namespace CB1.Counterfactual
 
         static object Vec2(object value)
         {
+            // Unity vectors must never reach Newtonsoft directly: their
+            // `normalized` property recurses without bound.
             if (value is Vector2 v) return new[] { v.x, v.y };
+            if (value is Vector3 v3) return new[] { v3.x, v3.y, v3.z };
             return value;
         }
 
@@ -402,6 +405,47 @@ namespace CB1.Counterfactual
             }
         }
 
+
+        /// <summary>
+        /// Write the Box2D physics shapes (convex polygons) of selected chunk TilemapCollider2D
+        /// components: PPO_DIAG_SHAPE_CHUNKS="cx,cy;cx,cy" -> JSON lines of shape vertices.
+        /// </summary>
+        static void DumpChunkShapes(string path)
+        {
+            string spec = Environment.GetEnvironmentVariable("PPO_DIAG_SHAPE_CHUNKS");
+            if (string.IsNullOrWhiteSpace(spec)) return;
+            var wanted = new HashSet<string>(spec.Split(';').Select(t => t.Trim()));
+            using (var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read)))
+            {
+                foreach (TilemapCollider2D collider in UnityEngine.Object.FindObjectsOfType<TilemapCollider2D>())
+                {
+                    var chunk = collider.GetComponent<ChunkScript>();
+                    if (chunk == null) continue;
+                    string key = chunk.pos.x + "," + chunk.pos.y;
+                    if (!wanted.Contains(key)) continue;
+                    var group = new PhysicsShapeGroup2D();
+                    int shapeCount = collider.GetShapes(group);
+                    var shapes = new List<object>();
+                    var vertices = new List<Vector2>();
+                    for (int i = 0; i < group.shapeCount; i++)
+                    {
+                        var shape = group.GetShape(i);
+                        vertices.Clear();
+                        group.GetShapeVertices(i, vertices);
+                        shapes.Add(new { type = shape.shapeType.ToString(), radius = shape.radius,
+                            vertices = vertices.Select(v => new[] { v.x, v.y }).ToArray() });
+                    }
+                    writer.WriteLine(JsonConvert.SerializeObject(new {
+                        chunk = new[] { chunk.pos.x, chunk.pos.y }, shape_count = shapeCount,
+                        group_shape_count = group.shapeCount, vertex_count = group.vertexCount,
+                        transform_position = new[] { collider.transform.position.x, collider.transform.position.y },
+                        transform_scale = new[] { collider.transform.lossyScale.x, collider.transform.lossyScale.y },
+                        local_to_world = "vertices are in collider-local space unless transform says otherwise",
+                        shapes }));
+                }
+            }
+        }
+
         static StreamWriter occupancyWriter;
         static bool occupancyFullDone;
 
@@ -457,6 +501,7 @@ namespace CB1.Counterfactual
                 }
                 File.WriteAllBytes(OccupancyPath("PPO_DIAG_OCC_FULL_OUTPUT"), bytes);
                 DumpAllNonTileColliders(OccupancyPath("PPO_DIAG_OCC_FULL_OUTPUT") + ".colliders.jsonl");
+                DumpChunkShapes(OccupancyPath("PPO_DIAG_OCC_FULL_OUTPUT") + ".shapes.jsonl");
             }
             string region = Environment.GetEnvironmentVariable("PPO_DIAG_OCC_REGION");
             if (string.IsNullOrWhiteSpace(region)) return;
