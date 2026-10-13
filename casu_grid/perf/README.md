@@ -13,8 +13,11 @@ Isaac bundled Python (`"$ISAAC_SIM/python.sh"`, set up as in `ISAAC_LAB_SETUP.md
 | `perf/controller_harness.py` | Isaac-free controller/fluid/query harness with a kinematic stand-in engine, for profiling (`--profile`) and reference-vs-compiled equivalence (`--compiled`) |
 | `perf/mutation_latency.py` | terrain edit / restore / reset latency (independent terrain) |
 | `perf/synthetic_large_model.py` | **synthetic** large policy network for inference-bound training measurements (not a Timmy architecture) |
-| `perf/OPTIMIZATION_LOG.md` | every candidate tried, kept or rejected, with evidence |
-| `casu_grid/OPTIMIZATION_ACCEPTANCE_REPORT.md` | consolidated results of the campaign |
+| `perf/OPTIMIZATION_LOG.md`, `perf/OPTIMIZATION2_LOG.md` | every candidate tried (campaign I and II), kept or rejected, with evidence |
+| `perf/ppo_update_bench.py` | PPO update microbenchmark with exact reference-vs-optimized equivalence check (no simulator) |
+| `perf/gpu_probe.py`, `perf/gpu_scenarios.py`, `perf/run_gpu_scenarios.sh`, `perf/fall_test.py` | GPU-PhysX feasibility probes and CPU-vs-GPU scenario comparison (`tools/compare_scenarios.py`) |
+| `tools/compare_ab.py` | compare two `isaac_player_ab.py` result files (e.g. compound vs hull) |
+| `casu_grid/OPTIMIZATION_ACCEPTANCE_REPORT.md`, `casu_grid/OPTIMIZATION2_ACCEPTANCE_REPORT.md` | consolidated results of campaigns I and II |
 
 ## Backends and execution layout
 
@@ -23,6 +26,9 @@ Isaac bundled Python (`"$ISAAC_SIM/python.sh"`, set up as in `ISAAC_LAB_SETUP.md
 | `CASU_BACKEND` | `auto`, `numba`, `reference-python` | `auto` | compiled kernels (fluid, queries, controller) vs the readable reference implementation; `numba` fails loudly if unavailable |
 | `CASU_COMPILED_CONTROLLER` | `1`, `0` | `1` | with the numba backend, `0` keeps compiled fluid/queries but runs the reference controller (attribution/debugging) |
 | `CASU_NUM_WORKERS` | integer or `auto` | `1` | worker processes for batched environments (`1` = in-process). Same simulated experiment; world partition changes only low-order bits (see below) |
+| `CASU_PPO_EXECUTION` | `optimized`, `reference` | `optimized` | PPO update execution path (one gather per epoch, foreach Adam, no distribution argument validation). Bit-identical to `reference` (the original loop); `reference` is for attribution/debugging. Researcher-owned PPO settings are never touched |
+| `CASU_PLAYER_COLLIDER` | `compound`, `convex_hull` | `compound` | **experimental**: `convex_hull` replaces the validated 6-shape-per-level player collider by one convex hull per crouch level (2 instead of 12 USD writes per level change; 1.5-2.3x faster on crouch-heavy tapes). Its physics differ from the validated collider (closer to the recorded CasU traces in the A/B runs, see `OPTIMIZATION2_ACCEPTANCE_REPORT.md`), so it has separate trajectory baselines and must be labelled in any experiment that uses it |
+| `use_cuda` (config), `CASU_GPU_PHYSX` (JSON PhysxCfg overrides) | `False` | off | **unsupported, experimental**: GPU PhysX pipeline (`--cuda` in the benchmark / A/B tools). Fails (CUDA illegal memory access) on crouch/jump tapes and lets the player tunnel through thin walls at run speed; kept only for the feasibility record |
 
 The active backend is recorded by `backend.describe()` and in every benchmark file (`system.backend`);
 `env.performance_info()` reports the layout of a live environment (backend, workers, worlds per worker).
@@ -51,4 +57,6 @@ file with `tools/compare_throughput.py`.
 * Same code, same `num_envs`, same `num_workers` ⇒ bit-identical trajectories (the gate relies on this).
 * Different world partitions (`num_envs`, `num_workers`) change PhysX scene composition and therefore results at the
   1e-9 level; chaotic corner contacts amplify that. Replay a recorded run with the layout it was recorded with.
+* The `convex_hull` collider is a different physics model: it has its own baselines (`baselines/trajectories/hull_*.json`)
+  and gates in `run_perf_check.py`; the compound baselines are never overwritten.
 * Compiled vs reference backend ⇒ bit-identical (tested: fuzzed controller states, fluid oracle, three batched workloads).

@@ -7,9 +7,9 @@ Machine: i7-11700K (8 cores / 16 threads), RTX 3070 8 GB, 32 GB RAM, Fedora 44, 
 
 ## Gate status of the validated default (compound, CPU PhysX)
 
-After every change below the default path was re-run through `perf/run_perf_check.py`: unit tests, five bit-exact
-trajectory fixtures recorded from `f54f505` (shared + independent terrain), throughput within the noise margin of the
-stored reference. All passed; the default is unchanged by this campaign.
+After every change below the default path was re-run through `perf/run_perf_check.py`: unit tests (122), five bit-exact
+trajectory fixtures recorded from `f54f505` (shared + independent terrain) plus three hull fixtures with their own baselines, throughput
+within the noise margin of the stored reference. All passed on the final code; the default is unchanged by this campaign.
 
 ## Workstream A — profile of the optimized system
 
@@ -63,8 +63,9 @@ deep pose writes and tunnelling, not by buffer capacity (8x larger buffers did n
 |---|---|---|---|
 | C1 | pause omni.physx change tracking around the 12N writes | no change (3.58 vs 3.75 ms) | rejected |
 | C2 | Sdf layer-level writes instead of `Usd` attribute `Set` | 12.7 vs 15.1 µs per write; physics notices unchanged | not worth it |
-| C3 | **single convex-hull player collider** (2 writes per level change) | random 3,862 → 8,851 ticks/s (2.3x), landing 2.1x, run 1.5x at 16 worlds; PhysX step 73 → 29 µs; better CasU fidelity (below) | **accepted as experimental opt-in** |
+| C3 | **single convex-hull player collider** (2 writes per level change) | random 3,862 → 8,851 ticks/s (2.3x; 10,672 = 2.8x in the final idle-machine suite), landing 2.1x (2.5x final), run 1.5x (1.75x final) at 16 worlds; PhysX step 73 → 29 µs; better CasU fidelity (below) | **accepted as experimental opt-in** |
 | C4 | PhysX threads / Fabric off (campaign I) | no effect | closed |
+| C5 | **numba memory leak**: a numpy `Generator` passed into the compiled fluid kernels leaks ≈ 600 B per call (numba 0.59.1). Replaced by a port of PCG64 XSL-RR 128/64 + `Generator.integers(0, 2)` that advances a 6-word state array (exported/imported around the kernel calls) | a075acc: 500-update 64-world training soak grew 13.3 → 18.7 GiB and lost 10 % throughput; after the fix workers stay at 2.82 → 2.83 GiB and the fixed-tape drift test is flat. Stream equality with numpy over 800k draws; all bit-exact gates unchanged | **accepted** (bug fix of the campaign-I code; also +11 % simulation-only decisions/s in training, no per-call Generator unboxing) |
 
 ### C3 fidelity (hull vs compound, both CPU PhysX, against recorded CasU traces)
 `isaac_player_ab.py --player-collider convex_hull`, same options as the accepted runs (`--step-clear 0.02`); compare with
@@ -118,6 +119,54 @@ worker = 4–7 %; pipe overhead 1 %. Even perfect overlap of inference with simu
 into two groups to hide straggler waits needs twice the worker processes (memory-limited at 6) or halves the batch per worker.
 **Conclusion: not implemented; the dependency structure and measured shares leave no useful overlap.**
 
-## Workstream F — scaling and stability
+## Workstream F — scaling, resources, long-run stability
 
-(see report; raw files `o2_*`, `soak_*`)
+Result files `o2_*` (suite of 2026-10-13 15:19–15:34, idle machine, 3 windows each), `o1_*` (campaign-I final `a075acc`,
+extracted with `git archive` and run through the same benchmark on the same day), `soak_train_500_w4_e64.json`.
+
+### Simulation-only scaling (aggregate physics ticks/s, shared terrain, full world)
+
+| layout | compound `random` | compound `run` | hull `random` | hull `run` |
+|---|---:|---:|---:|---:|
+| 1 process, 16 worlds | 3,862 | 8,223 | 10,672 | 14,384 |
+| 1 process, 64 worlds | 4,299 | 8,789 | 13,537 | 21,475 |
+| 4 workers, 64 worlds | 11,683 | 23,425 | 29,275 | 42,417 |
+| 4 workers, 128 worlds | 13,766 | 26,893 | 35,877 | 53,866 |
+| 6 workers, 96 worlds | 16,240 (campaign I run) | 31,303 (campaign I run) | 36,582 | 51,940 |
+| 6 workers, 144 worlds | 17,760 | 35,461 | 42,520 | 59,855 |
+| 4 independent-terrain worlds, 1 process | 2,022 | — | 2,966 | — |
+
+Hull landing tape: 13,300 (16 worlds) / 18,471 (64 worlds), one process. Peak RSS: 4 workers 13.4–13.9 GiB (128 worlds),
+6 workers 18.9–19.3 GiB (144 worlds), 1 process 2.8–3.5 GiB. 8 cores/16 threads and 32 GB are the ceiling: beyond 6 workers
+(2 PhysX threads each plus the trainer) memory and cores are exhausted, so 6 is the supported maximum on this machine.
+
+### End-to-end PPO training (engineering-only configuration; 8 updates, first dropped; decisions/s)
+
+| layout | a075acc (campaign I final) | current, PPO reference execution | current, PPO optimized | hull + optimized (EXPERIMENTAL) |
+|---|---:|---:|---:|---:|
+| 16 worlds, 1 process | 593 | 645 | 653 | 1,015 |
+| 64 worlds, 1 process | — | — | — | 1,336 |
+| 64 worlds, 4 workers (3 repeats) | 1,416 / 1,428 / 1,413 | 1,526 / 1,534 / 1,519 | 1,583 / 1,538 / 1,585 | 1,939 |
+| 96 worlds, 6 workers | 1,627 | — | 1,818 | 2,266 |
+| 64 worlds, 4 workers, SYNTHETIC large net | 910 | 954 | 923 | 1,046 |
+
+Notes: the figures published in the campaign-I report (918 decisions/s at 64/4) were taken at an earlier stage of that campaign;
+`a075acc` re-measured today gives ≈ 1,420, which is the baseline used here. Gains over `a075acc` at 64/4: +7 % with this campaign's simulator changes (reference PPO execution column; simulation-only decisions/s
+2,030 → 2,265, attributed to the compiled PCG64 path replacing per-call Generator unboxing), +11 % with the optimized PPO update, ×1.37 with the hull collider. For the synthetic
+512-wide network the update is dominated by matrix products (≈ 1 s per update, 256 minibatches of 16 samples) and execution changes
+are within noise (1.01–1.04× in the microbenchmark; torch threads 1/2/4/8: 1.32/1.30/1.09/0.98 s).
+
+### Long-run stability
+
+* **Soak** (500 updates, 64 worlds, 4 workers, compound, 16 min): worker RSS 2,821 → 2,828 MiB (max 2,945), no growth;
+  parent RSS 2,002 → plateau ≈ 2,190 MiB after 100 updates (transient peaks at checkpoint/trajectory writes, max 2,961); trainer
+  loop with a fake environment: 616.4 → 616.5 MiB over 120 updates; sharded environment with a random tape (64 worlds, 4 workers,
+  1,600 macrosteps): parent 1,709 → 1,710 MiB, throughput flat (11.6–12.0 k ticks/s).
+  Decisions/s drifted 2,159 → 1,896 across the soak while the fixed-tape in-process test is flat (4.0–4.2 k ticks/s, RSS 2,852 → 2,854 MiB
+  over 32,000 macrosteps): the drift is attributed to the changing policy behaviour (different action mix and episode lengths as training proceeds), not to simulator degradation.
+* The run directory grows ≈ 0.7 MiB per update (343 MiB for 500 updates, `trajectories.jsonl` and TensorBoard); no cleanup is done
+  by the trainer (owner: workbench).
+* **Interruption/cleanup**: SIGTERM of the trainer mid-run leaves a valid `latest.pt`, resume continues in a new run directory,
+  workers exit with the parent (PDEATHSIG SIGKILL), no orphaned processes after any run in this campaign (checked with `ps` after each suite).
+* Failure modes found and fixed: orphaned workers after `worker_physx_threads` 0/1 (PhysX hangs) → validated `>= 2`; GPU crashes
+  leaving unusable contexts (GPU kept opt-in).

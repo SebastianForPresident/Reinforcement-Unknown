@@ -1,0 +1,28 @@
+{
+  "schema": "casu.isaac-training-benchmark.v1",
+  "label": "compound, SYNTHETIC large, PPO reference",
+  "envs": 64,
+  "workers": 4,
+  "terrain_mode": "shared",
+  "config": "casu_grid/perf/synthetic_large_model.py",
+  "backend_env": "auto",
+  "updates": 8,
+  "measured_updates": 7,
+  "measured_decisions": 14336,
+  "simulation_only_decisions_per_second": 2307.1959801527382,
+  "rollout_decisions_per_second": 2093.6845500897766,
+  "end_to_end_decisions_per_second": 954.0015651999341,
+  "simulation_only_ticks_per_second": 23071.95980152738,
+  "end_to_end_ticks_per_second": 9540.015651999342,
+  "seconds": {
+    "simulation": 6.213603059004527,
+    "policy_inference_and_rollout_overhead": 0.6336557600880042,
+    "ppo_optimization": 8.179970194934867,
+    "rollout_total": 6.847258819092531
+  },
+  "optimizer_overhead_fraction": 0.5443432177215871,
+  "policy_inference_fraction_of_rollout": 0.09254152308675002,
+  "process_wall_seconds_including_startup": 44.4359422409907,
+  "finite_losses": true,
+  "git_revision": "a147692207172246f9bc7de9d558e73d370e6511"
+}

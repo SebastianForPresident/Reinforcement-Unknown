@@ -169,3 +169,6 @@ Useful entry points (all run with the Isaac bundled Python):
 without changing the simulated experiment: 2.5-4.7x with one process, up to ~12x simulation-only and 4.5x end-to-end PPO training
 with 4 worker processes. See [`OPTIMIZATION_ACCEPTANCE_REPORT.md`](OPTIMIZATION_ACCEPTANCE_REPORT.md) (results, which mode to use) and
 [`perf/README.md`](perf/README.md) (tools, regression check `python casu_grid/perf/run_perf_check.py`).
+Optimization II adds a bit-identical PPO update path (`CASU_PPO_EXECUTION`), higher worker counts, and an **experimental, opt-in**
+convex-hull player collider (`CASU_PLAYER_COLLIDER=convex_hull`, separate physics model, separate baselines); GPU PhysX was evaluated and
+rejected. See [`OPTIMIZATION2_ACCEPTANCE_REPORT.md`](OPTIMIZATION2_ACCEPTANCE_REPORT.md).

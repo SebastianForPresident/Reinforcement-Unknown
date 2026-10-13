@@ -1,0 +1,80 @@
+{
+  "schema": "casu.isaac-sharded-validation.v1",
+  "workers": 2,
+  "num_envs": 4,
+  "status": "passed",
+  "checks": {
+    "startup": {
+      "status": "passed",
+      "seconds": 12.006046733993571,
+      "sizes": [
+        2,
+        2
+      ],
+      "pids": [
+        2940186,
+        2940187
+      ],
+      "log_dir": "/tmp/casu_workers_2940067_8i7qvp6f"
+    },
+    "api_shapes": {
+      "status": "passed"
+    },
+    "world_isolation_across_workers": {
+      "status": "passed",
+      "world0_error": 1.4551915228366852e-11,
+      "worlds_differ": false
+    },
+    "restore_continuation_exact": {
+      "status": "passed",
+      "max_abs_error": 0.0
+    },
+    "partial_reset_across_workers": {
+      "status": "passed",
+      "untouched_worlds_error": 0.0
+    },
+    "shared_terrain_edit_rejected": {
+      "status": "passed"
+    },
+    "clean_shutdown": {
+      "status": "passed",
+      "alive": [
+        false,
+        false
+      ]
+    },
+    "callbacks_run_in_workers": {
+      "status": "passed",
+      "reward_terms": [
+        "goal",
+        "progress_delta"
+      ]
+    },
+    "door_state_per_world": {
+      "status": "passed",
+      "world0": {
+        "activated": true,
+        "progress": 4.459999999999993,
+        "destroyed": false
+      },
+      "world1": {
+        "activated": false,
+        "progress": 0.0,
+        "destroyed": false
+      }
+    },
+    "independent_terrain_edit_and_restore": {
+      "status": "passed",
+      "edited_world_fell": true,
+      "restore_back_on_support": true
+    },
+    "worker_failure_fails_fast_and_cleans_up": {
+      "status": "passed",
+      "raised": true,
+      "alive_after": [
+        false,
+        false
+      ]
+    }
+  }
+}

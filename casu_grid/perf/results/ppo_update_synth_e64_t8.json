@@ -1,0 +1,43 @@
+{
+  "schema": "casu.ppo-update-bench.v1",
+  "envs": 64,
+  "config": "casu_grid/perf/synthetic_large_model.py",
+  "threads": 8,
+  "samples_per_update": 2048,
+  "minibatch": 16,
+  "epochs": 2,
+  "reference": {
+    "update_seconds": {
+      "mean": 1.018293051669995,
+      "std": 0.013694078602663862,
+      "min": 1.002610330004245,
+      "samples": [
+        1.035974679980427,
+        1.002610330004245,
+        1.016294145025313
+      ]
+    },
+    "optimizer_batches": 256
+  },
+  "optimized": {
+    "update_seconds": {
+      "mean": 0.9829325203512175,
+      "std": 0.0001786406891409932,
+      "min": 0.9827875480405055,
+      "samples": [
+        0.9831841880222782,
+        0.9828258249908686,
+        0.9827875480405055
+      ]
+    },
+    "optimizer_batches": 256
+  },
+  "equivalence": {
+    "metrics_identical": true,
+    "parameters_bit_identical": true,
+    "rng_state_identical": true,
+    "optimizer_state_bit_identical": true,
+    "max_abs_parameter_difference": 0.0
+  },
+  "speedup": 1.0359745258058435
+}

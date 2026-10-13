@@ -1,0 +1,28 @@
+{
+  "schema": "casu.isaac-training-benchmark.v1",
+  "label": "compound, PPO reference execution",
+  "envs": 64,
+  "workers": 4,
+  "terrain_mode": "shared",
+  "config": "casu_grid/workbench/engineering_smoke.py",
+  "backend_env": "auto",
+  "updates": 8,
+  "measured_updates": 7,
+  "measured_decisions": 14336,
+  "simulation_only_decisions_per_second": 2265.5505579137803,
+  "rollout_decisions_per_second": 2147.087407556934,
+  "end_to_end_decisions_per_second": 1525.9583159299807,
+  "simulation_only_ticks_per_second": 22655.505579137804,
+  "end_to_end_ticks_per_second": 15259.583159299807,
+  "seconds": {
+    "simulation": 6.3278217075858265,
+    "policy_inference_and_rollout_overhead": 0.3491304973140359,
+    "ppo_optimization": 2.7177998340921476,
+    "rollout_total": 6.676952204899862
+  },
+  "optimizer_overhead_fraction": 0.2892891502417714,
+  "policy_inference_fraction_of_rollout": 0.05228890167250673,
+  "process_wall_seconds_including_startup": 37.99268481496256,
+  "finite_losses": true,
+  "git_revision": "a147692207172246f9bc7de9d558e73d370e6511"
+}

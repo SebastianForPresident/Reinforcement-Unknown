@@ -1,0 +1,28 @@
+{
+  "schema": "casu.isaac-training-benchmark.v1",
+  "label": "SYNTHETIC large, campaign I final a075acc",
+  "envs": 64,
+  "workers": 4,
+  "terrain_mode": "shared",
+  "config": "casu_grid/perf/synthetic_large_model.py",
+  "backend_env": "auto",
+  "updates": 8,
+  "measured_updates": 7,
+  "measured_decisions": 14336,
+  "simulation_only_decisions_per_second": 2068.850572311038,
+  "rollout_decisions_per_second": 1890.8847335208936,
+  "end_to_end_decisions_per_second": 910.1580937541689,
+  "simulation_only_ticks_per_second": 20688.50572311038,
+  "end_to_end_ticks_per_second": 9101.58093754169,
+  "seconds": {
+    "simulation": 6.929451644246001,
+    "policy_inference_and_rollout_overhead": 0.6521844787057489,
+    "ppo_optimization": 8.169473600049969,
+    "rollout_total": 7.58163612295175
+  },
+  "optimizer_overhead_fraction": 0.518660192438371,
+  "policy_inference_fraction_of_rollout": 0.08602160115959702,
+  "process_wall_seconds_including_startup": 45.61935022799298,
+  "finite_losses": true,
+  "git_revision": ""
+}

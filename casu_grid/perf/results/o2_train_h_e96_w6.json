@@ -1,0 +1,28 @@
+{
+  "schema": "casu.isaac-training-benchmark.v1",
+  "label": "EXPERIMENTAL convex hull, PPO optimized",
+  "envs": 96,
+  "workers": 6,
+  "terrain_mode": "shared",
+  "config": "casu_grid/workbench/engineering_smoke.py",
+  "backend_env": "auto",
+  "updates": 8,
+  "measured_updates": 7,
+  "measured_decisions": 21504,
+  "simulation_only_decisions_per_second": 3971.959739552424,
+  "rollout_decisions_per_second": 3735.3489776250376,
+  "end_to_end_decisions_per_second": 2266.165480450955,
+  "simulation_only_ticks_per_second": 39719.59739552424,
+  "end_to_end_ticks_per_second": 22661.65480450955,
+  "seconds": {
+    "simulation": 5.41395215713419,
+    "policy_inference_and_rollout_overhead": 0.34293966979021206,
+    "ppo_optimization": 3.7322651589638554,
+    "rollout_total": 5.756891826924402
+  },
+  "optimizer_overhead_fraction": 0.39331893913382093,
+  "policy_inference_fraction_of_rollout": 0.059570282037664464,
+  "process_wall_seconds_including_startup": 41.52123303996632,
+  "finite_losses": true,
+  "git_revision": "a147692207172246f9bc7de9d558e73d370e6511"
+}

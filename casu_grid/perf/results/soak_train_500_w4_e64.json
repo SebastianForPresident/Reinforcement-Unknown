@@ -1,0 +1,571 @@
+{
+ "schema": "casu.soak-summary.v1",
+ "what": "500-update PPO training soak, engineering_smoke config, 64 worlds, 4 workers, compound collider, after the PCG64 leak fix",
+ "updates": 500,
+ "decisions_per_second_mean_by_100_updates": [
+  2159.2645279253948,
+  2010.2103559669977,
+  1927.9417284208082,
+  1936.7625969393812,
+  1895.745434340013
+ ],
+ "wall_seconds": 962,
+ "worker_rss_mb_first": [
+  2821,
+  2838,
+  2827,
+  2822
+ ],
+ "worker_rss_mb_last": [
+  2828,
+  2826,
+  2857,
+  2849
+ ],
+ "worker_rss_mb_max": 2945,
+ "parent_rss_mb_first": 2002,
+ "parent_rss_mb_median_after_100": 2189.5,
+ "parent_rss_mb_max": 2961,
+ "run_directory_mb": 343,
+ "timeline": [
+  {
+   "seconds": 0,
+   "updates": 13,
+   "parent_rss_mb": 2002,
+   "worker_rss_mb": [
+    2821,
+    2838,
+    2827,
+    2822
+   ]
+  },
+  {
+   "seconds": 20,
+   "updates": 23,
+   "parent_rss_mb": 2059,
+   "worker_rss_mb": [
+    2830,
+    2817,
+    2828,
+    2822
+   ]
+  },
+  {
+   "seconds": 40,
+   "updates": 33,
+   "parent_rss_mb": 2059,
+   "worker_rss_mb": [
+    2828,
+    2820,
+    2818,
+    2832
+   ]
+  },
+  {
+   "seconds": 60,
+   "updates": 44,
+   "parent_rss_mb": 2056,
+   "worker_rss_mb": [
+    2819,
+    2817,
+    2828,
+    2823
+   ]
+  },
+  {
+   "seconds": 80,
+   "updates": 54,
+   "parent_rss_mb": 2961,
+   "worker_rss_mb": [
+    2883,
+    2880,
+    2867,
+    2892
+   ]
+  },
+  {
+   "seconds": 100,
+   "updates": 64,
+   "parent_rss_mb": 2051,
+   "worker_rss_mb": [
+    2832,
+    2817,
+    2829,
+    2833
+   ]
+  },
+  {
+   "seconds": 120,
+   "updates": 74,
+   "parent_rss_mb": 2003,
+   "worker_rss_mb": [
+    2842,
+    2835,
+    2855,
+    2863
+   ]
+  },
+  {
+   "seconds": 140,
+   "updates": 84,
+   "parent_rss_mb": 2050,
+   "worker_rss_mb": [
+    2820,
+    2817,
+    2820,
+    2833
+   ]
+  },
+  {
+   "seconds": 160,
+   "updates": 95,
+   "parent_rss_mb": 2050,
+   "worker_rss_mb": [
+    2820,
+    2839,
+    2819,
+    2839
+   ]
+  },
+  {
+   "seconds": 180,
+   "updates": 105,
+   "parent_rss_mb": 2180,
+   "worker_rss_mb": [
+    2863,
+    2887,
+    2880,
+    2926
+   ]
+  },
+  {
+   "seconds": 200,
+   "updates": 115,
+   "parent_rss_mb": 2106,
+   "worker_rss_mb": [
+    2865,
+    2881,
+    2935,
+    2926
+   ]
+  },
+  {
+   "seconds": 220,
+   "updates": 125,
+   "parent_rss_mb": 2185,
+   "worker_rss_mb": [
+    2836,
+    2837,
+    2830,
+    2846
+   ]
+  },
+  {
+   "seconds": 240,
+   "updates": 135,
+   "parent_rss_mb": 2202,
+   "worker_rss_mb": [
+    2836,
+    2816,
+    2830,
+    2834
+   ]
+  },
+  {
+   "seconds": 260,
+   "updates": 145,
+   "parent_rss_mb": 2185,
+   "worker_rss_mb": [
+    2836,
+    2822,
+    2833,
+    2828
+   ]
+  },
+  {
+   "seconds": 280,
+   "updates": 156,
+   "parent_rss_mb": 2144,
+   "worker_rss_mb": [
+    2836,
+    2816,
+    2830,
+    2828
+   ]
+  },
+  {
+   "seconds": 300,
+   "updates": 166,
+   "parent_rss_mb": 2142,
+   "worker_rss_mb": [
+    2920,
+    2920,
+    2941,
+    2944
+   ]
+  },
+  {
+   "seconds": 320,
+   "updates": 176,
+   "parent_rss_mb": 2202,
+   "worker_rss_mb": [
+    2833,
+    2834,
+    2836,
+    2834
+   ]
+  },
+  {
+   "seconds": 341,
+   "updates": 186,
+   "parent_rss_mb": 2187,
+   "worker_rss_mb": [
+    2830,
+    2816,
+    2830,
+    2828
+   ]
+  },
+  {
+   "seconds": 361,
+   "updates": 196,
+   "parent_rss_mb": 2198,
+   "worker_rss_mb": [
+    2830,
+    2834,
+    2836,
+    2825
+   ]
+  },
+  {
+   "seconds": 381,
+   "updates": 207,
+   "parent_rss_mb": 2141,
+   "worker_rss_mb": [
+    2835,
+    2848,
+    2841,
+    2848
+   ]
+  },
+  {
+   "seconds": 401,
+   "updates": 217,
+   "parent_rss_mb": 2187,
+   "worker_rss_mb": [
+    2832,
+    2824,
+    2823,
+    2854
+   ]
+  },
+  {
+   "seconds": 421,
+   "updates": 227,
+   "parent_rss_mb": 2204,
+   "worker_rss_mb": [
+    2832,
+    2824,
+    2832,
+    2826
+   ]
+  },
+  {
+   "seconds": 441,
+   "updates": 237,
+   "parent_rss_mb": 2204,
+   "worker_rss_mb": [
+    2835,
+    2824,
+    2826,
+    2836
+   ]
+  },
+  {
+   "seconds": 461,
+   "updates": 246,
+   "parent_rss_mb": 2329,
+   "worker_rss_mb": [
+    2865,
+    2868,
+    2883,
+    2893
+   ]
+  },
+  {
+   "seconds": 481,
+   "updates": 255,
+   "parent_rss_mb": 2188,
+   "worker_rss_mb": [
+    2870,
+    2868,
+    2870,
+    2895
+   ]
+  },
+  {
+   "seconds": 501,
+   "updates": 264,
+   "parent_rss_mb": 2200,
+   "worker_rss_mb": [
+    2844,
+    2818,
+    2850,
+    2830
+   ]
+  },
+  {
+   "seconds": 521,
+   "updates": 275,
+   "parent_rss_mb": 2226,
+   "worker_rss_mb": [
+    2865,
+    2868,
+    2870,
+    2884
+   ]
+  },
+  {
+   "seconds": 541,
+   "updates": 285,
+   "parent_rss_mb": 2205,
+   "worker_rss_mb": [
+    2838,
+    2836,
+    2850,
+    2836
+   ]
+  },
+  {
+   "seconds": 561,
+   "updates": 294,
+   "parent_rss_mb": 2188,
+   "worker_rss_mb": [
+    2822,
+    2818,
+    2835,
+    2848
+   ]
+  },
+  {
+   "seconds": 581,
+   "updates": 304,
+   "parent_rss_mb": 2188,
+   "worker_rss_mb": [
+    2822,
+    2820,
+    2832,
+    2827
+   ]
+  },
+  {
+   "seconds": 601,
+   "updates": 315,
+   "parent_rss_mb": 2312,
+   "worker_rss_mb": [
+    2891,
+    2868,
+    2876,
+    2880
+   ]
+  },
+  {
+   "seconds": 621,
+   "updates": 324,
+   "parent_rss_mb": 2205,
+   "worker_rss_mb": [
+    2844,
+    2833,
+    2847,
+    2836
+   ]
+  },
+  {
+   "seconds": 641,
+   "updates": 335,
+   "parent_rss_mb": 2205,
+   "worker_rss_mb": [
+    2820,
+    2842,
+    2822,
+    2827
+   ]
+  },
+  {
+   "seconds": 661,
+   "updates": 345,
+   "parent_rss_mb": 2205,
+   "worker_rss_mb": [
+    2838,
+    2824,
+    2850,
+    2830
+   ]
+  },
+  {
+   "seconds": 681,
+   "updates": 355,
+   "parent_rss_mb": 2206,
+   "worker_rss_mb": [
+    2835,
+    2824,
+    2832,
+    2830
+   ]
+  },
+  {
+   "seconds": 701,
+   "updates": 365,
+   "parent_rss_mb": 2188,
+   "worker_rss_mb": [
+    2881,
+    2873,
+    2890,
+    2899
+   ]
+  },
+  {
+   "seconds": 722,
+   "updates": 375,
+   "parent_rss_mb": 2189,
+   "worker_rss_mb": [
+    2835,
+    2821,
+    2832,
+    2839
+   ]
+  },
+  {
+   "seconds": 742,
+   "updates": 385,
+   "parent_rss_mb": 2184,
+   "worker_rss_mb": [
+    2826,
+    2818,
+    2835,
+    2848
+   ]
+  },
+  {
+   "seconds": 762,
+   "updates": 395,
+   "parent_rss_mb": 2190,
+   "worker_rss_mb": [
+    2823,
+    2842,
+    2838,
+    2830
+   ]
+  },
+  {
+   "seconds": 782,
+   "updates": 404,
+   "parent_rss_mb": 2190,
+   "worker_rss_mb": [
+    2832,
+    2848,
+    2822,
+    2827
+   ]
+  },
+  {
+   "seconds": 802,
+   "updates": 415,
+   "parent_rss_mb": 2817,
+   "worker_rss_mb": [
+    2871,
+    2893,
+    2881,
+    2869
+   ]
+  },
+  {
+   "seconds": 822,
+   "updates": 424,
+   "parent_rss_mb": 2143,
+   "worker_rss_mb": [
+    2830,
+    2840,
+    2854,
+    2828
+   ]
+  },
+  {
+   "seconds": 842,
+   "updates": 434,
+   "parent_rss_mb": 2143,
+   "worker_rss_mb": [
+    2839,
+    2840,
+    2854,
+    2830
+   ]
+  },
+  {
+   "seconds": 862,
+   "updates": 444,
+   "parent_rss_mb": 2143,
+   "worker_rss_mb": [
+    2830,
+    2852,
+    2857,
+    2830
+   ]
+  },
+  {
+   "seconds": 882,
+   "updates": 454,
+   "parent_rss_mb": 2335,
+   "worker_rss_mb": [
+    2880,
+    2890,
+    2869,
+    2874
+   ]
+  },
+  {
+   "seconds": 902,
+   "updates": 464,
+   "parent_rss_mb": 2459,
+   "worker_rss_mb": [
+    2880,
+    2893,
+    2892,
+    2895
+   ]
+  },
+  {
+   "seconds": 922,
+   "updates": 474,
+   "parent_rss_mb": 2191,
+   "worker_rss_mb": [
+    2908,
+    2913,
+    2928,
+    2945
+   ]
+  },
+  {
+   "seconds": 942,
+   "updates": 483,
+   "parent_rss_mb": 2143,
+   "worker_rss_mb": [
+    2842,
+    2826,
+    2848,
+    2831
+   ]
+  },
+  {
+   "seconds": 962,
+   "updates": 493,
+   "parent_rss_mb": 2185,
+   "worker_rss_mb": [
+    2828,
+    2826,
+    2857,
+    2849
+   ]
+  }
+ ]
+}
