@@ -37,6 +37,7 @@ class IsaacLayer1EnvConfig:
     fixture_grid_xy: tuple[int, int] = (483, 1010)
     geometry_scope: str = "full"  # full or spawn_chunk (diagnostic only)
     terrain_extrusion_depth: float = 2.0
+    include_world_objects: bool = True  # measured static non-tile colliders (shuttle doors, crates...)
     player_depth: float = 0.2
     contact_friction: float = 0.0
     rounded_player_collider: bool = False
@@ -156,6 +157,22 @@ class IsaacLayer1NavigationEnv(gym.Env):
             physics_material=self.material,
             physics_material_path=self.material_path,
             only_chunks=chunk_filter)
+        self.world_objects = None
+        self.object_geometry_info = None
+        if self.cfg.include_world_objects:
+            from .collision_usd import author_static_object_colliders
+            from .world_objects import load_physics_audit
+            self.world_objects, _ = load_physics_audit()
+            colliders = self.world_objects.colliders
+            if chunk_filter is not None:
+                colliders = []
+                for cx, cy in chunk_filter:
+                    colliders += self.world_objects.in_region(
+                        cx * 64 - 512.0, cy * 64 - 512.0, cx * 64 - 448.0, cy * 64 - 448.0)
+                colliders = list(dict.fromkeys(colliders))
+            self.object_geometry_info = author_static_object_colliders(
+                self.stage, colliders, half_thickness=self.cfg.terrain_extrusion_depth / 2,
+                physics_material_path=self.material_path)
         self.geometry_build_seconds = time.perf_counter() - started
 
         initial_xy = self._spawn_world_xy()

@@ -1,0 +1,10981 @@
+{
+"colliders": [
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-768.0,
+0.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 0,
+"name": "World/Square (2)",
+"rotation_deg": 0.0,
+"size": [
+512.0,
+2056.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-503.6171875,
+33.000385
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 175.595635227377,
+"size": [
+1.8699802294435757,
+1.6199994498178845
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-500.355841,
+510.0003355
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": -12.08787546894256,
+"size": [
+3.000000287752335,
+3.0000028007150585
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-499.53527199999996,
+447.0004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 177.98473635731312,
+"size": [
+0.7500198915768687,
+0.9999991088995713
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-497.056641,
+477.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-496.365967,
+-345.999664
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-495.4762,
+-285.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-486.9353,
+38.00048
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-482.653931,
+-339.999573
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-482.18457,
+160.311966
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-481.9742435,
+160.00050349999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -59.78190703712202,
+"size": [
+0.7500047033619194,
+0.9999987002521518
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-480.2373,
+-486.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-478.64760950000004,
+25.58484265
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0136190000000056,
+4.831108099999998
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-477.818512,
+-135.999554
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -136.07177815293858,
+"size": [
+4.999996671797496,
+9.999991309337458
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-476.654419,
+20.58548735
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170181299999999
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-474.786133,
+11.0004377
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-474.6612245,
+25.58484265
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.013610999999969,
+4.831108099999998
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-467.7214355,
+173.00041199999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 153.65858548571902,
+"size": [
+5.000005938279329,
+10.00001098912075
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-466.62440000000004,
+240.0003815
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 124.86311037286991,
+"size": [
+0.7499767714009354,
+0.9999815007909129
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-466.0,
+-309.282
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-466.0,
+-305.723053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-465.3761,
+-250.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-459.7604925,
+89.000425
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 126.58375273714178,
+"size": [
+4.999989954099945,
+9.999995379189752
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-459.4359155,
+17.00033565
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -96.16689522021251,
+"size": [
+0.750002817282899,
+0.9999864890346765
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-457.0,
+133.718
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-457.0,
+137.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-456.9607,
+429.00048300000003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 19.940480080879823,
+"size": [
+1.8700120656124264,
+1.6200050883158013
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-451.7621,
+131.000427
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-451.02221699999996,
+-390.999817
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -67.93649524139937,
+"size": [
+5.000010339666905,
+10.00002067933381
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-448.407471,
+-47.9996758
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-447.95056750000003,
+-258.999514
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -140.68982983168362,
+"size": [
+3.999998601160256,
+3.9999890984038022
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-445.4467775,
+-329.99967200000003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 162.10557123560744,
+"size": [
+1.870003768152887,
+1.619986982182277
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-444.892456,
+-396.9995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-443.0,
+-412.282
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-443.0,
+-408.723053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-442.15808400000003,
+224.00024200000001
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 124.36058534873199,
+"size": [
+4.999990596399633,
+10.000005435662509
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-442.15783650000003,
+-374.9997255
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -177.7396648262888,
+"size": [
+0.7499735257600822,
+1.0000145745702864
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-441.733765,
+-115.99958
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-439.2960205,
+-195.999695
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -111.30167052368184,
+"size": [
+0.7500005612011504,
+1.0000208506650998
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-438.04931650000003,
+-173.9997865
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 111.47933153770444,
+"size": [
+0.7500104375726859,
+1.000031693638275
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-436.5724,
+346.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-435.7638,
+-14.9995689
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-434.5852,
+5.500495
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-434.0,
+-164.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-433.9812,
+5.000495
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-429.34655,
+151.00030850000002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 121.74318534345765,
+"size": [
+1.869994488501246,
+1.6200197705660906
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-428.0,
+-329.282
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-428.0,
+-325.723053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-427.084473,
+85.00023
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-426.359863,
+135.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-423.174309,
+-422.9997585
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 9.247529164937816,
+"size": [
+4.999981268866221,
+9.999981336413246
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-419.281738,
+-156.9997105
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 155.79864188824106,
+"size": [
+3.999996056194672,
+3.999990634704666
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-414.9731445,
+37.00049275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -101.6625769251886,
+"size": [
+0.7500012354171522,
+1.0000130881643667
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-414.0,
+-382.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-412.6549,
+215.0004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-410.6184,
+307.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-410.0,
+-10.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-408.77002,
+3.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-408.75863400000003,
+-268.9995725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -83.1483124952692,
+"size": [
+0.7499851767668791,
+0.9999981638563318
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-407.837982,
+340.000458
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-405.60022,
+-147.999619
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-405.0,
+-435.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-404.0,
+-399.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-402.77002,
+-385.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-402.060425,
+434.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-398.8402,
+-285.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-395.4783885,
+414.0003295
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 12.2284119290878,
+"size": [
+4.999970418748206,
+9.999993515618153
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-386.0,
+265.718
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-386.0,
+269.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-384.89282249999997,
+104.000473
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 86.33118684406746,
+"size": [
+1.8700053961229672,
+1.6200019419880594
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-383.506348,
+8.000355725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -136.8514746045313,
+"size": [
+5.000021031285745,
+10.000014154303647
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-380.75647,
+-42.9995728
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-380.204834,
+-12.999732
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "EmissiveCrystal(Clone)",
+"rotation_deg": 180.0,
+"size": [
+2.799987999999985,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-379.057373,
+-458.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-379.0,
+29.7179947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-379.0,
+33.27695
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-378.0378395,
+272.8063965
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 90.28189639976195,
+"size": [
+4.9999995163720605,
+10.000003003177563
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-377.276367,
+213.00029
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-375.128662,
+214.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-375.0,
+258.73
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-373.5205995,
+297.00033299999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 37.4046926957199,
+"size": [
+0.750026871807952,
+0.9999822177719041
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-371.286469,
+264.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-369.57825,
+-23.999624249999997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 108.74610193835784,
+"size": [
+3.999999488381984,
+3.9999935753340568
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-369.168335,
+-21.7484665
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-368.3473,
+303.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-367.052277,
+-256.9998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-366.8090865,
+371.000427
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -104.40500781301158,
+"size": [
+0.7500164512822776,
+1.0000123235090612
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-365.3728,
+369.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-364.591919,
+198.0004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-363.0,
+33.7179947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-363.0,
+37.27695
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-359.930054,
+-69.99953
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-359.0,
+-252.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-358.7378,
+-167.999573
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-355.1427,
+-317.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-354.6188965,
+135.000379
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -10.831933861860504,
+"size": [
+0.749996949908499,
+1.0000098232407477
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-353.614136,
+-360.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-341.175537,
+50.00026
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-338.1231745,
+-140.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -155.2216740643725,
+"size": [
+0.7499988279737488,
+0.9999891012631389
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-337.822754,
+492.000427
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-334.430664,
+-73.9996643
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-332.772827,
+106.000435
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-332.5205,
+0.00035859099999999144
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.000000018
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-328.245117,
+-377.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-327.1504,
+-350.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-327.0,
+211.718
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-327.0,
+215.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-326.18801199999996,
+-449.41531399999997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.013623999999993,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-326.077271,
+-329.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-324.194824,
+-454.414678
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170155999999963
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-322.20162949999997,
+-449.41531399999997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0136110000000258,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-321.400269,
+411.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-321.059937,
+411.500336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-317.0,
+-365.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-316.46142399999997,
+263.0003725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -105.73354068561821,
+"size": [
+0.750000124752661,
+0.9999874816026284
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-315.77002,
+-351.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-315.2211,
+361.58471699999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135999999999967,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-313.689209,
+269.0004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -23.372853363834878,
+"size": [
+0.7499879971146175,
+0.9999768862228559
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-313.2279,
+356.585373
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170196000000033
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-311.23470799999996,
+361.58471699999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0136160000000132,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-309.958862,
+33.00049
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-309.379033,
+165.0003355
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -155.98254050784988,
+"size": [
+0.7500141182204207,
+1.0000028228810076
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-309.087769,
+132.000229
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-306.89575,
+410.000427
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -68.14711636605526,
+"size": [
+4.000003614432884,
+4.000024768381311
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-304.8328795,
+68.00045
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 26.55369179751183,
+"size": [
+1.8699825426834957,
+1.6199879041489746
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-304.638916,
+-44.99960325
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -35.360517858544604,
+"size": [
+5.000019735849616,
+10.000007668252628
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-304.58410649999996,
+20.00037765
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -130.9037138006548,
+"size": [
+0.7499948777961117,
+0.9999933579539642
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-302.9689,
+445.03707899999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135999999999967,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-300.9757,
+440.0377185
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170163000000002
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-299.770874,
+475.00042099999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -112.42671285844168,
+"size": [
+4.999984488268945,
+9.999996164724138
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-299.0481,
+477.406647
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-298.9825095,
+445.03707899999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0136190000000056,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-295.32824700000003,
+-93.9996948
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 38.1629907724659,
+"size": [
+0.7499985569094041,
+0.9999915561354302
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-292.0,
+-192.282
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-292.0,
+-188.723053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-289.220459,
+419.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -17.766144462817525,
+"size": [
+0.7500016861687555,
+1.000001130747836
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-287.964844,
+-15.99951125
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0000008999999999
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-283.810425,
+55.0004425
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-281.5338,
+434.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-277.2517,
+-452.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-275.332764,
+388.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-274.5166,
+-37.99964
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-273.9593505,
+118.0004885
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 47.57763712940886,
+"size": [
+1.8699861451107191,
+1.6199967777770283
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-272.313843,
+391.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-271.5818,
+329.0004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-271.542358,
+477.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-270.366943,
+115.000305
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-269.7048305,
+174.00041399999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -130.94446518071993,
+"size": [
+0.7499856479959788,
+0.9999966515864274
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-269.0,
+426.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-268.0,
+-205.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-267.77002,
+439.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-266.0,
+-408.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-265.637451,
+10.00039405
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 35.18245796324762,
+"size": [
+0.7499816374098787,
+1.0000012512412417
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-264.948242,
+-386.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-264.77002,
+-394.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-262.835938,
+-176.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-262.77002,
+118.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-261.020874,
+9.000215
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-260.880249,
+-488.094421
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-260.404541,
+9.5002148
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+0.9999995999999989
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-260.29089350000004,
+126.0002975
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 178.88151510448952,
+"size": [
+3.999999133571025,
+4.000006405541376
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-259.5948485,
+-488.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 127.41778082286068,
+"size": [
+3.0000147578763126,
+3.0000155521024996
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-258.2173,
+-349.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-255.73822,
+-81.99957305000001
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -19.95115708422064,
+"size": [
+0.7499990629209025,
+0.9999937609081565
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-255.5615765,
+-386.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0000149999999906,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-249.26532,
+-30.9997139
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -11.130210819425091,
+"size": [
+0.7499885229250477,
+1.000000015120105
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-245.9903,
+19.0004959
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-245.5758515,
+134.00036849999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -114.97849569985226,
+"size": [
+0.7500057856750195,
+1.0000016468311623
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-243.669739,
+329.000427
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-241.089157,
+43.0002327
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-236.928787,
+-495.99951150000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -94.98635794430925,
+"size": [
+1.8699921319604411,
+1.6199920432474204
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-236.8714525,
+188.584923
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135950000000093,
+4.831099999999992
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-234.87825,
+183.5855635
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170181000000014
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-232.88504799999998,
+188.584923
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135959999999784,
+4.831099999999992
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-232.540344,
+-245.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-232.42511000000002,
+473.0003415
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 94.04872046349236,
+"size": [
+4.999978078200355,
+9.99999249923045
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-231.541687,
+265.00036650000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 117.92924159001093,
+"size": [
+1.8699955500965877,
+1.619993365696301
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-229.762513,
+-240.999573
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -60.32833508886641,
+"size": [
+4.000003762873847,
+4.000004631750333
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-229.57061449999998,
+-52.999622349999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -28.187859910339583,
+"size": [
+0.7500037793578389,
+1.0000021178477592
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-227.0548705,
+-236.9997865
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -36.382153981902455,
+"size": [
+0.7500149753611671,
+1.0000046854650348
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-226.40434299999998,
+-18.9996758
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "EmissiveCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.7999880000000132,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-223.0,
+68.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-221.77002,
+81.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-221.7400515,
+-446.9995655
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -78.85222372378315,
+"size": [
+1.8699995483347143,
+1.6200161253138683
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-220.383606,
+90.00032045
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 83.9060138366906,
+"size": [
+0.7500020926258879,
+1.0000122859166307
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-215.94574,
+159.00048850000002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -101.72939002369839,
+"size": [
+5.000005813836823,
+10.000012606792312
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-214.461365,
+108.000351
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -159.8962553662926,
+"size": [
+4.9999989894187955,
+10.00000643048417
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-213.724915,
+349.0004275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 79.33168031209374,
+"size": [
+4.000004859246026,
+4.000011566980895
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-208.912415,
+262.000458
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-205.816833,
+-502.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-204.0,
+-268.282
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-204.0,
+-264.723053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-194.266907,
+332.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -61.04714728399976,
+"size": [
+0.7500014152313472,
+1.0000015079293567
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-188.579651,
+284.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-185.156555,
+-434.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-181.47361,
+-465.41519200000005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135960000000068,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-180.47406,
+187.000351
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-180.26291650000002,
+316.58471699999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.013594999999981,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-179.480408,
+-470.414551
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170165999999995
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-179.4130265,
+430.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 1.5225808714913767,
+"size": [
+0.7499927994107721,
+1.000013252754188
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-178.269714,
+311.585373
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170196000000033
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-177.657776,
+-356.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-177.48720400000002,
+-465.41519200000005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135919999999885,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-177.48296900000003,
+372.00036650000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 16.692787849076648,
+"size": [
+1.870004497213837,
+1.6199985203999074
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-177.188416,
+133.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-176.276512,
+316.58471699999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135960000000068,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-176.0,
+27.73
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-175.9516,
+76.00049
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-172.0,
+397.718
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-172.0,
+401.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-170.58367950000002,
+-157.999619
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 43.36999420325731,
+"size": [
+1.8699899218512057,
+1.6200039450300807
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-169.751892,
+-250.9995725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 52.47636347188596,
+"size": [
+4.000000568663217,
+4.000000568663217
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-167.0,
+299.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-166.12811299999998,
+-413.99975600000005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 74.63296688624203,
+"size": [
+1.869986688338192,
+1.6199875604044098
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-165.77002,
+312.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-162.471985,
+-222.999664
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-161.27655,
+438.000305
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -5.271574056524219,
+"size": [
+0.7500062239875116,
+1.0000175470845503
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-158.12261949999998,
+-95.99975775
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 176.35977679412505,
+"size": [
+4.0000144217648,
+3.999995119837551
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-157.915833,
+-294.9995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-152.1112,
+-178.415314
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135999999999967,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-150.118,
+-183.4146655
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170180999999985
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-148.124796,
+-178.415314
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.013592000000017,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-147.4318235,
+-408.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -65.376115104911,
+"size": [
+4.0000044219221875,
+4.000006732670845
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-145.421814,
+171.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-145.1419,
+-321.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-144.578552,
+200.000381
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-144.0,
+372.73
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-143.913147,
+-46.999527
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-143.694275,
+-211.999588
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-139.564636,
+-92.9996262
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-136.71991,
+-190.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-135.941833,
+-415.9995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-134.117126,
+-283.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-132.432434,
+-203.418518
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-131.22283950000002,
+-208.392151
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -178.68919040511116,
+"size": [
+5.000011446647803,
+9.999992535142816
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-129.8736,
+-53.9995346
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-128.859192,
+333.000458
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.000000000000014,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-128.8462525,
+-166.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -146.55253150089246,
+"size": [
+4.999998120553249,
+9.99999644800763
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-128.1795045,
+27.000259399999997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 139.89725914192107,
+"size": [
+0.7500026927682449,
+1.0000031650807357
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-125.389221,
+45.00032
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-118.014473,
+32.0002136
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0000000000000036
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-111.41888449999999,
+251.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 25.816523224624653,
+"size": [
+5.000003221597564,
+9.999992911088894
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-110.823677,
+-239.9995575
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 3.489310724647376,
+"size": [
+3.000000489548294,
+3.0000069896847017
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-110.0,
+-431.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-108.61578349999999,
+-47.9996109
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 102.51203983088848,
+"size": [
+0.749997359212074,
+1.0000011624621978
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-107.59165200000001,
+282.58480799999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135959999999926,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-105.59845,
+277.585449
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170165999999995
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-105.25717900000001,
+-352.428765
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135959999999926,
+4.83113000000003
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-104.5287395,
+212.000351
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 19.24190857035652,
+"size": [
+1.8699994524258634,
+1.6200072085410744
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-104.0,
+21.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-103.60524749999999,
+282.58480799999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135949999999951,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-103.263977,
+-357.42810899999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170182000000011
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-102.77002,
+34.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-101.66351305,
+130.571518
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -117.69662967236663,
+"size": [
+5.000004699616295,
+10.000003621916992
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-101.659729,
+-47.9996026
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -8.632042050759315,
+"size": [
+1.8699982170619938,
+1.6200013311920582
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-101.270775,
+-352.428765
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135960000000068,
+4.83113000000003
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-99.0481575,
+134.0221405
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -33.993927152682055,
+"size": [
+0.7499968302126401,
+0.9999937937287346
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-98.848815,
+432.31010449999997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "SoothingCrystal(Clone)",
+"rotation_deg": 180.0,
+"size": [
+2.5700099999999964,
+2.6192930000000274
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-93.79584,
+-130.999557
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-92.88971000000001,
+229.000473
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 16.21715585937513,
+"size": [
+4.999999451294879,
+10.000005956670432
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-92.35297,
+-436.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-90.70184,
+-390.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-89.64996285000001,
+-360.999573
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 118.63972198044073,
+"size": [
+3.9999845164765784,
+4.000002195399816
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-88.16083,
+304.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-82.0,
+-347.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-81.79486,
+274.000427
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-80.77002,
+-333.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-76.26056,
+9.000284
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-69.26044,
+-360.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-69.0,
+-420.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-65.52826,
+-116.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-63.086367499999994,
+-186.9997555
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -16.07198102527912,
+"size": [
+1.8700045785665989,
+1.619991665151234
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-60.448059099999995,
+-49.999661
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 69.67585246815803,
+"size": [
+4.000003481021166,
+4.000002682210958
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-60.4395142,
+206.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-56.794128400000005,
+314.0004275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -146.013594462442,
+"size": [
+0.7500069094325593,
+0.999988649709863
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-56.61432,
+125.0004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-51.2383423,
+112.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-48.6171269,
+-138.999619
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 10.485558129214828,
+"size": [
+1.8700001879022068,
+1.6200016867643638
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-46.960022,
+-262.9995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-46.77002,
+-365.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-42.6170044,
+-285.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-41.26776,
+255.00029
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-39.3859253,
+-342.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-36.0310669,
+382.0002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-30.4976177,
+-432.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-29.6716919,
+-12.99959518
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -164.30973196565242,
+"size": [
+5.0000004397071915,
+10.000000391118114
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-20.7180786,
+-285.9995725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 151.84222723346898,
+"size": [
+3.999999049020141,
+3.9999767630480036
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-20.1941528,
+438.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-19.47381595,
+-266.9996645
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -106.63790310174427,
+"size": [
+4.999982402038973,
+10.000002660120147
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-17.3600464,
+131.00032
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-12.51885985,
+-405.9996385
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -126.62402963781105,
+"size": [
+0.7499918853339026,
+0.9999958262497007
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-8.676330785,
+322.000427
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.000000429999999,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-8.358093525000001,
+-232.99968
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 133.53188312831426,
+"size": [
+3.999998824224551,
+4.000002327799932
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-6.08416748,
+-499.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-5.5,
+508.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "ShuttleStarter(Clone)/shuttledoor",
+"rotation_deg": 0.0,
+"size": [
+1.0,
+6.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-4.190612895,
+403.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.00000021,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+-3.72955321,
+129.0004275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 113.64879080316902,
+"size": [
+0.7500009748148547,
+0.9999970667807029
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-1.70526123,
+-453.999573
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+0.0,
+-768.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Square (4)",
+"rotation_deg": 0.0,
+"size": [
+1025.0,
+512.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+0.0,
+768.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Square (6)",
+"rotation_deg": 0.0,
+"size": [
+1025.0,
+512.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+0.7051391599999999,
+-482.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+1.2299804695,
+519.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.500000001,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+5.5,
+508.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "ShuttleStarter(Clone)/shuttledoor (1)",
+"rotation_deg": 0.0,
+"size": [
+1.0,
+6.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+6.550598,
+-483.999664
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+7.773864875000001,
+-271.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0000002500000003,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+12.2096558,
+-103.999557
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+12.22998,
+-225.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+18.08319,
+62.0004768
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+18.6708374,
+-225.999695
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 18.386823396607237,
+"size": [
+0.7499964871848445,
+1.000000383936757
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+19.047668450000003,
+408.3101255
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "SoothingCrystal(Clone)",
+"rotation_deg": 180.0,
+"size": [
+2.5699997000000003,
+2.6192510000000198
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+20.0,
+-302.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+21.0122662,
+230.000488
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+27.5751343,
+143.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+27.81353745,
+396.00027
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -170.70439993897313,
+"size": [
+4.999998867085895,
+10.00000573602708
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+29.5740356,
+-162.99968
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+31.01178,
+263.3101255
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "SoothingCrystal(Clone)",
+"rotation_deg": 180.0,
+"size": [
+2.5699999999999967,
+2.6192510000000198
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+31.18512,
+-354.999573
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "ReliefCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.8200000000000003,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+32.199034999999995,
+281.0004645
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 47.17774849758634,
+"size": [
+0.7500130135492409,
+1.0000061301365888
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+36.084289999999996,
+-310.99951150000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": -168.5051400216393,
+"size": [
+2.999999634565107,
+2.9999917184362808
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+36.36139,
+34.0003929
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+40.45424715,
+370.58480799999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.013594299999994,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+42.44745,
+365.585449
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170165999999995
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+43.540794399999996,
+156.584778
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.013595599999995,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+44.44065155,
+370.58480799999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135969000000031,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+45.0,
+-287.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+45.5339966,
+151.58542649999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170180999999985
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+45.71637,
+-430.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+46.1654668,
+225.0004405
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 51.429088696419754,
+"size": [
+1.8700058859236155,
+1.6199978395250962
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+47.5271983,
+156.584778
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135965999999996,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+48.5302124,
+73.00034
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+48.59528,
+-370.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+49.7815552,
+-14.9997272
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+54.1306763,
+-471.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+54.1463,
+266.000458
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+56.1336899,
+-216.4151
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135956000000022,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+56.3202524,
+-449.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": -42.32289089682557,
+"size": [
+2.999997215266603,
+3.0000184932138416
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+58.1268921,
+-221.41445149999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170180999999985
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+58.17645335,
+-412.99958000000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -152.19854859214985,
+"size": [
+0.7499854501228448,
+0.9999887409344935
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+59.19915815,
+162.4681245
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -159.64725247121615,
+"size": [
+0.7499994064548902,
+1.000005893594021
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+59.50933835,
+159.0003505
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 101.00154809202469,
+"size": [
+2.9999887098194717,
+2.9999988149111587
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+60.1200943,
+-216.4151
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135956000000022,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+62.994200000000006,
+-367.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.000000000000007,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+64.501525,
+-6.999647195
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -98.22517983840153,
+"size": [
+0.7500005349749995,
+0.9999958321418145
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+65.388245,
+-5.999614785
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 66.94265196635946,
+"size": [
+0.7500020228913957,
+0.9999948375106116
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+68.72272,
+324.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+69.0,
+-72.2820053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+69.0,
+-68.72305
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+74.96600000000001,
+314.0002135
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -17.79787993306002,
+"size": [
+0.7500096334448493,
+0.9999933946126781
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+78.08392194999999,
+-375.99950950000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 162.09481772539206,
+"size": [
+1.8699940702973463,
+1.6200000542673487
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+78.54132,
+141.000351
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+80.22998,
+326.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+85.2547,
+-31.999576599999997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+0.9999999999999964
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+87.32587,
+-471.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+89.518455,
+300.58480799999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135899999999936,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+91.51166,
+295.585449
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170165999999995
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+91.859195,
+108.00024400000001
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -151.15951086650352,
+"size": [
+3.9999953375874,
+3.9999966959262614
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+91.93914720000001,
+-140.8045045
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 151.37727361970525,
+"size": [
+5.000005507207872,
+9.999992275134526
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+93.104795,
+-215.999527
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -94.32742053828719,
+"size": [
+5.00000332893899,
+9.999997699765188
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+93.50486000000001,
+300.58480799999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.013600000000011,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+96.10651,
+159.000473
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+97.935,
+430.0002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+98.96514915,
+-71.69014
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "SoothingCrystal(Clone)",
+"rotation_deg": 180.0,
+"size": [
+2.570007699999991,
+2.6192800000000034
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+99.0,
+389.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+100.22998,
+402.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+104.0,
+153.718
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+104.0,
+157.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+104.444153,
+-116.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+106.0,
+152.73
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+106.96064,
+-457.9998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+109.0,
+199.73
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+109.446594,
+-335.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+109.47609750000001,
+-333.41519200000005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135949999999951,
+4.831116000000009
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+110.904112,
+-118.999765
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -107.46414878890265,
+"size": [
+0.7499908883719785,
+1.0000013880480367
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+111.0,
+314.73
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+111.4693,
+-338.414551
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170165999999995
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+113.4625,
+-333.41519200000005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.013600000000011,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+114.3362425,
+113.310051
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "SoothingCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.570007000000004,
+2.6192780000000084
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+114.511658,
+365.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -70.81434279938934,
+"size": [
+4.999996476658748,
+10.000004822620085
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+114.761292,
+-13.9997225
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+119.9894415,
+-321.99978050000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 164.24742369308711,
+"size": [
+0.7500007557716142,
+1.00002052804981
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+132.347382,
+-251.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+136.9624,
+133.000229
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+142.8286,
+130.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+144.670151,
+-184.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+146.09410450000001,
+-396.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -71.77392655121922,
+"size": [
+3.9999976008883817,
+4.000006034177957
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+147.468,
+401.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+148.433945,
+75.00037225
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -13.155146628237762,
+"size": [
+1.8699966363683587,
+1.620005441198887
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+151.059677,
+-209.999512
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+152.896225,
+192.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+158.583061,
+-236.415222
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135959999999784,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+160.576263,
+-241.41457350000002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170180999999985
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+162.440796,
+-504.99963349999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -157.01450755838385,
+"size": [
+0.7500088863807001,
+1.0000137362521504
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+162.5694655,
+-236.415222
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135950000000093,
+4.831116000000009
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+164.515366,
+392.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+166.32856,
+-350.6301575
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135960000000068,
+4.831114999999954
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+168.321762,
+-355.629517
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170165999999995
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+170.3149645,
+-350.6301575
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135950000000093,
+4.831114999999954
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+171.5327,
+220.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+173.407173,
+243.584831
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135960000000068,
+4.831099999999992
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+174.442856,
+-192.99963400000001
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 99.0292008987624,
+"size": [
+1.869988996297293,
+1.6200022754394496
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+175.400375,
+238.58547199999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170181999999983
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+177.3935775,
+243.584831
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135950000000093,
+4.831099999999992
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+178.20079,
+183.000443
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+178.446274,
+134.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+183.984688,
+488.58465
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135960000000068,
+4.831099999999992
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+184.132309,
+-19.99954
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+185.069092,
+178.000473
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+185.97789,
+483.58529999999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170199999999966
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+187.971095,
+488.58465
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135899999999936,
+4.831099999999992
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+189.0849455,
+-226.99951149999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": -78.71762341272712,
+"size": [
+3.0000074971988067,
+3.000009265363335
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+190.5518265,
+5.1104620700000005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135950000000093,
+4.83110786
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+192.545029,
+0.11110687500000016
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.1701812700000005
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+193.0057,
+-20.9995022
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+194.538231,
+5.1104620700000005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135960000000068,
+4.83110786
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+196.1517,
+-341.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "ReliefCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.819999999999993,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+199.96167,
+-127.99978250000001
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0000069999999965
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+200.0270845,
+-409.99950950000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 20.54034425535054,
+"size": [
+0.7499967733644084,
+0.9999962099853544
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+201.659529,
+-207.9996945
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 169.43294590327,
+"size": [
+5.000002231160485,
+10.000001711540092
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+202.17541549999999,
+-126.99955750000001
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -76.5003831004392,
+"size": [
+0.7499993716830737,
+1.0000078872938813
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+206.869492,
+-213.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+208.163422,
+-328.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+208.568222,
+478.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+213.987411,
+480.0002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+217.304672,
+-85.99959
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+220.26268,
+55.0004234
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+222.610352,
+-253.793686
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+223.070557,
+159.000488
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+224.230942,
+-254.99958049999998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 11.297482266822131,
+"size": [
+2.9999940812874972,
+3.0000038875207977
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+227.4298,
+-348.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+236.0,
+-325.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+237.026108,
+314.0005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+243.2678195,
+-66.99958000000001
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 36.90835633480108,
+"size": [
+3.9999958411004717,
+4.000000334734052
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+244.272217,
+199.000412
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+244.776841,
+-354.99972549999995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 155.79167500858972,
+"size": [
+4.00001405460143,
+3.99998527874419
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+250.76828,
+3.00027561
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+251.653672,
+-439.99969450000003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -85.79169433722129,
+"size": [
+4.000012633856017,
+3.999997367567369
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+252.27252950000002,
+-437.4151365
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.013594999999981,
+4.831126999999981
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+254.265732,
+-442.4144865
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170172999999977
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+255.74132550000002,
+-445.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0000149999999906,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+256.25892650000003,
+-437.4151365
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135809999999879,
+4.831126999999981
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+257.5793455,
+411.0003665
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 69.94944264525688,
+"size": [
+4.000006561472735,
+4.000006218623659
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+259.442383,
+-405.999603
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -153.7860480351599,
+"size": [
+4.000021922787212,
+4.000021922787136
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+261.0,
+361.718
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+261.0,
+365.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+265.0529785,
+-145.999512
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -89.03142105565146,
+"size": [
+0.7499961626601791,
+0.9999906813405673
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+265.0702,
+507.000488
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -51.66478464647261,
+"size": [
+1.869971704558649,
+1.6199844940542392
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+266.0,
+-61.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+268.3226385,
+-61.999596
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -160.7587555553211,
+"size": [
+1.8700384898809392,
+1.6200001756124685
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+270.854858,
+-146.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+271.4104,
+-379.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+275.764038,
+-174.999709
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 155.39979597186058,
+"size": [
+0.749987934895573,
+0.999996460035724
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+277.967041,
+387.0002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+278.13795,
+191.0004595
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 118.98717463639481,
+"size": [
+1.8700002883817894,
+1.6200306985440178
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+280.7113,
+141.00029
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+280.85875999999996,
+455.0002405
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -21.469655345540545,
+"size": [
+4.999997089469746,
+10.000008932501862
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+283.72229000000004,
+80.00029
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 175.4117227421113,
+"size": [
+4.000000937690409,
+3.9999968643132657
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+291.032227,
+346.000519
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+295.38134049999996,
+-79.99961225
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": -129.10094198026613,
+"size": [
+5.0000002690792975,
+10.000018325448025
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+300.050049,
+312.0005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+302.314821,
+-4.999592195
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -80.48060821860348,
+"size": [
+4.000002293113974,
+3.9999793314620584
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+303.30993650000005,
+46.0004087
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 160.1656628978212,
+"size": [
+5.000011715502241,
+10.000003202269827
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+305.995483,
+50.34705
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+308.910034,
+304.00021849999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 91.69049460035635,
+"size": [
+0.7499894193880308,
+0.9999775541905542
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+309.5713,
+-97.99967
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+309.747955,
+-156.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+313.4375,
+342.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+316.938232,
+-302.9998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+320.0,
+-44.2820053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+320.0,
+-40.72305
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+320.05979,
+-34.68987655
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "SoothingCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.5700199999999995,
+2.6192779
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+320.5035385,
+-389.9996345
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 153.88930869639623,
+"size": [
+0.7499998873873109,
+0.999981249089172
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+322.537231,
+461.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+326.9873,
+15.3098526
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "SoothingCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.569999999999993,
+2.6192779999999996
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+327.503662,
+-228.999649
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+328.156616,
+28.0004539
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+331.007568,
+-146.9995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+340.7783205,
+-116.99973399999999
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 6.376850698702438,
+"size": [
+4.99999056658317,
+10.00000331867969
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+341.765869,
+234.0002745
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -26.061420029247884,
+"size": [
+0.7499936514218126,
+1.0000053014359496
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+342.612671,
+-174.364838
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+343.30041500000004,
+-174.99958800000002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 17.23313459057927,
+"size": [
+1.8699796365099615,
+1.6200151427900225
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+343.6764,
+280.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+343.9653,
+39.914279949999994
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135999999999967,
+4.831108100000002
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+345.9585,
+34.91492465
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170181300000003
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+347.9517,
+39.914279949999994
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0135999999999967,
+4.831108100000002
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+348.42420000000004,
+-493.9996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "OxygenCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.3000000000000114,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+350.574005,
+-475.99969450000003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 26.598300003170912,
+"size": [
+5.000025041724856,
+10.000005369892401
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+354.22998,
+146.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+355.0,
+117.717995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+355.0,
+121.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+355.078857,
+-391.9995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+356.80249249999997,
+32.00026325
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": -65.52118873862146,
+"size": [
+2.9999949422645376,
+2.999964370624423
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+357.96997799999997,
+457.0002135
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": -45.65563161181384,
+"size": [
+2.9999887399470317,
+2.9999954870381247
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+360.677123,
+455.00030549999997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -16.962510760216162,
+"size": [
+0.7500053425476254,
+0.9999964005760055
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+361.9171,
+-331.9998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+362.827148,
+-219.999756
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+367.0,
+-175.27
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+367.3948975,
+41.0856323
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 175.463362694502,
+"size": [
+4.9999791350617695,
+9.999999469359539
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+367.61315,
+-318.99965
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 61.8114892692229,
+"size": [
+4.000008201241589,
+3.9999992261700426
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+368.22998,
+432.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+369.0635645,
+-55.99951555
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -43.14371025289912,
+"size": [
+0.7500142505581295,
+0.9999945197221195
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+370.120729,
+72.0004654
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 36.707293811962,
+"size": [
+0.7500153803423687,
+1.0000144290124848
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+372.0,
+-321.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+373.22998,
+-307.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+375.062744,
+466.0005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+376.3274,
+84.0004044
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+378.1375745,
+329.0004575
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -143.4816359354079,
+"size": [
+3.999980486115004,
+3.9999901301154357
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+380.0,
+144.73
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+388.668335,
+-269.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "ReliefCrystal(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.82000800000003,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+393.457153,
+432.000366
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+394.04126,
+179.000488
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+398.9469,
+109.000214
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+399.487671,
+-149.999649
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+399.824338,
+-60.9997482
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -134.5395216979025,
+"size": [
+3.999993806188204,
+4.000009982263096
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+400.0055,
+165.0004885
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "dropcapsule(Clone)",
+"rotation_deg": 94.40642715669588,
+"size": [
+5.000008324639671,
+10.000015341442285
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+400.644653,
+265.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+408.22998,
+352.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+408.8645,
+217.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 81.03997463690726,
+"size": [
+3.9999980044157626,
+3.999986568998675
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+411.6316,
+-120.999687
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+411.71157600000004,
+126.000298
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 113.83240952141836,
+"size": [
+4.000002164853557,
+3.9999747676430415
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+411.718384,
+-400.9997
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+413.767212,
+491.0002745
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -147.06140495079777,
+"size": [
+4.000011743955394,
+4.000005219089198
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+415.0,
+-88.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+415.33373700000004,
+296.0004275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -141.90601552347422,
+"size": [
+0.7499887541456584,
+0.9999926666500818
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+416.22998,
+-74.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+418.5023,
+68.00035
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+419.81055000000003,
+-206.9997255
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 106.08609864164237,
+"size": [
+4.000013907738459,
+3.999989591618988
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+420.4373,
+-348.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+424.830563,
+433.00025
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -105.64629258290593,
+"size": [
+0.7499909315724952,
+1.0000063591803117
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+431.0,
+-351.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+431.0,
+-350.282
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+431.0,
+-346.723053
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+432.22998,
+-337.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+433.791138,
+-16.9997311
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+436.763666,
+304.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": 4.003375199991553,
+"size": [
+1.8699928961939982,
+1.6199689263242059
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+438.0,
+104.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+439.22998,
+117.62
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+443.473267,
+-390.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+451.1571045,
+-330.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 178.88796225234634,
+"size": [
+0.7500192610993075,
+0.9999613796592393
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+452.168335,
+-54.99955
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+452.531372,
+155.000336
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+454.0487,
+414.0005
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+454.84,
+107.000252
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+455.0996,
+-151.999527
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+456.324707,
+-147.99958800000002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "foodbox(Clone)",
+"rotation_deg": -77.76481096115916,
+"size": [
+1.8700054501260097,
+1.6199921989704178
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+458.153931,
+-460.999542
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+458.1918945,
+-253.99954200000002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -157.7143822236061,
+"size": [
+0.7499949158040692,
+1.00000362696343
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+458.3763685,
+-251.460739
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -104.5064802327341,
+"size": [
+0.7499994970731764,
+1.0000149234136533
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+459.829834,
+88.00026
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+461.8717,
+453.0002
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+463.515989,
+155.00035
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": -157.05068309255563,
+"size": [
+2.999991978465656,
+3.000007923483195
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+463.8317,
+478.000275
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+469.413666,
+286.0004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+471.98938599999997,
+148.000214
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": -12.438070063498298,
+"size": [
+0.7500317074691152,
+0.9999888212900231
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+473.0,
+-89.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "lifepodchest(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+2.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+473.22998,
+-175.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+474.0,
+125.717995
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "containercrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+3.0
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+474.0,
+129.276947
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 0.0,
+"size": [
+4.0,
+4.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+474.22998,
+-75.38
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "World/Grid/BACKGROUND(Clone)/lifepodshower",
+"rotation_deg": 0.0,
+"size": [
+1.5,
+0.75
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+474.564331,
+-261.999664
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+475.19894450000004,
+-281.4151365
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0136110000000258,
+4.831126999999981
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+477.192139,
+-286.4144865
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+5.170172999999977
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+479.18533349999996,
+-281.4151365
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 0.0,
+"size": [
+1.0136110000000258,
+4.831126999999981
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+488.5313405,
+-313.99964
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": 107.73416797510005,
+"size": [
+3.9999852860774587,
+3.9999856632743276
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+488.91610000000003,
+-442.41535
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0136000000000536,
+4.831099999999992
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+490.9093,
+-447.41470000000004
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+3.0,
+5.170199999999966
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+491.411959,
+91.00038225
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "shadecrawler(Clone)",
+"rotation_deg": 99.1261930181104,
+"size": [
+0.7499994422526273,
+1.0000241011272037
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+492.327148,
+-2.99959588
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+492.9025,
+-442.41535
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "drillpod(Clone)",
+"rotation_deg": 180.0,
+"size": [
+1.0135999999999967,
+4.831099999999992
+]
+},
+{
+"body_type": "Static",
+"bounciness": 0.0,
+"center": [
+495.8261725,
+466.00024099999996
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "medcrate(Clone)",
+"rotation_deg": -72.41578413704154,
+"size": [
+4.000016028802506,
+4.000005844898822
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+498.4784,
+95.00036
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+499.409668,
+-355.999634
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+499.789551,
+-279.999725
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+499.953125,
+472.000244
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+502.3081,
+23.0004082
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "jumppad(Clone)",
+"rotation_deg": 0.0,
+"size": [
+2.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+502.997559,
+-470.9998
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+506.639648,
+154.0003
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 6,
+"name": "spikestabber(Clone)",
+"rotation_deg": 0.0,
+"size": [
+3.0,
+1.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+768.0,
+0.0
+],
+"edge_radius": 0.0,
+"friction": 0.4,
+"kind": "box",
+"layer": 0,
+"name": "World/Square (3)",
+"rotation_deg": 0.0,
+"size": [
+512.0,
+2056.0
+]
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-410.0,
+4.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-404.0,
+-385.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-317.0,
+-351.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-269.0,
+440.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-266.0,
+-394.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-264.0,
+119.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-223.0,
+82.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-167.0,
+313.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-104.0,
+35.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-82.0,
+-333.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+-48.0,
+-365.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+0.0,
+520.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+11.0,
+-225.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+79.0,
+327.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+99.0,
+403.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+353.0,
+147.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+367.0,
+433.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+372.0,
+-307.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+407.0,
+353.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+415.0,
+-74.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+431.0,
+-337.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+438.0,
+118.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+472.0,
+-175.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+},
+{
+"body_type": "NoRigidbody(static)",
+"bounciness": 0.0,
+"center": [
+473.0,
+-75.0
+],
+"friction": 0.4,
+"kind": "circle",
+"layer": 6,
+"name": "LifePodLight(Clone)",
+"radius": 0.5
+}
+],
+"excluded_dynamic_initial_footprints": [
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-9.994,
+83.782
+],
+"bounds_size": [
+1.07202721,
+1.04808044
+],
+"name": "Experiment/Anim/CrusB"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.57,
+83.759
+],
+"bounds_size": [
+1.118021,
+0.891098
+],
+"name": "Experiment/Anim/CrusF"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.0563383,
+85.25
+],
+"bounds_size": [
+0.8873234,
+1.25
+],
+"name": "Experiment/Anim/DownTorso"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.007,
+82.95
+],
+"bounds_size": [
+1.30831909,
+1.355484
+],
+"name": "Experiment/Anim/FootB"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.757,
+82.974
+],
+"bounds_size": [
+1.18284988,
+1.42860413
+],
+"name": "Experiment/Anim/FootF"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.0,
+87.41
+],
+"bounds_size": [
+1.39999962,
+1.3999939
+],
+"name": "Experiment/Anim/Head"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-9.971118,
+84.4603
+],
+"bounds_size": [
+1.29311562,
+1.49204254
+],
+"name": "Experiment/Anim/ThighB"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.2444611,
+84.44502
+],
+"bounds_size": [
+1.02936459,
+1.35512543
+],
+"name": "Experiment/Anim/ThighF"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.0625181,
+86.25
+],
+"bounds_size": [
+0.87496376,
+1.25
+],
+"name": "Experiment/Anim/UpTorso"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.016,
+84.633
+],
+"bounds_size": [
+0.702198,
+1.56427
+],
+"name": "Experiment/Anim/UpTorso/Arms/DownArmB"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.1380005,
+84.654
+],
+"bounds_size": [
+0.7327957,
+1.57012939
+],
+"name": "Experiment/Anim/UpTorso/Arms/DownArmF"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-9.873,
+83.779
+],
+"bounds_size": [
+0.622497559,
+0.615448
+],
+"name": "Experiment/Anim/UpTorso/Arms/HandB"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.024,
+83.788
+],
+"bounds_size": [
+0.5316067,
+0.5220642
+],
+"name": "Experiment/Anim/UpTorso/Arms/HandF"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.118,
+85.876
+],
+"bounds_size": [
+0.5,
+1.25999451
+],
+"name": "Experiment/Anim/UpTorso/Arms/UpArmB"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-10.191,
+85.889
+],
+"bounds_size": [
+0.6707382,
+1.31739807
+],
+"name": "Experiment/Anim/UpTorso/Arms/UpArmF"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+126.042389,
+346.528076
+],
+"bounds_size": [
+3.21696472,
+3.21698
+],
+"name": "containercrate(Clone)"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+84.04962,
+422.868469
+],
+"bounds_size": [
+1.996933,
+1.76837158
+],
+"name": "foodbox(Clone)"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-66.12146,
+422.377045
+],
+"bounds_size": [
+5.391083,
+5.39111328
+],
+"name": "medcrate(Clone)"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-27.21804,
+510.8421
+],
+"bounds_size": [
+4.36072159,
+4.36074829
+],
+"name": "medcrate(Clone)"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+38.7635841,
+416.208
+],
+"bounds_size": [
+5.560646,
+5.560669
+],
+"name": "medcrate(Clone)"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+125.751556,
+349.827728
+],
+"bounds_size": [
+4.778221,
+4.77819824
+],
+"name": "medcrate(Clone)"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+-61.645195,
+390.0417
+],
+"bounds_size": [
+1.03522491,
+0.797668457
+],
+"name": "shadecrawler(Clone)"
+},
+{
+"body_type": "Dynamic",
+"bounds_center": [
+132.5491,
+395.0908
+],
+"bounds_size": [
+1.15002441,
+1.2411499
+],
+"name": "shadecrawler(Clone)"
+}
+],
+"schema": "casu.object-colliders.v1"
+}

@@ -1,0 +1,884 @@
+diff --git a/PPO_Harness/Plugin.cs b/PPO_Harness/Plugin.cs
+index cf85062..f2e5098 100644
+--- a/PPO_Harness/Plugin.cs
++++ b/PPO_Harness/Plugin.cs
+@@ -12,6 +12,7 @@ using System;
+ using System.Runtime.CompilerServices;
+ using System.Collections;
+ using System.Text;
++using Newtonsoft.Json;
+ using System.Reflection.Emit;
+ using UnityEngine.SceneManagement;
+ using UnityEngine.LowLevel;
+@@ -29,11 +30,24 @@ public class PPO_Harness : BaseUnityPlugin
+ 
+         Harmony harmony = new Harmony("sebastian.ppoharness");
+         harmony.PatchAll();
++        if (Environment.GetEnvironmentVariable("PPO_DIAG_RAGDOLL_CALLS") == "1")
++        {
++            PPORagdollCallDiagnostic.Log = Logger.LogError;
++            harmony.Patch(
++                AccessTools.Method(typeof(Body), nameof(Body.Ragdoll)),
++                prefix: new HarmonyMethod(typeof(PPORagdollCallDiagnostic), nameof(PPORagdollCallDiagnostic.Prefix))
++            );
++            Logger.LogInfo("Opt-in Body.Ragdoll diagnostic patch installed.");
++        }
+ 
+         PPOPhysicsBoundaryLoop.Install();
+         PPOBridge.EnsureTrainingFrameCap();
++        PPOBridge.TraceProtocol("plugin_awake");
+         if (PPOBridge.AutoStartEnabled)
++        {
++            PPOBridge.TraceProtocol("autostart_coroutine_start");
+             StartCoroutine(PPOBridge.RunAutoStart());
++        }
+         Logger.LogInfo(
+             $"Patches applied; timeScale={PPOBridge.TrainingTimeScale:0.##}, " +
+             $"fixed gameplay={PPOBridge.ForceBodyUpdatePerPhysicsTick}, " +
+@@ -84,12 +98,129 @@ public class PPO_Harness : BaseUnityPlugin
+ 
+     private void OnDestroy()
+     {
++        PPOBridge.TraceProtocol("plugin_destroy");
++        CollisionProbe.ClosePlayerTickTrace();
+         PPOPhysicsBoundaryLoop.Uninstall();
+         Application.logMessageReceived -= HandleUnityLogMessage;
+         SceneManager.sceneLoaded -= HandleSceneLoaded;
+     }
+ }
+ 
++// Opt-in, read-only diagnostic. It records the actual calling stack and
++// causal body values; it does not change the game method or CB1 protocol.
++public static class PPORagdollCallDiagnostic
++{
++    public static Action<string> Log;
++    static readonly FieldRef<Body, float> diagnosticSecondCheckTime = FieldRefAccess<Body, float>("secondCheckTime");
++
++    public static void Prefix(Body __instance)
++    {
++        if (__instance == null || PlayerCamera.main == null || PlayerCamera.main.body != __instance)
++            return;
++        try
++        {
++            string root = Environment.GetEnvironmentVariable("PPO_COUNTERFACTUAL_DIAGNOSTICS_ROOT");
++            if (string.IsNullOrWhiteSpace(root) || !Path.IsPathRooted(root))
++                throw new InvalidOperationException("diagnostic root must be explicitly absolute");
++            string dir = Path.Combine(root, "ragdoll-calls");
++            Directory.CreateDirectory(dir);
++            string path = Path.Combine(dir, "ragdoll-calls.jsonl");
++            File.AppendAllText(path, JsonConvert.SerializeObject(new {
++                phase = "entry",
++                utc = DateTime.UtcNow.ToString("o"),
++                frame = Time.frameCount,
++                fixedTime = Time.fixedTime,
++                stack = Environment.StackTrace
++            }) + Environment.NewLine);
++            string line = JsonConvert.SerializeObject(new {
++                utc = DateTime.UtcNow.ToString("o"),
++                frame = Time.frameCount,
++                fixedTime = Time.fixedTime,
++                fixedTimeAsDouble = Time.fixedTimeAsDouble,
++                time = Time.time,
++                physicsFixedUpdateIndex = PPOBridge.DiagnosticFixedUpdateIndex,
++                bodyUpdateIndex = PPOBridge.DiagnosticBodyUpdateIndex,
++                completedPolicyPhysicsTicks = PPOBridge.DiagnosticMacrostepPhysicsTicks,
++                activeActionSequence = PPOBridge.DiagnosticActionSequence,
++                standing = __instance.standing,
++                grounded = __instance.grounded,
++                bodyPosition = Vector3Fields(__instance.transform.position),
++                bodyVelocity = Vector2Fields(__instance.rb == null ? Vector2.zero : __instance.rb.velocity),
++                lastTimeStepVelocity = Vector2Fields(__instance.lastTimeStepVelocity),
++                mass = __instance.rb == null ? 0f : __instance.rb.mass,
++                mainColliderEnabled = __instance.col != null && __instance.col.enabled,
++                limbSimulation = __instance.limbs == null ? null : __instance.limbs.Select((limb, index) => new {
++                    index,
++                    simulated = limb != null && limb.rb != null && limb.rb.simulated,
++                    position = Vector3Fields(limb == null ? Vector3.zero : limb.transform.position),
++                    velocity = Vector2Fields(limb == null || limb.rb == null ? Vector2.zero : limb.rb.velocity),
++                    muscleHealth = limb == null ? 0f : limb.muscleHealth,
++                    totalForce = limb == null ? 0f : limb.totalForce,
++                    pain = limb == null ? 0f : limb.pain,
++                    dismembered = limb != null && limb.dismembered
++                }).ToArray(),
++                contacts = CaptureContacts(__instance),
++                nearbyTiles = PPOTerrainDiagnostics.NearbyTiles(__instance),
++                shock = __instance.shock,
++                consciousness = __instance.consciousness,
++                conscious = __instance.conscious,
++                averagePain = __instance.averagePain,
++                liquidRagdollBar = __instance.liquidRagdollBar,
++                liquidSlipTime = __instance.liquidSlipTime,
++                energy = __instance.energy,
++                stamina = __instance.stamina,
++                legSpeedMult = __instance.legSpeedMult,
++                actualStaminaStrength = __instance.actualStaminaStrength,
++                currentWeightMovementMult = __instance.currentWeightMovementMult,
++                currentTemperatureMovementMult = __instance.currentTemperatureMovementMult,
++                temporarySlowdown = __instance.temporarySlowdown,
++                overEncumberance = __instance.overEncumberance,
++                hunger = __instance.hunger,
++                thirst = __instance.thirst,
++                temperature = __instance.temperature,
++                temperatureMovementCurveAtTemperature = __instance.temperatureMovementCurve.Evaluate(__instance.temperature),
++                temperatureMovementCache = __instance.currentTemperatureMovementMult,
++                secondCheckTime = diagnosticSecondCheckTime(__instance),
++                stimulantMultiplier = __instance.stimulantMultiplier,
++                moveForce = __instance.moveForce,
++                maxSpeed = __instance.maxSpeed,
++                jumpSpeed = __instance.jumpSpeed,
++                actualMoveForce = __instance.actualMoveForce,
++                actualMaxSpeed = __instance.actualMaxSpeed,
++                actualJumpSpeed = __instance.actualJumpSpeed,
++                totalEncumberance = __instance.totalEncumberance,
++                moveDir = Vector2Fields(__instance.moveDir),
++                ragdollAction = PPOBridge.CurrentAction.Ragdoll,
++                actionMove = PPOBridge.CurrentAction.MoveDirection,
++                stack = Environment.StackTrace
++            });
++            File.AppendAllText(path, line + Environment.NewLine);
++        }
++        catch (Exception ex)
++        {
++            if (Log != null) Log("PPO ragdoll-call diagnostic failed: " + ex);
++            else Debug.LogError("PPO ragdoll-call diagnostic failed: " + ex);
++        }
++    }
++
++    static object CaptureContacts(Body body)
++    {
++        if (body.rb == null) return new object[0];
++        var contacts = new ContactPoint2D[32];
++        int count = body.rb.GetContacts(contacts);
++        return contacts.Take(count).Select(contact => new {
++            point = Vector2Fields(contact.point),
++            normal = Vector2Fields(contact.normal),
++            separation = contact.separation,
++            collider = contact.collider == null ? "<null>" : contact.collider.gameObject.name,
++            otherCollider = contact.otherCollider == null ? "<null>" : contact.otherCollider.gameObject.name
++        }).ToArray();
++    }
++
++    static float[] Vector2Fields(Vector2 value) => new[] { value.x, value.y };
++    static float[] Vector3Fields(Vector3 value) => new[] { value.x, value.y, value.z };
++}
++
+ static class PPOPhysicsBoundaryLoop
+ {
+     sealed class PostPhysics2DBoundaryMarker {}
+@@ -175,6 +306,122 @@ static class PPOPhysicsBoundaryLoop
+     }
+ }
+ 
++// Opt-in per-physics-tick player telemetry, written after the Unity 2D
++// solver and before the harness's deterministic manual Body.Update schedule.
++static class PPOPlayerPhysicsTrace
++{
++    static readonly FieldRef<Body, BlockInfo> standingOnRef =
++        FieldRefAccess<Body, BlockInfo>("standingOn");
++
++    public static void Record(Body body)
++    {
++        if (Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_PHYSICS_TRACE") != "1" ||
++            body == null || PlayerCamera.main == null || PlayerCamera.main.body != body)
++            return;
++        try
++        {
++            string root = Environment.GetEnvironmentVariable("PPO_COUNTERFACTUAL_DIAGNOSTICS_ROOT");
++            string session = Environment.GetEnvironmentVariable("PPO_COUNTERFACTUAL_SESSION");
++            if (string.IsNullOrWhiteSpace(root) || !Path.IsPathRooted(root))
++                throw new InvalidOperationException("physics trace requires an absolute diagnostics root");
++            if (string.IsNullOrWhiteSpace(session) || Path.GetFileName(session) != session ||
++                session.Any(ch => !(char.IsLetterOrDigit(ch) || ch == '-' || ch == '_')))
++                session = "unscoped";
++            // BoundaryProtocol owns the session's "unity" directory and
++            // requires it to be absent at CF_HELLO. Keep physics telemetry in
++            // a sibling so listeners can reserve the session before launch.
++            string dir = Path.Combine(root, session, "physics-trace");
++            Directory.CreateDirectory(dir);
++            WorldGeneration world = WorldGeneration.world;
++            Vector2 position = body.transform.position;
++            Vector2Int tile = world == null ? Vector2Int.zero : world.WorldToBlockPos(position);
++            ushort blockId = world == null ? (ushort)0 : world.GetBlock(tile);
++            BlockInfo tileInfo = world == null ? null : world.GetBlockInfo(blockId);
++            Vector2 velocity = body.rb == null ? Vector2.zero : body.rb.velocity;
++            var row = new {
++                utc = DateTime.UtcNow.ToString("o"),
++                physicsFixedUpdateIndex = PPOBridge.DiagnosticFixedUpdateIndex,
++                bodyUpdateIndex = PPOBridge.DiagnosticBodyUpdateIndex,
++                policyPhysicsTick = PPOBridge.DiagnosticMacrostepPhysicsTicks + 1,
++                actionSequence = PPOBridge.DiagnosticActionSequence,
++                frame = Time.frameCount,
++                fixedTime = Time.fixedTime,
++                fixedDeltaTime = Time.fixedDeltaTime,
++                position = new[] { position.x, position.y },
++                velocity = new[] { velocity.x, velocity.y },
++                mass = body.rb == null ? 0f : body.rb.mass,
++                standing = body.standing,
++                grounded = body.grounded,
++                mainColliderEnabled = body.col != null && body.col.enabled,
++                standingOn = standingOnRef(body) == null ? null : standingOnRef(body).name,
++                tile = new { x = tile.x, y = tile.y, id = blockId, name = tileInfo == null ? null : tileInfo.name },
++                nearbyTiles = PPOTerrainDiagnostics.NearbyTiles(body),
++                contacts = PPOTerrainDiagnostics.Contacts(body),
++                shock = body.shock,
++                consciousness = body.consciousness,
++                averagePain = body.averagePain,
++                temperature = body.temperature,
++                temperatureMovementMultiplier = body.currentTemperatureMovementMult,
++                legSpeedMult = body.legSpeedMult,
++                actualMoveForce = body.actualMoveForce,
++                actualMaxSpeed = body.actualMaxSpeed,
++                actualJumpSpeed = body.actualJumpSpeed,
++                stamina = body.stamina,
++                energy = body.energy,
++                totalEncumberance = body.totalEncumberance,
++                liquidSlipTime = body.liquidSlipTime,
++                action = new {
++                    move = PPOBridge.CurrentAction.MoveDirection,
++                    vertical = PPOBridge.CurrentAction.VerticalMovement,
++                    jump = PPOBridge.CurrentAction.Jump,
++                    crouch = PPOBridge.CurrentAction.Crouch,
++                    ragdoll = PPOBridge.CurrentAction.Ragdoll
++                }
++            };
++            File.AppendAllText(Path.Combine(dir, "player-physics.jsonl"),
++                JsonConvert.SerializeObject(row) + Environment.NewLine);
++        }
++        catch (Exception ex)
++        {
++            Debug.LogError("PPO player physics trace failed: " + ex);
++        }
++    }
++}
++
++static class PPOTerrainDiagnostics
++{
++    public static object NearbyTiles(Body body)
++    {
++        WorldGeneration world = WorldGeneration.world;
++        if (world == null || body == null) return new object[0];
++        Vector2Int center = world.WorldToBlockPos(body.transform.position);
++        var tiles = new List<object>();
++        for (int dx = -1; dx <= 1; dx++)
++        for (int dy = -2; dy <= 3; dy++)
++        {
++            Vector2Int position = center + new Vector2Int(dx, dy);
++            ushort id = world.GetBlock(position);
++            BlockInfo info = world.GetBlockInfo(id);
++            tiles.Add(new { x = position.x, y = position.y, dx, dy, id, name = info == null ? null : info.name });
++        }
++        return tiles;
++    }
++
++    public static object Contacts(Body body)
++    {
++        if (body == null || body.rb == null) return new object[0];
++        var contacts = new ContactPoint2D[32];
++        int count = body.rb.GetContacts(contacts);
++        return contacts.Take(count).Select(contact => new {
++            point = new[] { contact.point.x, contact.point.y },
++            normal = new[] { contact.normal.x, contact.normal.y },
++            separation = contact.separation,
++            collider = contact.collider == null ? "<null>" : contact.collider.gameObject.name,
++            otherCollider = contact.otherCollider == null ? "<null>" : contact.otherCollider.gameObject.name
++        }).ToArray();
++    }
++}
++
+ [HarmonyPatch(typeof(FluidManager), nameof(FluidManager.SimulationStep))]
+ public static class PPOFluidSimulationPerformancePatch
+ {
+@@ -220,13 +467,15 @@ public static class PPOChunkRefreshPerformancePatch
+ [HarmonyPatch(typeof(Body), "FixedUpdate")]
+ public static class PPOBodyFixedPerformancePatch
+ {
+-    static void Prefix(out long __state)
++    static void Prefix(Body __instance, out long __state)
+     {
++        PPOBridge.RecordDiagnosticPreFixedUpdate(__instance);
+         __state = PPOPerformanceInstrumentation.Start();
+     }
+ 
+     static void Postfix(Body __instance, long __state)
+     {
++        PPOBridge.RecordDiagnosticFixedUpdate(__instance);
+         PPOPerformanceInstrumentation.AddBodyFixedUpdate(__state, __instance);
+     }
+ }
+@@ -236,6 +485,7 @@ public static class PPOBodyUpdatePerformancePatch
+ {
+     static bool Prefix(Body __instance, out long __state)
+     {
++        PPOBridge.RecordDiagnosticBodyUpdate(__instance);
+         if (PPOBridge.ShouldReplacePlayerBodyUpdate(__instance))
+         {
+             __state = 0;
+@@ -1173,6 +1423,34 @@ public class Action
+ 
+ public static partial class PPOBridge
+ {
++    static long diagnosticFixedUpdateIndex;
++    static long diagnosticBodyUpdateIndex;
++    public static long DiagnosticFixedUpdateIndex => diagnosticFixedUpdateIndex;
++    public static long DiagnosticBodyUpdateIndex => diagnosticBodyUpdateIndex;
++    public static int DiagnosticMacrostepPhysicsTicks => macrostepPhysicsTicks;
++    public static ulong DiagnosticActionSequence => activeActionSequence;
++    public static void RecordDiagnosticFixedUpdate(Body body)
++    {
++        if (body != null && PlayerCamera.main != null && PlayerCamera.main.body == body)
++        {
++            diagnosticFixedUpdateIndex++;
++            CollisionProbe.RecordOccupancy(diagnosticFixedUpdateIndex);
++            CollisionProbe.RecordPlayerFixedUpdate(body, diagnosticFixedUpdateIndex,
++                activeActionSequence, macrostepPhysicsTicks);
++        }
++    }
++    public static void RecordDiagnosticPreFixedUpdate(Body body)
++    {
++        if (body != null && PlayerCamera.main != null && PlayerCamera.main.body == body)
++            CollisionProbe.RecordPlayerPreFixed(body, diagnosticFixedUpdateIndex + 1,
++                activeActionSequence, macrostepPhysicsTicks);
++    }
++    public static void RecordDiagnosticBodyUpdate(Body body)
++    {
++        if (body != null && PlayerCamera.main != null && PlayerCamera.main.body == body)
++            diagnosticBodyUpdateIndex++;
++    }
++
+     // Temporary protocol experiment: keep the full observation model and
+     // serializers intact, but omit fields that the current policy does not
+     // consume. Set this to true to restore the full observation packet.
+@@ -1509,6 +1787,7 @@ public static partial class PPOBridge
+     static float counterfactualBodyClock;
+     static bool counterfactualBodyClockInitialized;
+     static bool newMacrostepAction;
++    static bool diagnosticStandingFixtureInitialized;
+ 
+     static readonly object ActionLock = new object();
+     static ulong latestActionSequence;
+@@ -1553,10 +1832,15 @@ public static partial class PPOBridge
+     static readonly FieldRef<Body, float> jc = FieldRefAccess<Body, float>("jumpCooldown");
+     static readonly FieldRef<Body, float> tsg = FieldRefAccess<Body, float>("timeSinceGrounded");
+     static readonly FieldRef<Body, BlockInfo> so = FieldRefAccess<Body, BlockInfo>("standingOn");
++    static readonly FieldRef<Body, Vector2> origColSizeRef = FieldRefAccess<Body, Vector2>("origColSize");
+     static readonly FieldRef<Body, float> tr = FieldRefAccess<Body, float>("timeRagdolled");
+     static readonly FieldRef<Body, float> ct = FieldRefAccess<Body, float>("crawlTime");
+     static readonly FieldRef<Body, float> tsl = FieldRefAccess<Body, float>("timeSinceSlidLeft");
+     static readonly FieldRef<Body, float> tsr = FieldRefAccess<Body, float>("timeSinceSlidRight");
++    static readonly FieldRef<Body, AnimationCurve> temperatureMovementCurveRef =
++        FieldRefAccess<Body, AnimationCurve>("temperatureMovementCurve");
++    static readonly FieldRef<Body, float> temperatureMovementCacheRef =
++        FieldRefAccess<Body, float>("<currentTemperatureMovementMult>k__BackingField");
+ 
+     static string WorldGenerationState(string phase)
+     {
+@@ -1595,10 +1879,12 @@ public static partial class PPOBridge
+         if (!worldSeedApplicationPending || world == null)
+             return;
+ 
++        PPOBridge.TraceRandomPhase("before_apply_pending_world_seed", world);
+         UnityEngine.Random.InitState(activeWorldSeed);
+         appliedWorldSeed = activeWorldSeed;
+         seededWorldInstanceId = world.GetInstanceID();
+         worldSeedApplicationPending = false;
++        PPOBridge.TraceRandomPhase("after_apply_pending_world_seed", world);
+         Debug.Log(
+             $"PPO applied world seed {appliedWorldSeed} before " +
+             $"WorldGeneration.Start: world={seededWorldInstanceId}, " +
+@@ -1617,7 +1903,9 @@ public static partial class PPOBridge
+         // not execute until a later player-loop turn. Re-seed at that exact
+         // boundary so unrelated Start/Update work between those points cannot
+         // consume the generation stream first.
++        PPOBridge.TraceRandomPhase("before_reapply_world_seed_before_generation", world);
+         UnityEngine.Random.InitState(activeWorldSeed);
++        PPOBridge.TraceRandomPhase("after_reapply_world_seed_before_generation", world);
+         Debug.Log(
+             $"PPO reapplied world seed {activeWorldSeed} before generation: " +
+             $"world={world.GetInstanceID()}, scene={SceneManager.GetActiveScene().name}."
+@@ -1661,7 +1949,17 @@ public static partial class PPOBridge
+             finally
+             {
+                 generationState = UnityEngine.Random.state;
++                string savedExternal = PPOBridge.RandomStateFingerprint(externalState);
++                string currentGeneration = PPOBridge.RandomStateFingerprint(generationState);
+                 UnityEngine.Random.state = externalState;
++                string restoredExternal = PPOBridge.RandomStateFingerprint(UnityEngine.Random.state);
++                PPOBridge.TraceRandomIsolation(
++                    "generate_world_segment",
++                    savedExternal,
++                    currentGeneration,
++                    restoredExternal,
++                    savedExternal == restoredExternal
++                );
+             }
+ 
+             if (!hasNext)
+@@ -1683,6 +1981,7 @@ public static partial class PPOBridge
+         // Continue ordinary game randomness from the deterministic stream
+         // consumed by generation, not from frame-count-dependent callbacks.
+         UnityEngine.Random.state = generationState;
++        PPOBridge.TraceRandomPhase("generate_world_completed", WorldGeneration.world);
+     }
+ 
+     public struct GenerationUpdateRandomScope
+@@ -1701,16 +2000,34 @@ public static partial class PPOBridge
+         bool active = CounterfactualMode && world != null &&
+             world.generatingWorld &&
+             world.earthquakeDelay > 0f;
+-        return new GenerationUpdateRandomScope {
++        var scope = new GenerationUpdateRandomScope {
+             Active = active,
+             State = active ? UnityEngine.Random.state : default(UnityEngine.Random.State)
+         };
++        if (scope.Active)
++        {
++            string saved = PPOBridge.RandomStateFingerprint(scope.State);
++            PPOBridge.TraceRandomIsolation("world_update_save", saved, saved, saved, true);
++        }
++        return scope;
+     }
+ 
+     public static void EndGenerationUpdateRandomIsolation(GenerationUpdateRandomScope scope)
+     {
+         if (scope.Active)
++        {
++            string saved = PPOBridge.RandomStateFingerprint(scope.State);
++            string current = PPOBridge.RandomStateFingerprint(UnityEngine.Random.state);
+             UnityEngine.Random.state = scope.State;
++            string restored = PPOBridge.RandomStateFingerprint(UnityEngine.Random.state);
++            PPOBridge.TraceRandomIsolation(
++                "world_update_restore",
++                saved,
++                current,
++                restored,
++                saved == restored
++            );
++        }
+     }
+ 
+     public static void RecordSceneLoaded(Scene scene, LoadSceneMode mode)
+@@ -2852,6 +3169,8 @@ public static partial class PPOBridge
+ 
+         resetRequested = false;
+         resetComplete = false;
++        diagnosticStandingFixtureInitialized = false;
++        diagnosticPlayerFixtureInitialized = false;
+         activeResetToken = requestedResetToken;
+         activeWorldSeed = requestedWorldSeed;
+         appliedWorldSeed = 0;
+@@ -2873,6 +3192,7 @@ public static partial class PPOBridge
+             $"worldExists={WorldGeneration.world.worldExists}, " +
+             $"generating={WorldGeneration.world.generatingWorld}."
+         );
++        PPOBridge.TraceRandomPhase("reset_before_clear", WorldGeneration.world);
+         WorldGeneration.world.StartCoroutine(Reset());
+         return true;
+     }
+@@ -2880,6 +3200,9 @@ public static partial class PPOBridge
+     public static void PostPhysicsStep()
+     {
+         Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
++        CollisionProbe.RecordPlayerPostPhysics(body, diagnosticFixedUpdateIndex,
++            activeActionSequence, macrostepPhysicsTicks);
++        PPOPlayerPhysicsTrace.Record(body);
+         if (CounterfactualMode && counterfactualBodyClockInitialized &&
+             resetComplete && !awaitingPolicyAction)
+             counterfactualBodyClock += Time.fixedDeltaTime;
+@@ -3000,6 +3323,7 @@ public static partial class PPOBridge
+                     counterfactualBodyClock = currentBody.tempCheckTime;
+                     counterfactualBodyClockInitialized = true;
+                 }
++                PPOBridge.TraceRandomPhase("reset_complete_initial_boundary", world);
+                 awaitingPolicyAction = true;
+                 macrostepPhysicsTicks = 0;
+                 macrostepAttackSwingsExecuted = 0;
+@@ -3052,6 +3376,11 @@ public static partial class PPOBridge
+         if (!StartRan) Start();
+ 
+         EnsureCompletionProtocol();
++        PPOBridge.TraceProtocolBoundaryEntry(
++            "body=" + (body == null ? "null" : body.GetInstanceID().ToString()) +
++            " runtime_ready=" +
++            (CounterfactualRuntimeReadyToConnect(body) ? "1" : "0")
++        );
+ 
+         // Procedural generation runs on Unity's main thread. Do not open the
+         // diagnostic connection or enter the blocking policy wait until the
+@@ -3060,7 +3389,16 @@ public static partial class PPOBridge
+         if (CounterfactualMode && !CounterfactualRuntimeReadyToConnect(body))
+             return;
+ 
++        PPOBridge.TraceProtocol(
++            "ensure_connections_callsite",
++            "body=" + (body == null ? "null" : body.GetInstanceID().ToString())
++        );
+         EnsureConnections();
++        PPOBridge.TraceProtocol(
++            "ensure_connections_callsite_return",
++            "connected=" + (connected ? "1" : "0") +
++            " action_connected=" + (actionConnected ? "1" : "0")
++        );
+         if (!connected || !actionConnected)
+             return;
+ 
+@@ -3154,11 +3492,24 @@ public static partial class PPOBridge
+ 
+     static void EnsureConnections()
+     {
++        int call = PPOBridge.NextEnsureConnectionsCall();
++        PPOBridge.TraceProtocol(
++            "ensure_connections_enter",
++            "call=" + call +
++            " connected=" + (connected ? "1" : "0") +
++            " action_connected=" + (actionConnected ? "1" : "0")
++        );
+         if (!connected)
+         {
+             try
+             {
+                 Debug.Log("Connecting observation TCP stream...");
++                int attempt = PPOBridge.NextProtocolAttempt(true);
++                PPOBridge.TraceProtocol(
++                    "connection_attempt",
++                    "channel=observation attempt=" + attempt +
++                    " endpoint=" + TcpHost + ":" + ObservationPort
++                );
+                 obsClient = new TcpClient();
+                 // A transport reattach must not discard the serialized
+                 // observation held at the policy boundary.  The writer is
+@@ -3172,9 +3523,14 @@ public static partial class PPOBridge
+                 obsPipe = obsClient.GetStream();
+                 connected = true;
+                 Debug.Log("Observation TCP stream connected.");
++                PPOBridge.TraceProtocol("connection_success", "channel=observation");
+             }
+             catch (Exception ex)
+             {
++                PPOBridge.TraceProtocol(
++                    "connection_exception",
++                    "channel=observation exception=" + ex.ToString()
++                );
+                 Debug.LogWarning(
+                     $"Failed to connect to observation TCP stream. " +
+                     $"Is the Server process running? {ex.Message}"
+@@ -3187,6 +3543,12 @@ public static partial class PPOBridge
+             try
+             {
+                 Debug.Log("Connecting action TCP stream...");
++                int attempt = PPOBridge.NextProtocolAttempt(false);
++                PPOBridge.TraceProtocol(
++                    "connection_attempt",
++                    "channel=action attempt=" + attempt +
++                    " endpoint=" + TcpHost + ":" + ActionPort
++                );
+                 actionClient = new TcpClient();
+                 actionClient.Connect(TcpHost, ActionPort);
+                 actionPipe = actionClient.GetStream();
+@@ -3200,9 +3562,14 @@ public static partial class PPOBridge
+                 Debug.Log($"After StartActionReader alive={actionThread?.IsAlive}");
+ 
+                 actionConnected = true;
++                PPOBridge.TraceProtocol("connection_success", "channel=action");
+             }
+             catch (Exception ex)
+             {
++                PPOBridge.TraceProtocol(
++                    "connection_exception",
++                    "channel=action exception=" + ex.ToString()
++                );
+                 Debug.LogWarning(
+                     $"Failed to connect to action TCP stream. " +
+                     $"Is the Server process running? {ex.Message}"
+@@ -3597,7 +3964,13 @@ public static partial class PPOBridge
+                 Stopwatch.GetTimestamp() >= counterfactualReconnectNotBefore &&
+                 (!connected || !actionConnected))
+             {
++                PPOBridge.TraceProtocol("ensure_connections_reconnect_callsite");
+                 EnsureConnections();
++                PPOBridge.TraceProtocol(
++                    "ensure_connections_reconnect_callsite_return",
++                    "connected=" + (connected ? "1" : "0") +
++                    " action_connected=" + (actionConnected ? "1" : "0")
++                );
+             }
+             ProcessCounterfactualCommands();
+             if (shuttingDown)
+@@ -3642,7 +4015,7 @@ public static partial class PPOBridge
+                     SendActionAcknowledgement("RESUMED");
+                 }
+ 
+-                if (TryLatchPolicyAction())
++                if (TryLatchPolicyAction(body))
+                 {
+                     PlayerCamera playerCamera = PlayerCamera.main;
+                     if (playerCamera == null || playerCamera.body != body)
+@@ -3686,13 +4059,198 @@ public static partial class PPOBridge
+         finally { counterfactualInsideBoundary = false; }
+     }
+ 
+-    static bool TryLatchPolicyAction()
++    static void InitializeDiagnosticStandingFixture(Body body)
++    {
++        if (diagnosticStandingFixtureInitialized ||
++            Environment.GetEnvironmentVariable("PPO_DIAG_STANDING_FIXTURE") != "1")
++            return;
++        if (body == null || !body.standing || !body.alive || !body.conscious)
++            throw new InvalidOperationException(
++                "Standing fixture requires a live, conscious, standing player at the first action boundary."
++            );
++
++        float previous = temperatureMovementCacheRef(body);
++        float temperature = body.temperature;
++        float evaluated = temperatureMovementCurveRef(body).Evaluate(temperature);
++        if (float.IsNaN(evaluated) || float.IsInfinity(evaluated) || evaluated <= 0f)
++            throw new InvalidOperationException(
++                $"Standing fixture curve produced an invalid temperature movement multiplier: " +
++                $"temperature={temperature}, value={evaluated}."
++            );
++
++        if (previous <= 0f)
++            temperatureMovementCacheRef(body) = evaluated;
++        float applied = temperatureMovementCacheRef(body);
++        string root = Environment.GetEnvironmentVariable("PPO_COUNTERFACTUAL_DIAGNOSTICS_ROOT");
++        if (string.IsNullOrWhiteSpace(root) || !Path.IsPathRooted(root))
++            throw new InvalidOperationException("Standing fixture requires an absolute diagnostics root.");
++        Directory.CreateDirectory(root);
++        string path = Path.Combine(root, "standing-fixture.jsonl");
++        File.AppendAllText(path, JsonConvert.SerializeObject(new {
++            utc = DateTime.UtcNow.ToString("o"),
++            seed = activeWorldSeed,
++            actionSequence = activeActionSequence,
++            initializedFromGameCurve = true,
++            temperature,
++            temperatureMovementMultiplierBefore = previous,
++            temperatureMovementMultiplierCurveValue = evaluated,
++            temperatureMovementMultiplierAfter = applied,
++            standing = body.standing,
++            grounded = body.grounded,
++            position = new[] { body.transform.position.x, body.transform.position.y, body.transform.position.z },
++            assumption = "Initialize the game's existing cached temperature movement multiplier from its existing curve at the generated spawn temperature before the first resumed physics tick."
++        }) + Environment.NewLine);
++        diagnosticStandingFixtureInitialized = true;
++    }
++
++    static bool diagnosticPlayerFixtureInitialized;
++
++    static Dictionary<string, object> ApplyDiagnosticFlatTerrainFixture(
++        WorldGeneration world, int gridX, int gridY)
++    {
++        string mode = Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_FIXTURE_TERRAIN");
++        if (string.IsNullOrWhiteSpace(mode)) return null;
++        if (mode != "flat_soil")
++            throw new InvalidOperationException(
++                "PPO_DIAG_PLAYER_FIXTURE_TERRAIN supports only the explicit flat_soil fixture.");
++
++        const int halfRunway = 32;
++        const int clearHeight = 12;
++        const ushort soilBlockId = 1;
++        int minX = gridX - halfRunway;
++        int maxX = gridX + halfRunway;
++        int minY = gridY + 1;
++        int maxY = gridY + clearHeight;
++        if (minX < 2 || maxX >= (int)world.width - 2 || maxY >= (int)world.height - 1)
++            throw new InvalidOperationException("Flat terrain fixture exceeds the safe world interior.");
++
++        int changed = 0;
++        var touchedChunks = new HashSet<Vector2Int>();
++        // Change only the staged diagnostic run's generated world. Batch the
++        // terrain array writes, then use the source's ordinary full-chunk
++        // SetTile + ChunkUpdated rebuild path once for each affected chunk.
++        for (int x = minX; x <= maxX; x++)
++        {
++            if (world.GetBlock(new Vector2Int(x, gridY)) != soilBlockId) changed++;
++            world.SetBlockNoUpdate(new Vector2Int(x, gridY), soilBlockId);
++            touchedChunks.Add(world.BlockToChunkPos(new Vector2Int(x, gridY)));
++            for (int y = minY; y <= maxY; y++)
++            {
++                if (world.GetBlock(new Vector2Int(x, y)) != 0) changed++;
++                world.SetBlockNoUpdate(new Vector2Int(x, y), 0);
++                touchedChunks.Add(world.BlockToChunkPos(new Vector2Int(x, y)));
++            }
++        }
++
++        var chunks = touchedChunks.OrderBy(chunk => chunk.x).ThenBy(chunk => chunk.y).ToArray();
++        foreach (Vector2Int chunk in chunks) world.UpdateChunk(chunk);
++        Physics2D.SyncTransforms();
++
++        var result = new Dictionary<string, object> {
++            ["mode"] = mode,
++            ["terrain_mutated"] = true,
++            ["support_block_id"] = soilBlockId,
++            ["support_row_y"] = gridY,
++            ["runway_grid_bounds_inclusive"] = new[] { minX, gridY, maxX, gridY },
++            ["cleared_air_bounds_inclusive"] = new[] { minX, minY, maxX, maxY },
++            ["changed_cell_count"] = changed,
++            ["updated_chunk_xy"] = chunks.Select(chunk => new[] { chunk.x, chunk.y }).ToArray(),
++            ["collision_update_path"] = "SetBlockNoUpdate batch -> UpdateChunk -> ChunkUpdated",
++            ["scope"] = "opt-in staged CB1 process; discarded when this diagnostic Unity process exits"
++        };
++
++        string root = Environment.GetEnvironmentVariable("PPO_COUNTERFACTUAL_DIAGNOSTICS_ROOT");
++        string session = Environment.GetEnvironmentVariable("PPO_COUNTERFACTUAL_SESSION") ?? "session";
++        if (string.IsNullOrWhiteSpace(root) || !Path.IsPathRooted(root))
++            throw new InvalidOperationException("Flat terrain fixture requires an absolute diagnostics root.");
++        string filename = "terrain-fixture-" + session + ".json";
++        File.WriteAllText(Path.Combine(root, filename), JsonConvert.SerializeObject(result, Formatting.Indented));
++        result["diagnostic_file"] = filename;
++        return result;
++    }
++
++    static void InitializeDiagnosticPlayerFixture(Body body)
++    {
++        if (diagnosticPlayerFixtureInitialized) return;
++        string xText = Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_FIXTURE_GRID_X");
++        string yText = Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_FIXTURE_GRID_Y");
++        if (string.IsNullOrWhiteSpace(xText) && string.IsNullOrWhiteSpace(yText)) return;
++        if (!int.TryParse(xText, out int gridX) || !int.TryParse(yText, out int gridY))
++            throw new InvalidOperationException(
++                "Player fixture requires both integer PPO_DIAG_PLAYER_FIXTURE_GRID_X/Y values.");
++        if (body == null || !body.standing || !body.alive || !body.conscious || body.col == null || body.rb == null)
++            throw new InvalidOperationException("Player fixture requires a live standing body with collider and rigidbody.");
++        WorldGeneration world = WorldGeneration.world;
++        if (world == null || gridX < 2 || gridY < 1 ||
++            gridX >= (int)world.width - 2 || gridY >= (int)world.height - 8)
++            throw new InvalidOperationException("Player fixture grid coordinate is outside the safe interior.");
++
++        Dictionary<string, object> terrainFixture =
++            ApplyDiagnosticFlatTerrainFixture(world, gridX, gridY);
++
++        Vector2Int supportCell = new Vector2Int(gridX, gridY);
++        ushort supportId = world.GetBlock(supportCell);
++        if (supportId == 0)
++            throw new InvalidOperationException("Player fixture support cell is empty.");
++        Vector2 supportCenter = world.BlockToWorldPos(supportCell);
++        float targetX = supportCenter.x;
++        float supportTop = supportCenter.y + 0.5f;
++        float targetY = supportTop + body.col.size.y * 0.5f;
++        int xMin = Mathf.FloorToInt(targetX - body.col.size.x * 0.5f + (int)world.halfWidth);
++        int xMax = Mathf.FloorToInt(targetX + body.col.size.x * 0.5f + (int)world.halfWidth);
++        int yMin = gridY + 1;
++        int yMax = gridY + Mathf.CeilToInt(body.col.size.y) + 1;
++        for (int x = xMin; x <= xMax; x++)
++        for (int y = yMin; y <= yMax; y++)
++        {
++            if (world.GetBlock(new Vector2Int(x, y)) != 0)
++                throw new InvalidOperationException(
++                    $"Player fixture is obstructed at grid cell ({x},{y}).");
++        }
++
++        Vector3 originalPosition = body.transform.position;
++        body.rb.position = new Vector2(targetX, targetY);
++        body.rb.velocity = Vector2.zero;
++        body.rb.angularVelocity = 0f;
++        body.transform.position = new Vector3(targetX, targetY, originalPosition.z);
++        body.rb.rotation = 0f;
++        body.rb.gravityScale = 1f;
++        body.rb.constraints = RigidbodyConstraints2D.FreezeRotation;
++        body.rb.simulated = true;
++        body.moveDir = Vector2.zero;
++        body.lastTimeStepVelocity = Vector2.zero;
++        body.grounded = true;
++        body.endedJump = false;
++        body.crouchAmount = 0f;
++        body.col.enabled = true;
++        body.col.size = origColSizeRef(body);
++        body.col.offset = Vector2.zero;
++        tsg(body) = 0f;
++        jc(body) = 0f;
++        so(body) = world.GetBlockInfo(supportId);
++        diagnosticPlayerFixtureInitialized = true;
++        Debug.Log("DIAGNOSTIC_PLAYER_FIXTURE " + JsonConvert.SerializeObject(new {
++            seed = activeWorldSeed, grid_xy = new[] { gridX, gridY },
++            support_id = supportId, support_name = so(body) == null ? null : so(body).name,
++            support_top = supportTop, start_position = new[] { targetX, targetY },
++            collider_size = new[] { body.col.size.x, body.col.size.y },
++            verified_clear_cells = new[] { xMin, yMin, xMax, yMax },
++            terrain_fixture = terrainFixture,
++            caveat = "test-only relocation to validated empty standing area in the canonical terrain"
++        }));
++    }
++
++    static bool TryLatchPolicyAction(Body body)
+     {
+         if (!awaitingPolicyAction || ppoPauseRequested || ppoPaused)
+             return false;
+ 
+         lock (ActionLock)
+         {
++            if (latestActionSequence > activeActionSequence)
++                TraceProtocol("policy_action_latch_attempt",
++                    "active=" + activeActionSequence + " latest=" + latestActionSequence +
++                    " awaiting=" + (awaitingPolicyAction ? "1" : "0"));
+             if (latestActionSequence <= activeActionSequence)
+                 return false;
+ 
+@@ -3709,6 +4267,9 @@ public static partial class PPOBridge
+         awaitingPolicyAction = false;
+         newMacrostepAction = true;
+ 
++        InitializeDiagnosticStandingFixture(body);
++        InitializeDiagnosticPlayerFixture(body);
++
+         float capturedTimeScale = Time.timeScale > 0f
+             ? Time.timeScale
+             : policyResumeTimeScale;
+@@ -3773,7 +4334,7 @@ public static partial class PPOBridge
+         if (!resetComplete || resetRequested)
+             return;
+ 
+-        TryLatchPolicyAction();
++        TryLatchPolicyAction(playerCamera.body);
+         if (awaitingPolicyAction)
+             return;
+ 
+@@ -4385,6 +4946,7 @@ public static partial class PPOBridge
+ 
+         try
+         {
++            PPOBridge.TraceRandomPhase("reset_before_scene_load", sourceWorld);
+             Debug.Log($"PPO reset loading scene: {sceneName}.");
+ 		    SceneManager.LoadScene(sceneName);
+         }
+@@ -4404,6 +4966,7 @@ public static partial class PPOBridge
+     public static void MarkGenerationFinished(WorldGeneration world)
+     {
+         generationFinishedWorldInstanceId = world == null ? 0 : world.GetInstanceID();
++        PPOBridge.TraceRandomPhase("generation_finished", world);
+         Debug.Log(
+             $"PPO generation finished: world=" +
+             $"{generationFinishedWorldInstanceId}, " +
+@@ -4415,6 +4978,11 @@ public static partial class PPOBridge
+     
+     public static void Shutdown()
+     {
++        TraceProtocol(
++            "application_quitting",
++            "connected=" + (connected ? "1" : "0") +
++            " action_connected=" + (actionConnected ? "1" : "0")
++        );
+         shuttingDown = true;
+         SignalActionWaiters();
+ 
+@@ -4434,6 +5002,7 @@ public static class WorldGenerationSeedPatch
+ {
+     static void Prefix(WorldGeneration __instance)
+     {
++        PPOBridge.TraceRandomPhase("new_scene_before_world_start_seed", __instance);
+         PPOBridge.ApplyPendingWorldSeed(__instance);
+     }
+ }
+@@ -4455,11 +5024,14 @@ public static class WorldGenerationGenerateSeedPatch
+ {
+     static void Prefix(WorldGeneration __instance)
+     {
++        PPOBridge.TraceRandomPhase("generate_world_entry_before_reapply", __instance);
+         PPOBridge.ReapplyWorldSeedBeforeGeneration(__instance);
++        PPOBridge.TraceRandomPhase("generate_world_entry_after_reapply", __instance);
+     }
+ 
+     static void Postfix(WorldGeneration __instance, ref IEnumerator __result)
+     {
++        PPOBridge.TraceRandomPhase("generate_world_coroutine_created", __instance);
+         // World generation yields across player-loop turns. Keep its seeded
+         // stream isolated from unrelated Start/Update callbacks for the
+         // entire returned coroutine, including nested IEnumerator segments.

@@ -183,3 +183,58 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
         "half_thickness": half_thickness,
         "representation": "one static cuboid per merged occupancy rectangle within each source chunk",
     }
+
+
+def author_static_object_colliders(stage, colliders, *, half_thickness: float = 0.1,
+                                   physics_material_path: str | None = None,
+                                   root_path: str = "/World/CasUObjects") -> dict:
+    """Author the measured non-tile static colliders (doors, crates, pods...).
+
+    Boxes become scaled/rotated unit Cubes and circles become Y-axis Cylinders,
+    using the same planar-to-3D extrusion as the tile cuboids. ``colliders`` are
+    :class:`casu_grid.world_objects.ObjectCollider` records.
+    """
+    import math
+    from pxr import Gf, Sdf, UsdGeom
+
+    begin = perf_counter()
+    UsdGeom.Xform.Define(stage, root_path)
+    layer = stage.GetEditTarget().GetLayer()
+    parent = layer.GetPrimAtPath(root_path)
+    api_schemas = ["PhysicsCollisionAPI"]
+    if physics_material_path:
+        api_schemas.append("MaterialBindingAPI")
+    count = 0
+    with Sdf.ChangeBlock():
+        for index, collider in enumerate(colliders):
+            cx, cy = collider.center
+            if collider.kind == "box":
+                spec = Sdf.PrimSpec(parent, f"Box_{index}", Sdf.SpecifierDef, "Cube")
+                Sdf.AttributeSpec(spec, "size", Sdf.ValueTypeNames.Double).default = 1.0
+                order = ["xformOp:translate", "xformOp:rotateY", "xformOp:scale"]
+                Sdf.AttributeSpec(spec, "xformOp:rotateY", Sdf.ValueTypeNames.Float).default = (
+                    float(-collider.rotation_deg))
+                Sdf.AttributeSpec(spec, "xformOp:scale", Sdf.ValueTypeNames.Float3).default = Gf.Vec3f(
+                    float(collider.size[0]), float(2 * half_thickness), float(collider.size[1]))
+            elif collider.kind == "circle":
+                spec = Sdf.PrimSpec(parent, f"Circle_{index}", Sdf.SpecifierDef, "Cylinder")
+                Sdf.AttributeSpec(spec, "radius", Sdf.ValueTypeNames.Double).default = float(collider.radius)
+                Sdf.AttributeSpec(spec, "height", Sdf.ValueTypeNames.Double).default = float(2 * half_thickness)
+                Sdf.AttributeSpec(spec, "axis", Sdf.ValueTypeNames.Token,
+                                  variability=Sdf.VariabilityUniform).default = "Y"
+                order = ["xformOp:translate"]
+            else:
+                raise ValueError(f"unsupported object collider kind {collider.kind!r}")
+            spec.SetInfo("apiSchemas", Sdf.TokenListOp.Create(prependedItems=api_schemas))
+            Sdf.AttributeSpec(spec, "xformOp:translate", Sdf.ValueTypeNames.Double3).default = (
+                Gf.Vec3d(cx, 0.0, cy))
+            Sdf.AttributeSpec(spec, "xformOpOrder", Sdf.ValueTypeNames.TokenArray,
+                              variability=Sdf.VariabilityUniform).default = order
+            Sdf.AttributeSpec(spec, "physics:collisionEnabled", Sdf.ValueTypeNames.Bool).default = True
+            spec.SetInfo("documentation", collider.name)
+            if physics_material_path:
+                relationship = Sdf.RelationshipSpec(spec, "material:binding:physics")
+                relationship.targetPathList.explicitItems = [Sdf.Path(physics_material_path)]
+            count += 1
+    return {"object_collider_count": count, "build_seconds": perf_counter() - begin,
+            "representation": "static scaled/rotated Cube and Y-axis Cylinder prims from measured Unity colliders"}
