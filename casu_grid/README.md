@@ -137,14 +137,27 @@ validates Isaac's own lifecycle; it does not establish CasU contact parity.
 The rounded source tile/body contact, crouch collider, controlled source A/B,
 and multi-environment throughput remain unresolved.
 
-## Research workbench foundations
+## Isaac environment and research workbench
 
-`workbench/` contains editable action, observation, reward, model, and PPO
-contracts, a configurable actor-critic, and a resumable PPO trainer. The
-temporary example contract is engineering-only. The current 60-test suite
-includes actual optimizer updates and contract/checkpoint checks. A full
-canonical Isaac smoke ran two PPO updates, completed engineering episodes,
-restored a checkpoint and continued, recorded 24 trajectory rows, emitted
-TensorBoard events, and passed reset/replay plus collider rollback. The
-training launcher currently supports one Isaac environment. See
-[`workbench/README.md`](workbench/README.md) for commands and limits.
+The integrated environment (`isaac_navigation_env.py`, batched
+`isaac_vector_env.py`) runs a source-validated standing controller
+(`body_model.py`, `player_runtime.py`) on PhysX against the full canonical terrain
+and the measured static objects. Validation and measurements are summarised in
+[`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md) (player A/B in
+[`PLAYER_PHYSICS_AB_REPORT.md`](PLAYER_PHYSICS_AB_REPORT.md)); the source-game
+instrumentation is vendored in `source_harness/` and the recorded source traces
+are under `fixtures/*/source_traces/`.
+
+`workbench/` contains the editable action, observation, reward, model and PPO
+contracts, a configurable actor-critic, the resumable PPO trainer, the launch CLI
+(`workbench.train`) and a deterministic replay tool (`workbench.replay`). The
+contract in `engineering_smoke.py` is a temporary plumbing example only. See
+[`workbench/README.md`](workbench/README.md) for commands.
+
+Useful entry points (all run with the Isaac bundled Python):
+
+```bash
+"$ISAAC_SIM/python.sh" casu_grid/isaac_player_ab.py --trace flat_master --modes teacher,segment,free --output /tmp/ab.json
+"$ISAAC_SIM/python.sh" casu_grid/isaac_vector_smoke.py --num-envs 4 --output casu_grid/results/isaac_vector_validation.json
+"$ISAAC_SIM/python.sh" casu_grid/isaac_throughput_benchmark.py --terrain-mode shared --output /tmp/thr.json
+```

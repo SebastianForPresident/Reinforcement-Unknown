@@ -1,4 +1,39 @@
-# Player physics A/B evidence (2026-10-13)
+# Player physics A/B evidence
+
+## Current status (2026-10-13 rebuild) — read this first
+
+The sections after this one are the **historical** nominal-cuboid probes from
+Missions 11–12, kept for provenance. They describe an earlier Isaac proxy with
+a single rigid body and a simplified controller and are superseded by the
+following.
+
+* Isaac now runs a tick-for-tick port of the source `Body` controller
+  (`body_model.py`, `player_runtime.py`) on a rounded PhysX collider (edge radius
+  0.1, rest gap 0.1155) against the full terrain plus measured static objects.
+* Recorded CasU traces (`fixtures/*/source_traces/`: `flat_master`, `course_v1`,
+  `ice_run`, `immersed_standing`, `destroy_support`) hold pre-FixedUpdate,
+  post-FixedUpdate and post-Physics2D state for every tick. Source A/A
+  repeatability: `results/source_aa_repeatability_20261013.json` (velocity,
+  grounded, contacts identical on 700/700 and 720/720 ticks).
+* `isaac_player_ab.py` compares in three ways: *teacher-forced* (each tick starts
+  from the source state), *decision-level* (each 10-tick action starts from the
+  source state) and *free-run*. Results: `results/isaac_player_ab_*_20261013.json`;
+  the summary table and the list of residual differences are in
+  [`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md) sections 4 and 6.
+* Headline: grounded motion matches to ~2 mm mean per tick (teacher-forced) and
+  ~0.03 m per decision; airborne decisions match to ≤0.02 m; landings (0.1–0.25 m
+  mean) and rare Box2D tile-junction micro-bumps are the main residuals; free-run
+  trajectories diverge by 0.5 m within 8–13 decisions on moving traces.
+* Seam fix (this rebuild): coplanar terrain boxes braked the player at low speed
+  ("ghost" contacts). A terrain contact offset of 0.001 with a player contact
+  offset of 0.04 removes it; the previous 0.0165 player offset let 8 m/s landings
+  tunnel at the new terrain offset, which the course trace exposed.
+* Terrain destruction: with `terrain_collider_delay_ticks=31` the post-destruction
+  fall starts within ~one tick of CasU's; see `isaac_player_ab_destroy_support_d{31,0}_20261013.json`.
+* Not modelled: per-limb liquid forces, climbing/ropes, items, combat.
+
+---
+
 
 ## Source repeatability
 

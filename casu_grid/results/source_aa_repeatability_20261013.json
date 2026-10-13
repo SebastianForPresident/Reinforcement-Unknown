@@ -1,0 +1,28 @@
+{
+  "schema": "casu.source-aa-repeatability.v1",
+  "description": "Two independent staged CB1 runs of the same action tape (seed 391728405), policy-phase fixed ticks only (post-horizon rows excluded). Compared per tick.",
+  "flat_master": {
+    "ticks": 700,
+    "post_physics_velocity_mismatches": 0,
+    "post_physics_rb_position_mismatches": 0,
+    "post_physics_contact_count_mismatches": 0,
+    "pre_fixed_velocity_mismatches": 0,
+    "pre_fixed_grounded_mismatches": 0,
+    "pre_fixed_crouch_amount_mismatches": 0,
+    "pre_fixed_transform_position_mismatches": 16,
+    "pre_fixed_transform_position_max_abs_diff_m": 0.3903
+  },
+  "course_v1": {
+    "ticks": 720,
+    "post_physics_velocity_mismatches": 0,
+    "post_physics_rb_position_mismatches": 4,
+    "post_physics_rb_position_max_abs_diff_m": 1.52e-05,
+    "post_physics_contact_count_mismatches": 0,
+    "pre_fixed_velocity_mismatches": 0,
+    "pre_fixed_grounded_mismatches": 0,
+    "pre_fixed_crouch_amount_mismatches": 0,
+    "pre_fixed_transform_position_mismatches": 12,
+    "pre_fixed_transform_position_max_abs_diff_m": 0.3034
+  },
+  "note": "Rigidbody state (velocity, rb position, contact count, grounded, crouch) is repeatable. The interpolated Transform position sampled before FixedUpdate depends on render-frame timing and is not repeatable (up to 0.39 m); the Isaac port uses the rigidbody position."
+}

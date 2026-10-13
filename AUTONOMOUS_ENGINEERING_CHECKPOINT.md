@@ -1,5 +1,37 @@
 # Autonomous engineering checkpoint
 
+## Current state (2026-10-13, end of the continuation session)
+
+All workstreams of `Instructions.txt` are implemented and verified to the
+extent documented in `casu_grid/ACCEPTANCE_REPORT.md`, which is the consolidated
+final report (read it instead of this log). Summary:
+
+* Environment: canonical world + 601 measured static objects, source-validated
+  `Body` controller port on a rounded PhysX collider, per-world `EnvSlot`
+  (grid, fluid RNG, doors, terrain), single and batched (shared/independent
+  terrain) environments; exact reset/snapshot/restore and isolation checks pass.
+* Validation: source A/A repeatability, teacher-forced / decision-level /
+  free-run CasU-vs-Isaac A/B on five recorded scenarios, terrain destruction with
+  a configurable collider-refresh delay.
+* Workbench: configurable PPO with single/batched rollouts, resume, TensorBoard,
+  termination/reward-term diagnostics, deterministic replay; engineering smokes
+  passed (single, 4 worlds, resume, episode termination).
+* Throughput: 875 ticks/s single world, 1.7k ticks/s (170 decisions/s) at 16
+  shared worlds; the Python controller is the bottleneck.
+* 85 unit tests pass. Everything is committed on `isaac-lab` and pushed, except
+  the user-owned `PPO_Python/matched_pairs*` deletions, which stay unstaged.
+* Known limits (section 6 of the report): Box2D tile-junction micro-bumps and
+  landing details are not reproduced; no per-limb liquid forces; out-of-scope
+  mechanics (ropes, items, combat).
+* Possible follow-ups: compiled/multi-process controller for more throughput;
+  source A/A for the ice/immersed/destroy traces; modelling the Box2D junction
+  bump if long open-loop fidelity matters.
+
+---
+
+## Historical log (superseded; kept for provenance)
+
+
 Updated: 2026-10-13
 
 ## Objective and state

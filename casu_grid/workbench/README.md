@@ -75,26 +75,47 @@ update/environment counts and records the config file hash plus
 time, timestep, action cadence and fluid settings). Use `spawn_chunk` only with
 the focused diagnostic smokes; it is not a training world.
 
-The Isaac launcher supports a single world and a batched `--num-envs N` path.
-The batched path authors one isolated canonical terrain namespace and rigid
-player instance per world, with independent grids, fluid RNG streams,
-controllers, episode state, reset, snapshot and restore. `full` geometry uses
-one static triangle mesh per nonempty source chunk; `spawn_chunk` is a
-diagnostic-only local geometry path and must not be used as the canonical full
-world. Full-world vector throughput and replay measurements are written by
-`casu_grid/isaac_vector_smoke.py`. The trainer reports aggregate environment
-decisions/ticks per second and per-environment decision throughput.
-Snapshots include the complete source grid and scheduler/RNG state; chunk
-collider regeneration is wired for explicit terrain edits. Fluid grid updates
-run once per 20 ms source tick. Unity and Isaac callback order between
-`Body.FixedUpdate` and `LiquidAffect.FixedUpdate` is not pinned, so the
-environment exposes the phase as a config variable. Its PCG64 decisions are
-deterministic and replayable, but do not claim Unity RNG seed parity.
+## Launch options
 
-The optional `rounded_player_collider` setting expands player collision
-dimensions by the measured Unity `edgeRadius` as an engineering approximation.
-The Isaac navigation smoke checks the standing/crouched collider switching,
-reset and branch replay. Source crouch scale changes smoothly over fixed ticks;
-the currently authored PhysX shape selection changes when the controller's
-smoothed height first crosses the standing threshold. This transition remains
-an identified source-parity limitation.
+```bash
+"$ISAAC_SIM/python.sh" -m casu_grid.workbench.train --config <your_config.py> \
+  --num-envs 8 --updates 500 --run-dir experiments/my-run
+```
+
+* `--num-envs N` runs N independent worlds in one process (independent grids,
+  fluid RNG streams, controllers, doors and episode state). `--terrain-mode shared`
+  (default) shares one terrain; it is much cheaper but cannot edit terrain.
+  `independent` gives every world its own editable terrain (about N times the
+  build time and memory; see `ACCEPTANCE_REPORT.md` section 10).
+* `--episode-steps N` truncates episodes after N policy decisions (default 500).
+* `--resume <run>/latest.pt` continues a compatible run (same contracts).
+
+## Inspecting a run
+
+`metrics.jsonl` and TensorBoard hold losses, entropy, KL, gradient norm, reward
+terms, action frequencies, completed-episode returns/lengths, `termination/<reason>`
+counts (`time_limit`, `ragdoll:*`, `world_bounds`) and timing split into simulation
+(`physics_step_seconds`), rollout and optimisation seconds.
+`trajectories.jsonl` records every step's actions, rewards, poses and terminations
+(plus a marker where a world restarts).
+
+```bash
+"$ISAAC_SIM/python.sh" -m casu_grid.workbench.replay \
+  --config <your_config.py> --run-dir experiments/my-run
+```
+
+re-executes the recorded actions in a fresh environment, checks they reproduce the
+logged poses (`replay/summary.json`) and writes `replay/replay.csv` and
+`replay/paths.png`.
+
+## What the environment guarantees (and does not)
+
+The environment is the canonical Layer 1 world with a source-validated standing
+controller on PhysX: 0.02 s physics steps, ten per decision, exact reset and
+snapshot/restore, per-world isolation. It is not a bit-exact CasU replica;
+landings, rare tile-junction bumps and long open-loop trajectories differ. See
+`ACCEPTANCE_REPORT.md` section 6 before drawing conclusions about transfer to the
+real game. Fluid decisions use a seeded PCG64 stream (replayable, not Unity's RNG);
+the Body/LiquidAffect callback order is exposed as `liquid_affect_phase`.
+Terrain-edit collider refresh is immediate by default; `terrain_collider_delay_ticks=31`
+reproduces CasU's delayed refresh.
