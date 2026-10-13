@@ -90,15 +90,19 @@ cleanup() {
 record_owned_tree() {
     local parent="$1"
     local child
-    if ! [[ "$parent" =~ ^[1-9][0-9]*$ ]] || [[ ! -r "/proc/$parent/task/$parent/children" ]]; then
+    if ! [[ "$parent" =~ ^[1-9][0-9]*$ ]] || [[ ! -d "/proc/$parent" ]]; then
         return 0
     fi
     owned_pids+=("$parent")
+    # Descendants are discovered through parent-PID links (pgrep -P). The
+    # per-task "children" file is not readable across the unshare user
+    # namespace, which previously left the contained game running as an orphan
+    # after a failed run.
     while read -r child; do
         if [[ "$child" =~ ^[1-9][0-9]*$ ]]; then
             record_owned_tree "$child"
         fi
-    done < "/proc/$parent/task/$parent/children"
+    done < <(pgrep -P "$parent" || true)
 }
 
 terminate_owned_tree() {
@@ -115,6 +119,22 @@ terminate_owned_tree() {
         local pid="${owned_pids[$index]}"
         if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
             kill "$pid" 2>/dev/null || true
+        fi
+    done
+    # Bounded escalation for exactly the PIDs recorded above (never a pattern kill).
+    local deadline=$((SECONDS + 5))
+    local alive=1
+    while [[ "$alive" -eq 1 && "$SECONDS" -lt "$deadline" ]]; do
+        alive=0
+        for pid in "${owned_pids[@]}"; do
+            if [[ -d "/proc/$pid" ]]; then alive=1; fi
+        done
+        [[ "$alive" -eq 1 ]] && sleep 0.2
+    done
+    for pid in "${owned_pids[@]}"; do
+        if [[ "$pid" =~ ^[1-9][0-9]*$ && -d "/proc/$pid" ]]; then
+            echo "Escalating to SIGKILL for owned PID $pid" >&2
+            kill -9 "$pid" 2>/dev/null || true
         fi
     done
 }

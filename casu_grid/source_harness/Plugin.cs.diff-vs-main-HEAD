@@ -1,5 +1,5 @@
 diff --git a/PPO_Harness/Plugin.cs b/PPO_Harness/Plugin.cs
-index cf85062..f2e5098 100644
+index cf85062..5629724 100644
 --- a/PPO_Harness/Plugin.cs
 +++ b/PPO_Harness/Plugin.cs
 @@ -12,6 +12,7 @@ using System;
@@ -313,12 +313,13 @@ index cf85062..f2e5098 100644
          if (PPOBridge.ShouldReplacePlayerBodyUpdate(__instance))
          {
              __state = 0;
-@@ -1173,6 +1423,34 @@ public class Action
+@@ -1173,6 +1423,45 @@ public class Action
  
  public static partial class PPOBridge
  {
 +    static long diagnosticFixedUpdateIndex;
 +    static long diagnosticBodyUpdateIndex;
++    static int diagnosticProbeErrors;
 +    public static long DiagnosticFixedUpdateIndex => diagnosticFixedUpdateIndex;
 +    public static long DiagnosticBodyUpdateIndex => diagnosticBodyUpdateIndex;
 +    public static int DiagnosticMacrostepPhysicsTicks => macrostepPhysicsTicks;
@@ -336,8 +337,18 @@ index cf85062..f2e5098 100644
 +    public static void RecordDiagnosticPreFixedUpdate(Body body)
 +    {
 +        if (body != null && PlayerCamera.main != null && PlayerCamera.main.body == body)
-+            CollisionProbe.RecordPlayerPreFixed(body, diagnosticFixedUpdateIndex + 1,
-+                activeActionSequence, macrostepPhysicsTicks);
++        {
++            // Diagnostics must never be able to disturb the simulated game.
++            try
++            {
++                CollisionProbe.RecordPlayerPreFixed(body, diagnosticFixedUpdateIndex + 1,
++                    activeActionSequence, macrostepPhysicsTicks);
++            }
++            catch (Exception e)
++            {
++                if (diagnosticProbeErrors++ < 3) Debug.LogWarning("CB1 pre-fixed probe error: " + e);
++            }
++        }
 +    }
 +    public static void RecordDiagnosticBodyUpdate(Body body)
 +    {
@@ -348,7 +359,7 @@ index cf85062..f2e5098 100644
      // Temporary protocol experiment: keep the full observation model and
      // serializers intact, but omit fields that the current policy does not
      // consume. Set this to true to restore the full observation packet.
-@@ -1509,6 +1787,7 @@ public static partial class PPOBridge
+@@ -1509,6 +1798,7 @@ public static partial class PPOBridge
      static float counterfactualBodyClock;
      static bool counterfactualBodyClockInitialized;
      static bool newMacrostepAction;
@@ -356,7 +367,7 @@ index cf85062..f2e5098 100644
  
      static readonly object ActionLock = new object();
      static ulong latestActionSequence;
-@@ -1553,10 +1832,15 @@ public static partial class PPOBridge
+@@ -1553,10 +1843,15 @@ public static partial class PPOBridge
      static readonly FieldRef<Body, float> jc = FieldRefAccess<Body, float>("jumpCooldown");
      static readonly FieldRef<Body, float> tsg = FieldRefAccess<Body, float>("timeSinceGrounded");
      static readonly FieldRef<Body, BlockInfo> so = FieldRefAccess<Body, BlockInfo>("standingOn");
@@ -372,7 +383,7 @@ index cf85062..f2e5098 100644
  
      static string WorldGenerationState(string phase)
      {
-@@ -1595,10 +1879,12 @@ public static partial class PPOBridge
+@@ -1595,10 +1890,12 @@ public static partial class PPOBridge
          if (!worldSeedApplicationPending || world == null)
              return;
  
@@ -385,7 +396,7 @@ index cf85062..f2e5098 100644
          Debug.Log(
              $"PPO applied world seed {appliedWorldSeed} before " +
              $"WorldGeneration.Start: world={seededWorldInstanceId}, " +
-@@ -1617,7 +1903,9 @@ public static partial class PPOBridge
+@@ -1617,7 +1914,9 @@ public static partial class PPOBridge
          // not execute until a later player-loop turn. Re-seed at that exact
          // boundary so unrelated Start/Update work between those points cannot
          // consume the generation stream first.
@@ -395,7 +406,7 @@ index cf85062..f2e5098 100644
          Debug.Log(
              $"PPO reapplied world seed {activeWorldSeed} before generation: " +
              $"world={world.GetInstanceID()}, scene={SceneManager.GetActiveScene().name}."
-@@ -1661,7 +1949,17 @@ public static partial class PPOBridge
+@@ -1661,7 +1960,17 @@ public static partial class PPOBridge
              finally
              {
                  generationState = UnityEngine.Random.state;
@@ -413,7 +424,7 @@ index cf85062..f2e5098 100644
              }
  
              if (!hasNext)
-@@ -1683,6 +1981,7 @@ public static partial class PPOBridge
+@@ -1683,6 +1992,7 @@ public static partial class PPOBridge
          // Continue ordinary game randomness from the deterministic stream
          // consumed by generation, not from frame-count-dependent callbacks.
          UnityEngine.Random.state = generationState;
@@ -421,7 +432,7 @@ index cf85062..f2e5098 100644
      }
  
      public struct GenerationUpdateRandomScope
-@@ -1701,16 +2000,34 @@ public static partial class PPOBridge
+@@ -1701,16 +2011,34 @@ public static partial class PPOBridge
          bool active = CounterfactualMode && world != null &&
              world.generatingWorld &&
              world.earthquakeDelay > 0f;
@@ -457,7 +468,7 @@ index cf85062..f2e5098 100644
      }
  
      public static void RecordSceneLoaded(Scene scene, LoadSceneMode mode)
-@@ -2852,6 +3169,8 @@ public static partial class PPOBridge
+@@ -2852,6 +3180,8 @@ public static partial class PPOBridge
  
          resetRequested = false;
          resetComplete = false;
@@ -466,7 +477,7 @@ index cf85062..f2e5098 100644
          activeResetToken = requestedResetToken;
          activeWorldSeed = requestedWorldSeed;
          appliedWorldSeed = 0;
-@@ -2873,6 +3192,7 @@ public static partial class PPOBridge
+@@ -2873,6 +3203,7 @@ public static partial class PPOBridge
              $"worldExists={WorldGeneration.world.worldExists}, " +
              $"generating={WorldGeneration.world.generatingWorld}."
          );
@@ -474,7 +485,7 @@ index cf85062..f2e5098 100644
          WorldGeneration.world.StartCoroutine(Reset());
          return true;
      }
-@@ -2880,6 +3200,9 @@ public static partial class PPOBridge
+@@ -2880,6 +3211,9 @@ public static partial class PPOBridge
      public static void PostPhysicsStep()
      {
          Body body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
@@ -484,7 +495,15 @@ index cf85062..f2e5098 100644
          if (CounterfactualMode && counterfactualBodyClockInitialized &&
              resetComplete && !awaitingPolicyAction)
              counterfactualBodyClock += Time.fixedDeltaTime;
-@@ -3000,6 +3323,7 @@ public static partial class PPOBridge
+@@ -2984,6 +3318,7 @@ public static partial class PPOBridge
+             {
+                 resetComplete = true;
+                 initialObservationPending = true;
++                TryApplyEarlyDiagnosticTerrain();
+                 // The first policy boundary must be quiescent. The game can
+                 // restore timeScale from a loading/clock update after the
+                 // scene is ready; allowing even one variable wall-clock
+@@ -3000,6 +3335,7 @@ public static partial class PPOBridge
                      counterfactualBodyClock = currentBody.tempCheckTime;
                      counterfactualBodyClockInitialized = true;
                  }
@@ -492,7 +511,7 @@ index cf85062..f2e5098 100644
                  awaitingPolicyAction = true;
                  macrostepPhysicsTicks = 0;
                  macrostepAttackSwingsExecuted = 0;
-@@ -3052,6 +3376,11 @@ public static partial class PPOBridge
+@@ -3052,6 +3388,11 @@ public static partial class PPOBridge
          if (!StartRan) Start();
  
          EnsureCompletionProtocol();
@@ -504,7 +523,7 @@ index cf85062..f2e5098 100644
  
          // Procedural generation runs on Unity's main thread. Do not open the
          // diagnostic connection or enter the blocking policy wait until the
-@@ -3060,7 +3389,16 @@ public static partial class PPOBridge
+@@ -3060,7 +3401,16 @@ public static partial class PPOBridge
          if (CounterfactualMode && !CounterfactualRuntimeReadyToConnect(body))
              return;
  
@@ -521,7 +540,7 @@ index cf85062..f2e5098 100644
          if (!connected || !actionConnected)
              return;
  
-@@ -3154,11 +3492,24 @@ public static partial class PPOBridge
+@@ -3154,11 +3504,24 @@ public static partial class PPOBridge
  
      static void EnsureConnections()
      {
@@ -546,7 +565,7 @@ index cf85062..f2e5098 100644
                  obsClient = new TcpClient();
                  // A transport reattach must not discard the serialized
                  // observation held at the policy boundary.  The writer is
-@@ -3172,9 +3523,14 @@ public static partial class PPOBridge
+@@ -3172,9 +3535,14 @@ public static partial class PPOBridge
                  obsPipe = obsClient.GetStream();
                  connected = true;
                  Debug.Log("Observation TCP stream connected.");
@@ -561,7 +580,7 @@ index cf85062..f2e5098 100644
                  Debug.LogWarning(
                      $"Failed to connect to observation TCP stream. " +
                      $"Is the Server process running? {ex.Message}"
-@@ -3187,6 +3543,12 @@ public static partial class PPOBridge
+@@ -3187,6 +3555,12 @@ public static partial class PPOBridge
              try
              {
                  Debug.Log("Connecting action TCP stream...");
@@ -574,7 +593,7 @@ index cf85062..f2e5098 100644
                  actionClient = new TcpClient();
                  actionClient.Connect(TcpHost, ActionPort);
                  actionPipe = actionClient.GetStream();
-@@ -3200,9 +3562,14 @@ public static partial class PPOBridge
+@@ -3200,9 +3574,14 @@ public static partial class PPOBridge
                  Debug.Log($"After StartActionReader alive={actionThread?.IsAlive}");
  
                  actionConnected = true;
@@ -589,7 +608,7 @@ index cf85062..f2e5098 100644
                  Debug.LogWarning(
                      $"Failed to connect to action TCP stream. " +
                      $"Is the Server process running? {ex.Message}"
-@@ -3597,7 +3964,13 @@ public static partial class PPOBridge
+@@ -3597,7 +3976,13 @@ public static partial class PPOBridge
                  Stopwatch.GetTimestamp() >= counterfactualReconnectNotBefore &&
                  (!connected || !actionConnected))
              {
@@ -603,7 +622,7 @@ index cf85062..f2e5098 100644
              }
              ProcessCounterfactualCommands();
              if (shuttingDown)
-@@ -3642,7 +4015,7 @@ public static partial class PPOBridge
+@@ -3642,7 +4027,7 @@ public static partial class PPOBridge
                      SendActionAcknowledgement("RESUMED");
                  }
  
@@ -612,7 +631,7 @@ index cf85062..f2e5098 100644
                  {
                      PlayerCamera playerCamera = PlayerCamera.main;
                      if (playerCamera == null || playerCamera.body != body)
-@@ -3686,13 +4059,198 @@ public static partial class PPOBridge
+@@ -3686,13 +4071,237 @@ public static partial class PPOBridge
          finally { counterfactualInsideBoundary = false; }
      }
  
@@ -668,9 +687,9 @@ index cf85062..f2e5098 100644
 +    {
 +        string mode = Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_FIXTURE_TERRAIN");
 +        if (string.IsNullOrWhiteSpace(mode)) return null;
-+        if (mode != "flat_soil")
++        if (mode != "flat_soil" && mode != "course_v1")
 +            throw new InvalidOperationException(
-+                "PPO_DIAG_PLAYER_FIXTURE_TERRAIN supports only the explicit flat_soil fixture.");
++                "PPO_DIAG_PLAYER_FIXTURE_TERRAIN supports only flat_soil or course_v1.");
 +
 +        const int halfRunway = 32;
 +        const int clearHeight = 12;
@@ -679,25 +698,41 @@ index cf85062..f2e5098 100644
 +        int maxX = gridX + halfRunway;
 +        int minY = gridY + 1;
 +        int maxY = gridY + clearHeight;
-+        if (minX < 2 || maxX >= (int)world.width - 2 || maxY >= (int)world.height - 1)
++        if (minX < 2 || maxX >= (int)world.width - 2 || maxY >= (int)world.height - 1 ||
++            gridY - 5 < 2)
 +            throw new InvalidOperationException("Flat terrain fixture exceeds the safe world interior.");
 +
 +        int changed = 0;
 +        var touchedChunks = new HashSet<Vector2Int>();
++        var edits = new List<int[]>();
 +        // Change only the staged diagnostic run's generated world. Batch the
 +        // terrain array writes, then use the source's ordinary full-chunk
 +        // SetTile + ChunkUpdated rebuild path once for each affected chunk.
++        void Set(int x, int y, ushort id)
++        {
++            ushort old = world.GetBlock(new Vector2Int(x, y));
++            if (old != id) { changed++; edits.Add(new[] { x, y, old, id }); }
++            world.SetBlockNoUpdate(new Vector2Int(x, y), id);
++            touchedChunks.Add(world.BlockToChunkPos(new Vector2Int(x, y)));
++        }
 +        for (int x = minX; x <= maxX; x++)
 +        {
-+            if (world.GetBlock(new Vector2Int(x, gridY)) != soilBlockId) changed++;
-+            world.SetBlockNoUpdate(new Vector2Int(x, gridY), soilBlockId);
-+            touchedChunks.Add(world.BlockToChunkPos(new Vector2Int(x, gridY)));
-+            for (int y = minY; y <= maxY; y++)
-+            {
-+                if (world.GetBlock(new Vector2Int(x, y)) != 0) changed++;
-+                world.SetBlockNoUpdate(new Vector2Int(x, y), 0);
-+                touchedChunks.Add(world.BlockToChunkPos(new Vector2Int(x, y)));
-+            }
++            Set(x, gridY, soilBlockId);
++            for (int y = minY; y <= maxY; y++) Set(x, y, 0);
++        }
++        if (mode == "course_v1")
++        {
++            // Right of the start: a 1-tile step block, a 2-tile block, and a full-height wall.
++            for (int x = gridX + 8; x <= gridX + 11; x++) Set(x, gridY + 1, soilBlockId);
++            for (int x = gridX + 16; x <= gridX + 19; x++)
++            for (int y = gridY + 1; y <= gridY + 2; y++) Set(x, y, soilBlockId);
++            for (int y = gridY + 1; y <= maxY; y++) Set(gridX + 24, y, soilBlockId);
++            // Left of the start: a low tunnel (three free rows) and a 3-wide, 4-deep pit.
++            for (int x = gridX - 14; x <= gridX - 6; x++)
++            for (int y = gridY + 4; y <= gridY + 5; y++) Set(x, y, soilBlockId);
++            for (int x = gridX - 24; x <= gridX - 22; x++)
++            for (int y = gridY - 3; y <= gridY; y++) Set(x, y, 0);
++            for (int x = gridX - 24; x <= gridX - 22; x++) Set(x, gridY - 4, soilBlockId);
 +        }
 +
 +        var chunks = touchedChunks.OrderBy(chunk => chunk.x).ThenBy(chunk => chunk.y).ToArray();
@@ -712,6 +747,7 @@ index cf85062..f2e5098 100644
 +            ["runway_grid_bounds_inclusive"] = new[] { minX, gridY, maxX, gridY },
 +            ["cleared_air_bounds_inclusive"] = new[] { minX, minY, maxX, maxY },
 +            ["changed_cell_count"] = changed,
++            ["cell_edits_x_y_old_new"] = edits,
 +            ["updated_chunk_xy"] = chunks.Select(chunk => new[] { chunk.x, chunk.y }).ToArray(),
 +            ["collision_update_path"] = "SetBlockNoUpdate batch -> UpdateChunk -> ChunkUpdated",
 +            ["scope"] = "opt-in staged CB1 process; discarded when this diagnostic Unity process exits"
@@ -725,6 +761,28 @@ index cf85062..f2e5098 100644
 +        File.WriteAllText(Path.Combine(root, filename), JsonConvert.SerializeObject(result, Formatting.Indented));
 +        result["diagnostic_file"] = filename;
 +        return result;
++    }
++
++    static Dictionary<string, object> earlyTerrainFixtureResult;
++    static bool earlyTerrainFixtureApplied;
++
++    /// <summary>
++    /// Apply the opt-in terrain fixture at the paused reset-complete boundary so Unity's
++    /// deferred (next-frame) tile-collider regeneration has finished long before the
++    /// first action latch relocates the body onto the new terrain.
++    /// </summary>
++    static void TryApplyEarlyDiagnosticTerrain()
++    {
++        if (earlyTerrainFixtureApplied) return;
++        string xText = Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_FIXTURE_GRID_X");
++        string yText = Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_FIXTURE_GRID_Y");
++        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PPO_DIAG_PLAYER_FIXTURE_TERRAIN")) ||
++            !int.TryParse(xText, out int gridX) || !int.TryParse(yText, out int gridY))
++            return;
++        WorldGeneration world = WorldGeneration.world;
++        if (world == null) return;
++        earlyTerrainFixtureApplied = true;
++        earlyTerrainFixtureResult = ApplyDiagnosticFlatTerrainFixture(world, gridX, gridY);
 +    }
 +
 +    static void InitializeDiagnosticPlayerFixture(Body body)
@@ -744,7 +802,7 @@ index cf85062..f2e5098 100644
 +            throw new InvalidOperationException("Player fixture grid coordinate is outside the safe interior.");
 +
 +        Dictionary<string, object> terrainFixture =
-+            ApplyDiagnosticFlatTerrainFixture(world, gridX, gridY);
++            earlyTerrainFixtureResult ?? ApplyDiagnosticFlatTerrainFixture(world, gridX, gridY);
 +
 +        Vector2Int supportCell = new Vector2Int(gridX, gridY);
 +        ushort supportId = world.GetBlock(supportCell);
@@ -812,7 +870,7 @@ index cf85062..f2e5098 100644
              if (latestActionSequence <= activeActionSequence)
                  return false;
  
-@@ -3709,6 +4267,9 @@ public static partial class PPOBridge
+@@ -3709,6 +4318,9 @@ public static partial class PPOBridge
          awaitingPolicyAction = false;
          newMacrostepAction = true;
  
@@ -822,7 +880,7 @@ index cf85062..f2e5098 100644
          float capturedTimeScale = Time.timeScale > 0f
              ? Time.timeScale
              : policyResumeTimeScale;
-@@ -3773,7 +4334,7 @@ public static partial class PPOBridge
+@@ -3773,7 +4385,7 @@ public static partial class PPOBridge
          if (!resetComplete || resetRequested)
              return;
  
@@ -831,7 +889,7 @@ index cf85062..f2e5098 100644
          if (awaitingPolicyAction)
              return;
  
-@@ -4385,6 +4946,7 @@ public static partial class PPOBridge
+@@ -4385,6 +4997,7 @@ public static partial class PPOBridge
  
          try
          {
@@ -839,7 +897,7 @@ index cf85062..f2e5098 100644
              Debug.Log($"PPO reset loading scene: {sceneName}.");
  		    SceneManager.LoadScene(sceneName);
          }
-@@ -4404,6 +4966,7 @@ public static partial class PPOBridge
+@@ -4404,6 +5017,7 @@ public static partial class PPOBridge
      public static void MarkGenerationFinished(WorldGeneration world)
      {
          generationFinishedWorldInstanceId = world == null ? 0 : world.GetInstanceID();
@@ -847,7 +905,7 @@ index cf85062..f2e5098 100644
          Debug.Log(
              $"PPO generation finished: world=" +
              $"{generationFinishedWorldInstanceId}, " +
-@@ -4415,6 +4978,11 @@ public static partial class PPOBridge
+@@ -4415,6 +5029,11 @@ public static partial class PPOBridge
      
      public static void Shutdown()
      {
@@ -859,7 +917,7 @@ index cf85062..f2e5098 100644
          shuttingDown = true;
          SignalActionWaiters();
  
-@@ -4434,6 +5002,7 @@ public static class WorldGenerationSeedPatch
+@@ -4434,6 +5053,7 @@ public static class WorldGenerationSeedPatch
  {
      static void Prefix(WorldGeneration __instance)
      {
@@ -867,7 +925,7 @@ index cf85062..f2e5098 100644
          PPOBridge.ApplyPendingWorldSeed(__instance);
      }
  }
-@@ -4455,11 +5024,14 @@ public static class WorldGenerationGenerateSeedPatch
+@@ -4455,11 +5075,14 @@ public static class WorldGenerationGenerateSeedPatch
  {
      static void Prefix(WorldGeneration __instance)
      {

@@ -54,10 +54,22 @@ namespace CB1.Counterfactual
         }
 
 
+        static T? SafeValue<T>(Func<T> read) where T : struct
+        {
+            try { return read(); }
+            catch { return null; }
+        }
+
         static object Vec2(object value)
         {
             if (value is Vector2 v) return new[] { v.x, v.y };
             return value;
+        }
+
+        static object SafeExtra(Body body)
+        {
+            try { return ExtraPlayerState(body); }
+            catch (Exception e) { return new { probe_error = e.GetType().Name + ": " + e.Message }; }
         }
 
         /// <summary>Additional private controller state used for exact controller replay.</summary>
@@ -77,15 +89,31 @@ namespace CB1.Counterfactual
                 stand_lerp_time = InstanceField(body, "standLerpTime"),
                 accel_rot = InstanceField(body, "accelRot"),
                 crouching = body.crouching,
-                leg_speed_mult = body.legSpeedMult,
-                actual_jump_speed = body.actualJumpSpeed,
-                wants_jump_input = camera == null ? (bool?)null : camera.wantsJumpInput,
+                wall_slide_slowdown_raw = InstanceField(body, "wallSlideSlowdown"),
+                actual_wall_slide_slowdown = SafeValue(() => body.actualWallSlideSlowdown),
+                actual_stamina_strength = SafeValue(() => body.actualStaminaStrength),
+                energy = InstanceField(body, "energy"),
+                stamina = InstanceField(body, "stamina"),
+                force_walk = InstanceField(body, "forceWalk"),
+                moving_allowed = InstanceField(body, "movingAllowed"),
+                liquid_slip_time = InstanceField(body, "liquidSlipTime"),
+                max_speed_raw = InstanceField(body, "maxSpeed"),
+                move_force_raw = InstanceField(body, "moveForce"),
+                jump_speed_raw = InstanceField(body, "jumpSpeed"),
+                slowdown_amount_raw = InstanceField(body, "slowdownAmount"),
+                climbing = InstanceField(body, "currentClimbable") != null,
+                orig_col_size = Vec2(InstanceField(body, "origColSize")),
+                target_look_pos = Vec2(InstanceField(body, "targetLookPos")),
+                harmer_time_was_still = SafeValue(() => body.harmer.timeWasStill),
+                leg_speed_mult = SafeValue(() => body.legSpeedMult),
+                actual_jump_speed = SafeValue(() => body.actualJumpSpeed),
+                wants_jump_input = SafeValue(() => camera.wantsJumpInput),
                 body_position = new[] { body.transform.position.x, body.transform.position.y },
                 rb_position = body.rb == null ? null : new[] { body.rb.position.x, body.rb.position.y },
                 rb_rotation = body.rb == null ? 0f : body.rb.rotation,
                 visual_body_offset = Vec2(InstanceField(body, "visualBodyOffset")),
-                in_water = body.inWater,
-                was_water = body.bodyAffect == null ? (bool?)null : body.bodyAffect.wasWater
+                in_water = SafeValue(() => body.inWater),
+                was_water = SafeValue(() => body.bodyAffect.wasWater)
             };
         }
 
@@ -226,7 +254,7 @@ namespace CB1.Counterfactual
                 contacts_truncated = contactCount >= playerContacts.Length,
                 contact_count = contactCount, contacts,
                 liquid = PlayerLiquidSamples(body),
-                extra = ExtraPlayerState(body)
+                extra = SafeExtra(body)
             }));
             playerTickWriter.Flush();
         }
@@ -279,7 +307,7 @@ namespace CB1.Counterfactual
                 gravity_scale = body.rb == null ? 0f : body.rb.gravityScale,
                 collider_size = body.col == null ? null : new[] { body.col.size.x, body.col.size.y },
                 collider_offset = body.col == null ? null : new[] { body.col.offset.x, body.col.offset.y },
-                extra = ExtraPlayerState(body)
+                extra = SafeExtra(body)
             }));
             playerPreFixedWriter.Flush();
         }
@@ -532,7 +560,7 @@ namespace CB1.Counterfactual
                 grounded = body.grounded,
                 contact_count = count, contacts_truncated = count >= playerContacts.Length, contacts,
                 liquid = PlayerLiquidSamples(body),
-                extra = ExtraPlayerState(body)
+                extra = SafeExtra(body)
             }));
             playerPostPhysicsWriter.Flush();
         }
