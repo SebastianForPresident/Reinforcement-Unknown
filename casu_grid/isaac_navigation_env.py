@@ -58,6 +58,10 @@ class IsaacLayer1EnvConfig:
     action_decimation: int = 10
     episode_length_steps: int = 500
     spawn_mode: str = "canonical"  # canonical or fixture
+    navigation_mode: bool = False
+    spawn_clearance_attempts: int = 50000
+    goal_radius_x: int = 42
+    goal_radius_y: int = 24
     fixture_grid_xy: tuple[int, int] = (483, 1010)
     geometry_scope: str = "full"  # full or spawn_chunk (diagnostic only)
     terrain_extrusion_depth: float = 2.0
@@ -108,6 +112,8 @@ class IsaacLayer1EnvConfig:
             raise ValueError("episode_length_steps must be positive")
         if self.spawn_mode not in {"canonical", "fixture"}:
             raise ValueError("spawn_mode must be 'canonical' or 'fixture'")
+        if self.spawn_clearance_attempts <= 0 or self.goal_radius_x < 0 or self.goal_radius_y < 0:
+            raise ValueError("navigation sampling limits must be positive")
         if self.geometry_scope not in {"full", "spawn_chunk"}:
             raise ValueError("geometry_scope must be 'full' or 'spawn_chunk'")
         if self.terrain_extrusion_depth <= 0 or self.player_depth <= 0:
@@ -208,6 +214,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
                             door_defs=door_defs, fluid_seed=self.cfg.fluid_rng_seed,
                             body_config=self.controller_config)
         self.slot.on_doors_changed = self._apply_door_state
+        self.np_random = np.random.default_rng(self.cfg.seed)
         self._door_bodies = []
         self._construct_simulation()
 
@@ -389,7 +396,10 @@ class IsaacLayer1NavigationEnv(gym.Env):
         return StandingAction(move_x=get_head("move_x") - 1,
                               jump=bool(get_head("jump")),
                               crouch=bool(get_head("crouch")),
-                              move_y=get_head("move_y") - 1)
+                              move_y=get_head("move_y") - 1,
+                              attack=bool(get_head("attack")),
+                              look_dx=get_head("look_dx", 4)-4,
+                              look_dy=get_head("look_dy", 5)-5)
 
     def _body_state(self):
         return self.slot.body_dict()
@@ -440,6 +450,9 @@ class IsaacLayer1NavigationEnv(gym.Env):
         self._last_state = self._body_state()
 
     def _default_observation(self, _env):
+        if self.cfg.navigation_mode:
+            from .xy1 import encode_xy1_observation
+            return encode_xy1_observation(self)
         return {"player_state": self.slot.default_observation_vector()}
 
     def _format_observation(self):
@@ -467,6 +480,24 @@ class IsaacLayer1NavigationEnv(gym.Env):
             self.np_random, _ = gym.utils.seeding.np_random(seed)
         if self.slot.reset_logical():
             self._refresh_mutated_colliders()
+        if self.cfg.navigation_mode:
+            if seed is not None:
+                self.np_random = rng = np.random.default_rng(seed)
+            else:
+                rng = self.np_random
+            self.slot.spawn_rng = rng
+            spawn = self._sample_clear_spawn(rng)
+            self.slot.spawn_xy = spawn
+            self.slot.goal_cell, self.slot.goal_world_xy = self._sample_goal(rng, spawn)
+            self.slot.best_goal_distance = self._goal_distance(spawn, self.slot.goal_world_xy)
+            from .xy1 import BestDistanceReward
+            self.slot.xy1_reward = BestDistanceReward(self.slot.best_goal_distance)
+            s = self.slot.model.s
+            s.x, s.y, s.vx, s.vy = spawn[0], spawn[1], 0.0, 0.0
+            s.grounded = False
+            s.crouch_amount = 0.0
+            s.ragdoll_event = None
+            self.slot.last_state = self.slot.body_dict()
         self._apply_door_state()
         self._write_body_to_sim()
         self.sim.step(render=False)   # let PhysX register the freshly written state
@@ -477,27 +508,106 @@ class IsaacLayer1NavigationEnv(gym.Env):
                                              self.reference.manifest["content_id"],
                                              "spawn_mode": self.cfg.spawn_mode}
 
+    def reset_done(self, mask):
+        if not bool(np.asarray(mask,dtype=bool).reshape(-1)[0]):
+            return self._format_observation()
+        return self.reset()[0]
+
+    def _sample_clear_spawn(self, rng):
+        """Uniformly propose world tile centers; accept only full standing-body clearance."""
+        half_w, half_h = self.controller_config.orig_col_size[0] / 2, self.controller_config.orig_col_size[1] / 2
+        for _ in range(self.cfg.spawn_clearance_attempts):
+            gx = int(rng.integers(0, self.grid.width)); gy = int(rng.integers(0, self.grid.height))
+            x, y = gx - self.grid.width / 2 + 0.5, gy - self.grid.height / 2 + 0.5
+            # Query the complete standing footprint. This allows solid ground below and air above,
+            # while preventing initial overlap with terrain or world objects.
+            if not self.slot.ground_world.overlap_box((x, y), (2 * half_w - 0.02, 2 * half_h - 0.02)):
+                return float(x), float(y)
+        raise RuntimeError("could not find a full-body-clear randomized spawn within configured attempts")
+
+    def _sample_goal(self, rng, spawn):
+        px, py = self.grid.world_to_cell(spawn[0], spawn[1], self.grid.width, self.grid.height)
+        dx = int(rng.integers(-self.cfg.goal_radius_x, self.cfg.goal_radius_x + 1))
+        dy = int(rng.integers(-self.cfg.goal_radius_y, self.cfg.goal_radius_y + 1))
+        gx = min(max(px + dx, 0), self.grid.width - 1)
+        gy = min(max(py + dy, 0), self.grid.height - 1)
+        return (gx, gy), (gx - self.grid.width / 2 + 0.5, gy - self.grid.height / 2 + 0.5)
+
+    @staticmethod
+    def _goal_distance(position, goal):
+        return math.hypot(float(position[0]) - float(goal[0]), float(position[1]) - float(goal[1]))
+
+    def _execute_navigation_attack(self):
+        s = self.slot.model.s
+        origin = (s.x, s.y)
+        direction = (s.look_x - s.x, s.look_y - s.y)
+        hit = self.slot.ground_world.raycast(origin, direction, 8.0)
+        if hit is None:
+            return False
+        # Only terrain tiles are excavated. Static world-object collision is not damageable here.
+        gx = int(math.floor(hit.point[0] + self.grid.width / 2 - 1e-6))
+        gy = int(math.floor(hit.point[1] + self.grid.height / 2 - 1e-6))
+        block = self.grid.get_block(gx, gy)
+        if block == 0 or self.grid.block_info(block) is None:
+            return False
+        destroyed = self.grid.damage_block(gx, gy, 25.0, ignore_loot=True)
+        if destroyed:
+            self.slot.physical_blocks[gx, gy] = 0
+            self.slot.physical_dirty.add((gx // 64, gy // 64))
+        return True
+
     @staticmethod
     def _policy_action(action: StandingAction) -> PolicyAction:
         return PolicyAction(move=int(action.move_x), jump=int(bool(action.jump)),
-                            vertical=int(action.move_y), crouch=int(bool(action.crouch)))
+                            vertical=int(action.move_y), crouch=int(bool(action.crouch)),
+                            look_dx=action.look_dx, look_dy=action.look_dy)
 
     def step(self, action_dict):
         if self.closed:
             raise RuntimeError("environment is closed")
         action = self.action_decoder(action_dict)
         slot = self.slot
+        if self.cfg.navigation_mode and action.attack:
+            self._execute_navigation_attack()
+            if slot.physical_dirty:
+                self._refresh_mutated_colliders()
         self.last_tick_records = run_macrostep(
             slot.model, self.adapter, slot.ground_world, self._policy_action(action), slot.runtime,
             ticks=self.cfg.action_decimation, record=self.cfg.record_ticks,
             pre_tick_hook=slot.pre_tick, post_fixed_hook=slot.post_fixed, post_tick_hook=slot.post_tick)
-        reward, reward_terms, terminated, truncated, reason, current = slot.finish_step(self.reward_function)
+        if self.cfg.navigation_mode:
+            current_state = slot.body_dict()
+            goal = slot.goal_world_xy
+            gx, gy = slot.goal_cell
+            px, py = self.grid.world_to_cell(current_state["x"], current_state["y"], self.grid.width, self.grid.height)
+            arrived = abs(px - gx) <= 1 and abs(py - gy) <= 1
+            distance = self._goal_distance((current_state["x"], current_state["y"]), goal)
+            reward, reward_terms = slot.xy1_reward((current_state["x"],current_state["y"]),goal,arrived)
+            slot.best_goal_distance = slot.xy1_reward.best_distance
+            slot.elapsed_steps += 1
+            terminated = arrived
+            truncated = slot.elapsed_steps >= self.cfg.episode_length_steps and not terminated
+            reason = "arrival" if terminated else "time_limit" if truncated else None
+            slot.last_state = current_state
+            current = current_state
+        else:
+            reward, reward_terms, terminated, truncated, reason, current = slot.finish_step(self.reward_function)
         info = {
             "reward_terms": reward_terms,
             "termination_reason": reason,
             "physics_ticks": self.cfg.action_decimation,
             "player": current,
             "grounded": bool(slot.model.s.grounded),
+            "goal_cell": slot.goal_cell,
+            "spawn_xy": slot.spawn_xy,
+            "distance_to_goal": self._goal_distance((current["x"], current["y"]), slot.goal_world_xy)
+                if self.cfg.navigation_mode else None,
+            "best_goal_distance": slot.best_goal_distance,
+            "action_applied": {"move_x": action.move_x, "jump": action.jump,
+                               "move_y": action.move_y, "crouch": action.crouch,
+                               "look_dx": slot.model.s.current_action.look_dx,
+                               "look_dy": slot.model.s.current_action.look_dy,
+                               "attack": action.attack},
             "canonical_content_id": self.reference.manifest["content_id"],
         }
         return self._format_observation(), np.asarray([reward], dtype=np.float32), \

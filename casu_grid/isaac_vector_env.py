@@ -82,9 +82,12 @@ class BatchedIsaacLayer1Env(gym.Env):
             raise ValueError("terrain_mode must be 'shared' or 'independent'")
         if config.geometry_scope != "full":
             raise ValueError("the batched environment builds full canonical geometry")
+        if config.navigation_mode and terrain_mode != "independent":
+            raise ValueError("XY1 navigation requires independent terrain for per-world excavation")
         self.cfg = config
         self.terrain_mode = terrain_mode
         self.world_offset = int(world_offset)   # global index of this batch's first world (fluid seeds)
+        self.np_random = np.random.default_rng(config.seed + self.world_offset)
         self.count = int(config.num_envs)
         self.reference = load_layer1_reference()
         self.controller_config = BodyConfig(step_up_clearance=config.step_up_clearance)
@@ -115,13 +118,17 @@ class BatchedIsaacLayer1Env(gym.Env):
         self._fast = self._build_fast_runtime()
         self.geometry_build_seconds = 0.0
         self._construct_simulation()
-        self.action_space = spaces.Dict({
-            "move_x": spaces.MultiDiscrete([3]), "jump": spaces.MultiDiscrete([2]),
-            "crouch": spaces.MultiDiscrete([2]),
-        })
+        self.action_space = spaces.Dict({"move_x": spaces.Discrete(3), "jump": spaces.Discrete(2),
+            "crouch": spaces.Discrete(2)})
         self.observation_space = spaces.Dict({
             "player_state": spaces.Box(-np.inf, np.inf, shape=(8,), dtype=np.float32),
         })
+        if self.cfg.navigation_mode:
+            self.action_space=spaces.Dict({"move_x":spaces.Discrete(3),"jump":spaces.Discrete(2),
+                "move_y":spaces.Discrete(3),"crouch":spaces.Discrete(2),"look_dx":spaces.Discrete(9),
+                "look_dy":spaces.Discrete(11),"attack":spaces.Discrete(2)})
+            self.observation_space=spaces.Dict({"spatial":spaces.Box(0,1,shape=(16,85,49),dtype=np.float32),
+                "goal_relative":spaces.Box(-42,42,shape=(2,),dtype=np.float32)})
 
     # ------------------------------------------------------------ construction
     def _construct_simulation(self):
@@ -335,7 +342,11 @@ class BatchedIsaacLayer1Env(gym.Env):
         def head(name, default):
             return np.asarray(actions.get(name, np.full(self.count, default))).reshape(self.count)
         move, jump, crouch = head("move_x", 1), head("jump", 0), head("crouch", 0)
-        return [StandingAction(move_x=int(move[i]) - 1, jump=bool(jump[i]), crouch=bool(crouch[i]))
+        vertical, attack = head("move_y", 1), head("attack", 0)
+        return [StandingAction(move_x=int(move[i]) - 1, jump=bool(jump[i]), crouch=bool(crouch[i]),
+                               move_y=int(vertical[i]) - 1, attack=bool(attack[i]),
+                               look_dx=int(head("look_dx", 4)[i])-4,
+                               look_dy=int(head("look_dy", 5)[i])-5)
                 for i in range(self.count)]
 
     def _decode_actions(self, actions):
@@ -343,11 +354,14 @@ class BatchedIsaacLayer1Env(gym.Env):
             return self._default_action_decoder(actions)
         decoded = []
         for i in range(self.count):
-            row = {key: np.asarray(value)[i:i + 1] for key, value in actions.items()}
+            row = {key: np.asarray(value).reshape(self.count,-1)[i,0:1] for key, value in actions.items()}
             decoded.append(self.action_decoder(row))
         return decoded
 
     def _default_observation(self, view):
+        if self.cfg.navigation_mode:
+            from .xy1 import encode_xy1_observation
+            return encode_xy1_observation(view)
         return {"player_state": view.slot.default_observation_vector()}
 
     def _body_state(self, i):
@@ -355,7 +369,12 @@ class BatchedIsaacLayer1Env(gym.Env):
 
     def _format_observation(self):
         rows = [self.observation_encoder(view) for view in self.views]
-        return {key: np.stack([np.asarray(row[key], dtype=np.float32) for row in rows]) for key in rows[0]}
+        out={key: np.stack([np.asarray(row[key], dtype=np.float32) for row in rows]) for key in rows[0]}
+        if self.cfg.navigation_mode:
+            for i,slot in enumerate(self.slots):
+                px,py=slot.grid.world_to_cell(slot.model.s.x,slot.model.s.y,slot.grid.width,slot.grid.height)
+                out['goal_relative'][i]=np.asarray([slot.goal_cell[0]-px,slot.goal_cell[1]-py],dtype=np.float32)
+        return out
 
     def _apply_door_state(self, indices):
         for k, door_body in enumerate(self.doors):
@@ -512,7 +531,8 @@ class BatchedIsaacLayer1Env(gym.Env):
     @staticmethod
     def _policy_action(action: StandingAction) -> PolicyAction:
         return PolicyAction(move=int(action.move_x), jump=int(bool(action.jump)),
-                            vertical=int(action.move_y), crouch=int(bool(action.crouch)))
+                            vertical=int(action.move_y), crouch=int(bool(action.crouch)),
+                            look_dx=action.look_dx, look_dy=action.look_dy)
 
     def _write_slot_states(self, ids):
         """Write the logical body state of the given slots to PhysX and clear their forces."""
@@ -531,7 +551,7 @@ class BatchedIsaacLayer1Env(gym.Env):
             torch.zeros((len(ids), 1, 3), device=self.sim.device), env_ids=env_ids)
         self.player.write_data_to_sim()
         for i in ids:
-            self.colliders[i].set_level(0)   # standing-sized collider, as at the source's first tick
+            self.colliders[i].set_level(self.colliders[i].level_for_crouch(self.slots[i].model.s.crouch_amount))
         if self.doors:
             self._apply_door_state(list(ids))
 
@@ -549,11 +569,63 @@ class BatchedIsaacLayer1Env(gym.Env):
 
     def reset(self, *, seed=None, options=None):
         self._reset_indices(range(self.count))
+        if seed is not None:
+            self.np_random, _ = gym.utils.seeding.np_random(seed)
+        if self.cfg.navigation_mode:
+            for i,slot in enumerate(self.slots):
+                rng = np.random.default_rng(int(self.np_random.integers(0, 2**32-1)))
+                spawn = self._sample_clear_spawn(slot, rng)
+                slot.spawn_xy = spawn
+                slot.goal_cell, slot.goal_world_xy = self._sample_goal(slot, rng, spawn)
+                local_spawn=(spawn[0]-float(self.offsets[i,0]),spawn[1]-float(self.offsets[i,2]))
+                slot.goal_world_xy=(slot.goal_world_xy[0]-float(self.offsets[i,0]),slot.goal_world_xy[1]-float(self.offsets[i,2]))
+                slot.best_goal_distance = self._goal_distance(local_spawn, slot.goal_world_xy)
+                from .xy1 import BestDistanceReward
+                slot.xy1_reward=BestDistanceReward(slot.best_goal_distance)
+                s = slot.model.s
+                s.x, s.y, s.vx, s.vy = *local_spawn, 0.0, 0.0
+                s.grounded = False; s.crouch_amount = 0.0; s.ragdoll_event = None
+                slot.last_state=slot.body_dict()
+            self._write_slot_states(range(self.count))
         return self._format_observation(), {"seed": seed, "canonical_content_id": self.reference.manifest["content_id"]}
+
+    def _sample_clear_spawn(self, slot, rng, index=None):
+        hw, hh = self.controller_config.orig_col_size[0]/2, self.controller_config.orig_col_size[1]/2
+        index=self.slots.index(slot) if index is None else int(index)
+        ox=float(self.offsets[index,0]);oy=float(self.offsets[index,2])
+        for _ in range(self.cfg.spawn_clearance_attempts):
+            gx, gy = int(rng.integers(0, slot.grid.width)), int(rng.integers(0, slot.grid.height))
+            xy = (gx-slot.grid.width/2+0.5+ox, gy-slot.grid.height/2+0.5+oy)
+            if not slot.ground_world.overlap_box(xy, (2*hw-0.02, 2*hh-0.02)):
+                return tuple(map(float, xy))
+        raise RuntimeError("could not find a full-body-clear randomized spawn")
+
+    def _sample_goal(self, slot, rng, spawn):
+        px, py = slot.grid.world_to_cell(*spawn, slot.grid.width, slot.grid.height)
+        gx = min(max(px + int(rng.integers(-self.cfg.goal_radius_x,self.cfg.goal_radius_x+1)),0),slot.grid.width-1)
+        gy = min(max(py + int(rng.integers(-self.cfg.goal_radius_y,self.cfg.goal_radius_y+1)),0),slot.grid.height-1)
+        return (gx,gy),(gx-slot.grid.width/2+0.5,gy-slot.grid.height/2+0.5)
+
+    @staticmethod
+    def _goal_distance(position, goal):
+        return float(np.hypot(position[0]-goal[0],position[1]-goal[1]))
 
     def reset_done(self, mask):
         mask = np.asarray(mask, dtype=bool).reshape(self.count)
-        self._reset_indices(np.flatnonzero(mask))
+        ids=np.flatnonzero(mask);self._reset_indices(ids)
+        if self.cfg.navigation_mode:
+            for i in ids:
+                slot=self.slots[int(i)];rng=np.random.default_rng(int(self.np_random.integers(0,2**32-1)))
+                spawn=self._sample_clear_spawn(slot,rng,index=i);slot.spawn_xy=spawn
+                slot.goal_cell,slot.goal_world_xy=self._sample_goal(slot,rng,spawn)
+                local_spawn=(spawn[0]-float(self.offsets[int(i),0]),spawn[1]-float(self.offsets[int(i),2]))
+                slot.goal_world_xy=(slot.goal_world_xy[0]-float(self.offsets[int(i),0]),slot.goal_world_xy[1]-float(self.offsets[int(i),2]))
+                slot.best_goal_distance=self._goal_distance(local_spawn,slot.goal_world_xy)
+                from .xy1 import BestDistanceReward
+                slot.xy1_reward=BestDistanceReward(slot.best_goal_distance)
+                s=slot.model.s;s.x,s.y=local_spawn;s.vx=s.vy=0.0;s.grounded=False;s.crouch_amount=0.0;s.ragdoll_event=None
+                slot.last_state=slot.body_dict()
+            self._write_slot_states(ids)
         return self._format_observation()
 
     def set_block(self, env_index: int, x: int, y: int, block_id: int):
@@ -599,6 +671,7 @@ class BatchedIsaacLayer1Env(gym.Env):
 
     def step(self, action_dict):
         actions = self._decode_actions(action_dict)
+        self._last_actions = actions
         if len(actions) != self.count:
             raise ValueError("action decoder must return one action per environment")
         if self._fast is not None:
@@ -607,6 +680,20 @@ class BatchedIsaacLayer1Env(gym.Env):
         else:
             for slot, action in zip(self.slots, actions):
                 slot.model.apply_actions(latch=self._policy_action(action))
+        if self.cfg.navigation_mode:
+            for slot, action in zip(self.slots, actions):
+                slot.model.apply_actions(latch=self._policy_action(action))
+                if action.attack:
+                    s=slot.model.s; hit=slot.ground_world.raycast((s.x,s.y),(s.look_x-s.x,s.look_y-s.y),8.0)
+                    if hit is not None:
+                        gx=int(np.floor(hit.point[0]+slot.grid.width/2-1e-6));gy=int(np.floor(hit.point[1]+slot.grid.height/2-1e-6))
+                        bid=slot.grid.get_block(gx,gy)
+                        if bid and slot.grid.block_info(bid):
+                            if slot.grid.damage_block(gx,gy,25.0,ignore_loot=True):
+                                slot.physical_blocks[gx,gy]=0;slot.physical_dirty.add((gx//64,gy//64))
+            if self.terrain_mode == "independent":
+                dirty=[i for i,s in enumerate(self.slots) if s.physical_dirty]
+                if dirty:self._rebuild_dirty(dirty)
         for tick in range(self.cfg.action_decimation):
             self._physics_tick(tick + 1)
         if self._fast is not None:
@@ -618,8 +705,19 @@ class BatchedIsaacLayer1Env(gym.Env):
         terms: dict[str, np.ndarray] = {}
         reasons: list = [None] * self.count
         players = []
+        actions = getattr(self, "_last_actions", actions)
         for i, slot in enumerate(self.slots):
-            reward, item_terms, term, trunc, reason, current = slot.finish_step(self.reward_function)
+            if self.cfg.navigation_mode:
+                current=slot.body_dict();gx,gy=slot.goal_cell
+                px,py=slot.grid.world_to_cell(current['x'],current['y'],slot.grid.width,slot.grid.height)
+                arrived=abs(px-gx)<=1 and abs(py-gy)<=1
+                d=self._goal_distance((current['x'],current['y']),slot.goal_world_xy)
+                reward,item_terms=slot.xy1_reward((current['x'],current['y']),slot.goal_world_xy,arrived)
+                slot.best_goal_distance=slot.xy1_reward.best_distance
+                slot.elapsed_steps+=1;term=arrived;trunc=slot.elapsed_steps>=self.cfg.episode_length_steps and not term
+                reason='arrival' if term else 'time_limit' if trunc else None;slot.last_state=current
+            else:
+                reward, item_terms, term, trunc, reason, current = slot.finish_step(self.reward_function)
             rewards[i], terminated[i], truncated[i], reasons[i] = reward, term, trunc, reason
             players.append(current)
             for key, value in item_terms.items():

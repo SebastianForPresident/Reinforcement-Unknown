@@ -596,8 +596,14 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError("Resume checkpoint is incompatible with this config (action/observation/model/PPO contract fingerprint differs)")
             run_dir = (args.run_dir or (root / time.strftime("%Y%m%d-%H%M%S"))).expanduser().resolve()
             if run_dir.exists(): raise ValueError(f"Run directory already exists; choose a new path: {run_dir}")
-            cmd = [python_cmd, "-m", "casu_grid.workbench.train", "--config", str(args.config.expanduser().resolve()), "--run-dir", str(run_dir), "--updates", str(args.updates), "--num-envs", str(args.num_envs), "--seed", str(args.seed), "--geometry-scope", "full", "--terrain-mode", args.terrain_mode]
-            if args.episode_steps: cmd += ["--episode-steps", str(args.episode_steps)]
+            env_defaults=getattr(cfg,"ENVIRONMENT",{})
+            effective_envs=args.num_envs if args.num_envs != 1 else int(env_defaults.get("num_envs",1))
+            effective_terrain=args.terrain_mode if args.num_envs != 1 else env_defaults.get("terrain_mode",args.terrain_mode)
+            effective_seed=args.seed if args.seed != 391728405 else int(env_defaults.get("seed",args.seed))
+            cmd = [python_cmd, "-m", "casu_grid.workbench.train", "--config", str(args.config.expanduser().resolve()), "--run-dir", str(run_dir), "--updates", str(args.updates), "--num-envs", str(effective_envs), "--seed", str(effective_seed), "--geometry-scope", "full", "--terrain-mode", effective_terrain]
+            configured_horizon = getattr(cfg, "ENVIRONMENT", {}).get("episode_length_steps")
+            effective_horizon = args.episode_steps or configured_horizon
+            if effective_horizon: cmd += ["--episode-steps", str(effective_horizon)]
             if args.resume: cmd += ["--resume", str(args.resume.resolve())]
             if args.engineering_smoke: print("MODE: explicitly labeled ENGINEERING SMOKE; this is not an approved Timmy research experiment.")
             else: print("MODE: researcher-configured PPO training. Verify your scientific contracts before launch.")
@@ -615,9 +621,13 @@ def main(argv: list[str] | None = None) -> int:
                 "config_sha256": hashlib.sha256(args.config.expanduser().resolve().read_bytes()).hexdigest(),
                 "experiment": getattr(cfg, "EXPERIMENT", {"name": Path(args.config).stem}),
                 "contracts": validate_contracts(cfg.ACTION, cfg.OBSERVATION, cfg.REWARD, cfg.MODEL, cfg.PPO),
-                "seed": args.seed, "run_kind": "engineering_smoke" if args.engineering_smoke else "research_training",
+                "seed": effective_seed, "run_kind": "engineering_smoke" if args.engineering_smoke else "research_training",
                 "environment": {"num_envs": args.num_envs, "geometry_scope": "full",
-                    "terrain_mode": args.terrain_mode if args.num_envs > 1 else "single",
+                    "terrain_mode": effective_terrain if effective_envs > 1 else "single",
+                    "num_envs": effective_envs,
+                    "episode_steps": effective_horizon,
+                    "navigation_mode": bool(getattr(cfg,"ENVIRONMENT",{}).get("navigation_mode",False)),
+                    "player_collider": getattr(cfg,"ENVIRONMENT",{}).get("player_collider","compound"),
                     "physics_dt": 0.02, "action_decimation": 10},
                 "execution_requested": {"backend": args.backend or os.environ.get("CASU_BACKEND", "auto"),
                     "workers": args.workers or os.environ.get("CASU_NUM_WORKERS", "1")},

@@ -33,6 +33,11 @@ def checked_callbacks(callbacks, observations, rewards):
             for name in ("jump", "crouch"):
                 if getattr(value, name) not in (False, True, 0, 1):
                     raise ValueError(f"callbacks.action_decoder field {name} must be boolean or 0/1")
+            for name in ("look_dx", "look_dy"):
+                if hasattr(value,name) and not isinstance(getattr(value,name),int):
+                    raise ValueError(f"callbacks.action_decoder field {name} must be an integer tile offset")
+            if hasattr(value,"attack") and getattr(value,"attack") not in (False,True,0,1):
+                raise ValueError("callbacks.action_decoder field attack must be boolean or 0/1")
             return value
         action_decoder = decode
 

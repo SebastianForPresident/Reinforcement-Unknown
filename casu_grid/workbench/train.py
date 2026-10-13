@@ -76,7 +76,9 @@ def main():
         'contracts':validate_contracts(config.ACTION,config.OBSERVATION,config.REWARD,config.MODEL,config.PPO),
         'environment':{'canonical_seed':391728405,'num_envs':args.num_envs,'geometry_scope':args.geometry_scope,
                        'terrain_mode':args.terrain_mode if args.num_envs>1 else 'single',
-                       'episode_steps':args.episode_steps,
+                       'episode_steps':args.episode_steps or getattr(config,'ENVIRONMENT',{}).get('episode_length_steps'),
+                       'navigation_mode':bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
+                       'player_collider':getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),
                        'physics_dt':0.02,'action_decimation':10},
         'resume_from':os.environ.get('CASU_WORKBENCH_RESUME_FROM') or None,
         'run_kind':os.environ.get('CASU_WORKBENCH_RUN_KIND') or 'direct_training',
@@ -98,10 +100,15 @@ def main():
     try:
         env_config=IsaacLayer1EnvConfig(
             seed=391728405,num_envs=args.num_envs,spawn_mode='canonical',geometry_scope=args.geometry_scope,
-            **({'episode_length_steps':args.episode_steps} if args.episode_steps else {}))
+            navigation_mode=bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
+            player_collider=getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),
+            **({'episode_length_steps':args.episode_steps} if args.episode_steps else
+               ({'episode_length_steps':int(config.ENVIRONMENT['episode_length_steps'])} if getattr(config,'ENVIRONMENT',{}).get('episode_length_steps') else {})))
         if args.num_envs == 1:
-            env=IsaacLayer1NavigationEnv(env_config,
-                action_decoder=callbacks[0],observation_encoder=callbacks[1],reward_function=callbacks[2])
+            from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
+            env=BatchedIsaacLayer1Env(env_config,
+                action_decoder=callbacks[0],observation_encoder=callbacks[1],reward_function=callbacks[2],
+                terrain_mode=args.terrain_mode)
         else:
             from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
             env=BatchedIsaacLayer1Env(env_config,

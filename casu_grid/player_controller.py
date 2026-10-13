@@ -16,6 +16,9 @@ class StandingAction:
     jump: bool = False
     crouch: bool = False
     move_y: int = 0
+    attack: bool = False
+    look_dx: int = 0
+    look_dy: int = 0
 
     def __post_init__(self):
         if self.move_x not in (-1, 0, 1):

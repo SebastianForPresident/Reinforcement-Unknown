@@ -56,6 +56,11 @@ class EnvSlot:
         self.elapsed_steps = 0
         self.physics_ticks = 0
         self.was_water = False
+        self.spawn_xy = None
+        self.goal_cell = None
+        self.goal_world_xy = None
+        self.best_goal_distance = None
+        self.spawn_rng = np.random.default_rng(self.fluid_seed)
         self.last_state: dict | None = None
         self.model.s = self.initial_body_state()
 
@@ -160,6 +165,7 @@ class EnvSlot:
         self.elapsed_steps = 0
         self.physics_ticks = 0
         self.was_water = False
+        self.spawn_rng = np.random.default_rng(self.fluid_seed)
         return changed
 
     def snapshot_logical(self) -> dict:
