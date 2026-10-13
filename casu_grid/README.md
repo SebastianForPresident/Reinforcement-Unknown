@@ -161,3 +161,11 @@ Useful entry points (all run with the Isaac bundled Python):
 "$ISAAC_SIM/python.sh" casu_grid/isaac_vector_smoke.py --num-envs 4 --output casu_grid/results/isaac_vector_validation.json
 "$ISAAC_SIM/python.sh" casu_grid/isaac_throughput_benchmark.py --terrain-mode shared --output /tmp/thr.json
 ```
+
+
+## Performance
+
+`CASU_BACKEND` (compiled numba kernels, default) and `CASU_NUM_WORKERS` (multi-process environments) speed the simulator up
+without changing the simulated experiment: 2.5-4.7x with one process, up to ~12x simulation-only and 4.5x end-to-end PPO training
+with 4 worker processes. See [`OPTIMIZATION_ACCEPTANCE_REPORT.md`](OPTIMIZATION_ACCEPTANCE_REPORT.md) (results, which mode to use) and
+[`perf/README.md`](perf/README.md) (tools, regression check `python casu_grid/perf/run_perf_check.py`).

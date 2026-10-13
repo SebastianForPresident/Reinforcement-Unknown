@@ -25,7 +25,13 @@ rewards, terminations, fluid digests). All accepted items below passed it.
 | 8 | Switch crouch levels by activating/deactivating `Level_k` prims instead of toggling 12 `collisionEnabled` attributes | invalidates the physics-tensor view ("prim deleted while used by a shape") | rejected |
 | 9 | Cheaper shape switch by shape type | every attribute write costs ~26 µs regardless of shape type (boxes 27, cylinders 26): it is the USD-to-PhysX notice, not cooking | no lever without changing the representation |
 | 10 | Independent Isaac processes, 2 / 4 concurrent benchmark processes x 16 worlds | 5982 / 10389 aggregate ticks/s (1.84x / 3.2x of one process) | led to 11 |
-| 11 | `ShardedBatchedEnv`: worlds spread over N worker processes behind the same API (`CASU_NUM_WORKERS`) | see the acceptance report tables; isolation, restore, doors, edits, failure handling validated | **accepted** (opt-in) |
+| 11 | `ShardedBatchedEnv`: worlds spread over N worker processes behind the same API (`CASU_NUM_WORKERS`) | 64 worlds: 4 workers 12.1k (`random`) / 23.7k (`run`) ticks/s; 6 workers 96 worlds 16.2k / 31.3k; training 64 worlds 918 decisions/s (4.5x baseline); isolation, restore, doors, edits, failure handling validated | **accepted** (opt-in) |
+| 13 | PhysX threads per worker 2 / 3 / 4 / 6 (4 workers, 64 worlds) | 11.8k / 12.1k / 12.0k / 11.8k ticks/s; 1 thread hangs PhysX | default 2 kept |
+| 14 | Skip the PhysX scene reset after independent-terrain chunk rebuilds | `set_block` 6.2 s -> 0.036 s; wall/pit scenarios give equal trajectories; bit-identical gates unchanged | **accepted** (`terrain_edit_scene_reset=True` restores the old behaviour) |
+| 15 | Independent terrain copies via `Sdf.CopySpec` under an offset root Xform | 16 worlds build 98 s -> 63 s; trajectories bit-identical (the rest is the PhysX scene parse) | **accepted** |
+| 16 | `OMP_NUM_THREADS` for the trainer process (64 worlds, 4 workers) | 1 / 2 / 4 / 8 threads: 962 / 966 / 949 / 928 vs 918 decisions/s unset | optional (+4 %), documented |
+| 17 | Reuse the previous step's value for the PPO bootstrap value (drops one forward pass per decision) | not implemented: inference is 2-6 % of rollout even with a 512-wide network, so the gain is below 3 % | deferred |
+| 18 | Bucketed polygon culling + additive bucket painting on door updates | reset latency back to baseline (39 ms for 16 worlds; a naive per-update rebuild had made it 108 ms) | **accepted** |
 | 12 | GPU PhysX pipeline | not attempted: changes solver numerics/contact behaviour (fidelity invariant), and the CPU controller is the limit at small body counts | deferred |
 
 Notes that matter for future work

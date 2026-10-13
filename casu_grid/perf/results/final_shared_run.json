@@ -1,25 +1,17 @@
 {
   "schema": "casu.isaac-throughput.v2",
-  "label": "final in-process",
+  "label": "final in-process (frozen code)",
   "terrain_mode": "shared",
   "workload": "run",
   "system": {
-    "git_revision": "0d174a50574c1609b171b70b5f99877587547f13",
+    "git_revision": "d884f082c528c88200408d00d880c79563b70950",
     "casu_grid_dirty_files": [
-      "asu_grid/isaac_navigation_env.py",
-      "casu_grid/isaac_sharded_env.py",
-      "casu_grid/isaac_throughput_benchmark.py",
-      "casu_grid/isaac_training_benchmark.py",
-      "casu_grid/isaac_vector_env.py",
+      "asu_grid/perf/results/final_shared_random.json",
       "casu_grid/workbench/README.md",
       "casu_grid/workbench/lab.py",
       "casu_grid/workbench/replay.py",
       "casu_grid/workbench/test_lab.py",
       "casu_grid/workbench/train.py",
-      "casu_grid/perf/OPTIMIZATION_LOG.md",
-      "casu_grid/perf/README.md",
-      "casu_grid/perf/mutation_latency.py",
-      "casu_grid/perf/results/final_shared_random.json",
       "casu_grid/workbench/GUI_ACCEPTANCE_REPORT.md",
       "casu_grid/workbench/REWARD_COMPONENTS.md",
       "casu_grid/workbench/components.py",
@@ -50,63 +42,63 @@
       "windows": 3,
       "warmup_macrosteps": 3,
       "physx_threads": null,
-      "construct_seconds": 6.5668412869854365,
-      "geometry_build_seconds": 4.739562652976019,
+      "construct_seconds": 6.842139700020198,
+      "geometry_build_seconds": 4.9074230839905795,
       "aggregate_physics_ticks_per_second": {
-        "mean": 2019.7659782087064,
-        "std": 67.96792755206089,
-        "min": 1935.4185787261706,
-        "max": 2101.8595466118754,
+        "mean": 1719.1715959310106,
+        "std": 45.52838537418911,
+        "min": 1659.0182329355875,
+        "max": 1769.1337118576366,
         "samples": [
-          2101.8595466118754,
-          2022.0198092880735,
-          1935.4185787261706
+          1659.0182329355875,
+          1729.3628429998084,
+          1769.1337118576366
         ]
       },
       "aggregate_policy_decisions_per_second": {
-        "mean": 201.97659782087067,
-        "std": 6.796792755206105,
-        "min": 193.54185787261704,
-        "max": 210.18595466118757,
+        "mean": 171.91715959310105,
+        "std": 4.55283853741891,
+        "min": 165.90182329355875,
+        "max": 176.91337118576365,
         "samples": [
-          210.18595466118757,
-          202.20198092880736,
-          193.54185787261704
+          165.90182329355875,
+          172.93628429998085,
+          176.91337118576365
         ]
       },
       "per_env_physics_ticks_per_second": {
-        "mean": 2019.7659782087064,
-        "std": 67.96792755206089,
-        "min": 1935.4185787261706,
-        "max": 2101.8595466118754,
+        "mean": 1719.1715959310106,
+        "std": 45.52838537418911,
+        "min": 1659.0182329355875,
+        "max": 1769.1337118576366,
         "samples": [
-          2101.8595466118754,
-          2022.0198092880735,
-          1935.4185787261706
+          1659.0182329355875,
+          1729.3628429998084,
+          1769.1337118576366
         ]
       },
       "cpu_utilization_of_one_core": {
-        "mean": 1.3436636196468477,
-        "std": 0.007037012340641363,
-        "min": 1.337950163542708,
-        "max": 1.353577020323679,
+        "mean": 1.968088300122636,
+        "std": 0.015895232856586172,
+        "min": 1.9554281504350197,
+        "max": 1.9905049562925994,
         "samples": [
-          1.337950163542708,
-          1.3394636750741555,
-          1.353577020323679
+          1.9583317936402889,
+          1.9905049562925994,
+          1.9554281504350197
         ]
       },
       "phase_fraction": {
-        "controller_and_fluid_pre": 0.07575106870808625,
-        "tensor_write": 0.259843209842943,
-        "physx_step": 0.4203370276035849,
-        "tensor_read": 0.12671332526468151,
-        "controller_post_and_shapes": 0.08735847465154138
+        "controller_and_fluid_pre": 0.0668335903979956,
+        "tensor_write": 0.22723940754076247,
+        "physx_step": 0.4904835509238687,
+        "tensor_read": 0.10993292531326848,
+        "controller_post_and_shapes": 0.0778000671691975
       },
-      "reset_all_seconds": 0.008594206010457128,
-      "reset_one_world_seconds": 0.008442599995760247,
-      "snapshot_seconds": 0.0014988819893915206,
-      "restore_seconds": 1.5300674489990342,
+      "reset_all_seconds": 0.003953236009692773,
+      "reset_one_world_seconds": 0.0036415719951037318,
+      "snapshot_seconds": 0.0015304360131267458,
+      "restore_seconds": 1.5796023959992453,
       "num_workers": 1,
       "layout": {
         "backend": {
@@ -124,14 +116,14 @@
           1
         ]
       },
-      "peak_rss_gib": 2.6464805603027344,
+      "peak_rss_gib": 2.651092529296875,
       "gpu_after_build": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 1.0,
+        "memory_used_mib": 749.0
       },
       "gpu_during_last_window": {
         "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "memory_used_mib": 749.0
       }
     },
     {
@@ -142,63 +134,63 @@
       "windows": 3,
       "warmup_macrosteps": 3,
       "physx_threads": null,
-      "construct_seconds": 6.538847712014103,
-      "geometry_build_seconds": 4.598053396999603,
+      "construct_seconds": 6.890131232998101,
+      "geometry_build_seconds": 4.824665173015092,
       "aggregate_physics_ticks_per_second": {
-        "mean": 3347.7880989059117,
-        "std": 97.85094926208147,
-        "min": 3220.782723580172,
-        "max": 3458.8769020439036,
+        "mean": 2911.9464840030014,
+        "std": 39.96553284810303,
+        "min": 2862.6591469483305,
+        "max": 2960.547083224682,
         "samples": [
-          3220.782723580172,
-          3363.7046710936597,
-          3458.8769020439036
+          2960.547083224682,
+          2862.6591469483305,
+          2912.6332218359917
         ]
       },
       "aggregate_policy_decisions_per_second": {
-        "mean": 334.77880989059116,
-        "std": 9.785094926208142,
-        "min": 322.0782723580172,
-        "max": 345.88769020439037,
+        "mean": 291.19464840030014,
+        "std": 3.996553284810299,
+        "min": 286.26591469483304,
+        "max": 296.0547083224682,
         "samples": [
-          322.0782723580172,
-          336.37046710936596,
-          345.88769020439037
+          296.0547083224682,
+          286.26591469483304,
+          291.2633221835992
         ]
       },
       "per_env_physics_ticks_per_second": {
-        "mean": 1673.8940494529559,
-        "std": 48.925474631040736,
-        "min": 1610.391361790086,
-        "max": 1729.4384510219518,
+        "mean": 1455.9732420015007,
+        "std": 19.982766424051515,
+        "min": 1431.3295734741653,
+        "max": 1480.273541612341,
         "samples": [
-          1610.391361790086,
-          1681.8523355468299,
-          1729.4384510219518
+          1480.273541612341,
+          1431.3295734741653,
+          1456.3166109179958
         ]
       },
       "cpu_utilization_of_one_core": {
-        "mean": 1.3728722012723988,
-        "std": 0.005264266034662396,
-        "min": 1.3655799641051705,
-        "max": 1.3778168587072686,
+        "mean": 1.9038947791927174,
+        "std": 0.0050424407901791014,
+        "min": 1.8967803999906088,
+        "max": 1.9078744851959928,
         "samples": [
-          1.3752197810047575,
-          1.3778168587072686,
-          1.3655799641051705
+          1.9078744851959928,
+          1.9070294523915508,
+          1.8967803999906088
         ]
       },
       "phase_fraction": {
-        "controller_and_fluid_pre": 0.09852044455061149,
-        "tensor_write": 0.21207728626897124,
-        "physx_step": 0.4421515655720281,
-        "tensor_read": 0.10964180078119339,
-        "controller_post_and_shapes": 0.10551520526976509
+        "controller_and_fluid_pre": 0.08926648945548782,
+        "tensor_write": 0.1959110273116141,
+        "physx_step": 0.4903935983833823,
+        "tensor_read": 0.09887156965076475,
+        "controller_post_and_shapes": 0.09573612877517286
       },
-      "reset_all_seconds": 0.015161665010964498,
-      "reset_one_world_seconds": 0.00792922600521706,
-      "snapshot_seconds": 0.0021934789838269353,
-      "restore_seconds": 1.5629264330200385,
+      "reset_all_seconds": 0.006404472980648279,
+      "reset_one_world_seconds": 0.0035161279956810176,
+      "snapshot_seconds": 0.002165958983823657,
+      "restore_seconds": 1.5979973119974602,
       "num_workers": 1,
       "layout": {
         "backend": {
@@ -216,14 +208,14 @@
           2
         ]
       },
-      "peak_rss_gib": 2.6626129150390625,
+      "peak_rss_gib": 2.6646194458007812,
       "gpu_after_build": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 1.0,
+        "memory_used_mib": 749.0
       },
       "gpu_during_last_window": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 1.0,
+        "memory_used_mib": 749.0
       }
     },
     {
@@ -234,63 +226,63 @@
       "windows": 3,
       "warmup_macrosteps": 3,
       "physx_threads": null,
-      "construct_seconds": 6.869847032998223,
-      "geometry_build_seconds": 4.682122842001263,
+      "construct_seconds": 7.056349988008151,
+      "geometry_build_seconds": 4.818942974001402,
       "aggregate_physics_ticks_per_second": {
-        "mean": 5139.485707121473,
-        "std": 50.99751951812154,
-        "min": 5077.86617893985,
-        "max": 5202.751530823818,
+        "mean": 4955.110453937928,
+        "std": 56.644893975885566,
+        "min": 4894.985909284828,
+        "max": 5031.017522784934,
         "samples": [
-          5202.751530823818,
-          5077.86617893985,
-          5137.839411600749
+          4894.985909284828,
+          5031.017522784934,
+          4939.327929744021
         ]
       },
       "aggregate_policy_decisions_per_second": {
-        "mean": 513.9485707121472,
-        "std": 5.099751951812155,
-        "min": 507.78661789398507,
-        "max": 520.2751530823818,
+        "mean": 495.51104539379276,
+        "std": 5.664489397588554,
+        "min": 489.4985909284828,
+        "max": 503.1017522784934,
         "samples": [
-          520.2751530823818,
-          507.78661789398507,
-          513.783941160075
+          489.4985909284828,
+          503.1017522784934,
+          493.9327929744021
         ]
       },
       "per_env_physics_ticks_per_second": {
-        "mean": 1284.8714267803682,
-        "std": 12.749379879530386,
-        "min": 1269.4665447349626,
-        "max": 1300.6878827059545,
+        "mean": 1238.777613484482,
+        "std": 14.161223493971391,
+        "min": 1223.746477321207,
+        "max": 1257.7543806962335,
         "samples": [
-          1300.6878827059545,
-          1269.4665447349626,
-          1284.4598529001873
+          1223.746477321207,
+          1257.7543806962335,
+          1234.8319824360053
         ]
       },
       "cpu_utilization_of_one_core": {
-        "mean": 1.3960301246216595,
-        "std": 0.004809903335914091,
-        "min": 1.3892477492057391,
-        "max": 1.3998710822034386,
+        "mean": 1.9015977748973125,
+        "std": 0.004585233230284878,
+        "min": 1.8959799299996198,
+        "max": 1.9072114093979147,
         "samples": [
-          1.3892477492057391,
-          1.3998710822034386,
-          1.398971542455801
+          1.8959799299996198,
+          1.9072114093979147,
+          1.9016019852944028
         ]
       },
       "phase_fraction": {
-        "controller_and_fluid_pre": 0.1264024768829888,
-        "tensor_write": 0.1636961408623362,
-        "physx_step": 0.46386423308488417,
-        "tensor_read": 0.08584539278921689,
-        "controller_post_and_shapes": 0.12604606243942898
+        "controller_and_fluid_pre": 0.1244780370906945,
+        "tensor_write": 0.16992678795670776,
+        "physx_step": 0.4616539401802462,
+        "tensor_read": 0.08585915622543137,
+        "controller_post_and_shapes": 0.12430258423885183
       },
-      "reset_all_seconds": 0.03154808399267495,
-      "reset_one_world_seconds": 0.008262490999186411,
-      "snapshot_seconds": 0.003946991986595094,
-      "restore_seconds": 1.6302634530002251,
+      "reset_all_seconds": 0.01290458400035277,
+      "reset_one_world_seconds": 0.0035530810127966106,
+      "snapshot_seconds": 0.004125198989640921,
+      "restore_seconds": 1.5917324739857577,
       "num_workers": 1,
       "layout": {
         "backend": {
@@ -308,14 +300,14 @@
           4
         ]
       },
-      "peak_rss_gib": 2.694316864013672,
+      "peak_rss_gib": 2.6914939880371094,
       "gpu_after_build": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 1.0,
+        "memory_used_mib": 749.0
       },
       "gpu_during_last_window": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 1.0,
+        "memory_used_mib": 749.0
       }
     },
     {
@@ -326,63 +318,63 @@
       "windows": 3,
       "warmup_macrosteps": 3,
       "physx_threads": null,
-      "construct_seconds": 7.0712873979937285,
-      "geometry_build_seconds": 4.551115373003995,
+      "construct_seconds": 7.3934571760182735,
+      "geometry_build_seconds": 4.7629901279869955,
       "aggregate_physics_ticks_per_second": {
-        "mean": 7484.644741719509,
-        "std": 96.79522356811624,
-        "min": 7369.459377508872,
-        "max": 7606.29381977519,
+        "mean": 7468.1024785471745,
+        "std": 77.7168900109273,
+        "min": 7393.6989414001155,
+        "max": 7575.361065022037,
         "samples": [
-          7369.459377508872,
-          7478.181027874463,
-          7606.29381977519
+          7393.6989414001155,
+          7575.361065022037,
+          7435.247429219372
         ]
       },
       "aggregate_policy_decisions_per_second": {
-        "mean": 748.4644741719509,
-        "std": 9.679522356811628,
-        "min": 736.9459377508873,
-        "max": 760.6293819775191,
+        "mean": 746.8102478547174,
+        "std": 7.771689001092712,
+        "min": 739.3698941400115,
+        "max": 757.5361065022037,
         "samples": [
-          736.9459377508873,
-          747.8181027874463,
-          760.6293819775191
+          739.3698941400115,
+          757.5361065022037,
+          743.5247429219372
         ]
       },
       "per_env_physics_ticks_per_second": {
-        "mean": 935.5805927149386,
-        "std": 12.09940294601453,
-        "min": 921.182422188609,
-        "max": 950.7867274718988,
+        "mean": 933.5128098183968,
+        "std": 9.714611251365913,
+        "min": 924.2123676750144,
+        "max": 946.9201331277546,
         "samples": [
-          921.182422188609,
-          934.7726284843079,
-          950.7867274718988
+          924.2123676750144,
+          946.9201331277546,
+          929.4059286524215
         ]
       },
       "cpu_utilization_of_one_core": {
-        "mean": 1.4273412398542507,
-        "std": 0.0024426595392892524,
-        "min": 1.4254981127321533,
-        "max": 1.430793028750356,
+        "mean": 1.8650747170985857,
+        "std": 0.011272473770374295,
+        "min": 1.8509387809132856,
+        "max": 1.8785250420035353,
         "samples": [
-          1.4254981127321533,
-          1.430793028750356,
-          1.4257325780802426
+          1.8509387809132856,
+          1.8785250420035353,
+          1.8657603283789361
         ]
       },
       "phase_fraction": {
-        "controller_and_fluid_pre": 0.15458475400792338,
-        "tensor_write": 0.12136339660299979,
-        "physx_step": 0.4757641477294781,
-        "tensor_read": 0.06284165314310469,
-        "controller_post_and_shapes": 0.1505672163493095
+        "controller_and_fluid_pre": 0.16984030658198546,
+        "tensor_write": 0.13243715662326963,
+        "physx_step": 0.4331417262456567,
+        "tensor_read": 0.06580181730917477,
+        "controller_post_and_shapes": 0.16080519439126179
       },
-      "reset_all_seconds": 0.05454953797743656,
-      "reset_one_world_seconds": 0.007795234996592626,
-      "snapshot_seconds": 0.0078268310171552,
-      "restore_seconds": 1.6272954840096645,
+      "reset_all_seconds": 0.019124056998407468,
+      "reset_one_world_seconds": 0.003703508002217859,
+      "snapshot_seconds": 0.00813383498461917,
+      "restore_seconds": 1.6577643520140555,
       "num_workers": 1,
       "layout": {
         "backend": {
@@ -400,14 +392,14 @@
           8
         ]
       },
-      "peak_rss_gib": 2.743438720703125,
+      "peak_rss_gib": 2.747772216796875,
       "gpu_after_build": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 1.0,
+        "memory_used_mib": 749.0
       },
       "gpu_during_last_window": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 1.0,
+        "memory_used_mib": 749.0
       }
     },
     {
@@ -418,63 +410,63 @@
       "windows": 3,
       "warmup_macrosteps": 3,
       "physx_threads": null,
-      "construct_seconds": 7.911277857987443,
-      "geometry_build_seconds": 4.598384771001292,
+      "construct_seconds": 8.1736057990056,
+      "geometry_build_seconds": 4.728940223983955,
       "aggregate_physics_ticks_per_second": {
-        "mean": 9251.093279532315,
-        "std": 65.08090058227307,
-        "min": 9173.33261390174,
-        "max": 9332.614491693801,
+        "mean": 9738.559804224336,
+        "std": 308.1030878320287,
+        "min": 9303.126750185975,
+        "max": 9970.053511127857,
         "samples": [
-          9247.332733001402,
-          9173.33261390174,
-          9332.614491693801
+          9970.053511127857,
+          9942.499151359176,
+          9303.126750185975
         ]
       },
       "aggregate_policy_decisions_per_second": {
-        "mean": 925.1093279532315,
-        "std": 6.508090058227363,
-        "min": 917.333261390174,
-        "max": 933.2614491693802,
+        "mean": 973.8559804224336,
+        "std": 30.810308783202842,
+        "min": 930.3126750185975,
+        "max": 997.0053511127857,
         "samples": [
-          924.7332733001402,
-          917.333261390174,
-          933.2614491693802
+          997.0053511127857,
+          994.2499151359175,
+          930.3126750185975
         ]
       },
       "per_env_physics_ticks_per_second": {
-        "mean": 578.1933299707697,
-        "std": 4.067556286392067,
-        "min": 573.3332883688588,
-        "max": 583.2884057308626,
+        "mean": 608.659987764021,
+        "std": 19.256442989501792,
+        "min": 581.4454218866234,
+        "max": 623.128344445491,
         "samples": [
-          577.9582958125876,
-          573.3332883688588,
-          583.2884057308626
+          623.128344445491,
+          621.4061969599485,
+          581.4454218866234
         ]
       },
       "cpu_utilization_of_one_core": {
-        "mean": 1.4670570066089308,
-        "std": 0.005098656094580411,
-        "min": 1.4603668296586179,
-        "max": 1.4727313847260874,
+        "mean": 1.8436337247597259,
+        "std": 0.000932578937641874,
+        "min": 1.842460280701334,
+        "max": 1.8447418170928023,
         "samples": [
-          1.4603668296586179,
-          1.4680728054420868,
-          1.4727313847260874
+          1.842460280701334,
+          1.8447418170928023,
+          1.8436990764850414
         ]
       },
       "phase_fraction": {
-        "controller_and_fluid_pre": 0.18096887542535664,
-        "tensor_write": 0.08048575070468705,
-        "physx_step": 0.49616544982864585,
-        "tensor_read": 0.041099899078558315,
-        "controller_post_and_shapes": 0.16561476657217278
+        "controller_and_fluid_pre": 0.21277076836142358,
+        "tensor_write": 0.0948920455273163,
+        "physx_step": 0.41525072658150747,
+        "tensor_read": 0.046304524798772236,
+        "controller_post_and_shapes": 0.18980217505353733
       },
-      "reset_all_seconds": 0.11205882698413916,
-      "reset_one_world_seconds": 0.008767549006734043,
-      "snapshot_seconds": 0.0156190000125207,
-      "restore_seconds": 1.7661768879916053,
+      "reset_all_seconds": 0.03529253101442009,
+      "reset_one_world_seconds": 0.0036579739826265723,
+      "snapshot_seconds": 0.016365963994758204,
+      "restore_seconds": 1.775509097991744,
       "num_workers": 1,
       "layout": {
         "backend": {
@@ -492,14 +484,14 @@
           16
         ]
       },
-      "peak_rss_gib": 2.862945556640625,
+      "peak_rss_gib": 2.8641395568847656,
       "gpu_after_build": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 2.0,
+        "memory_used_mib": 749.0
       },
       "gpu_during_last_window": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 3.0,
+        "memory_used_mib": 749.0
       }
     },
     {
@@ -510,63 +502,63 @@
       "windows": 3,
       "warmup_macrosteps": 3,
       "physx_threads": null,
-      "construct_seconds": 9.793361385003664,
-      "geometry_build_seconds": 4.766587719001109,
+      "construct_seconds": 9.844306190003408,
+      "geometry_build_seconds": 4.78572506600176,
       "aggregate_physics_ticks_per_second": {
-        "mean": 9936.116799661258,
-        "std": 54.832034036187935,
-        "min": 9890.94610645257,
-        "max": 10013.28725679131,
+        "mean": 11022.180980006902,
+        "std": 279.1714655079236,
+        "min": 10628.802031803369,
+        "max": 11247.936122232304,
         "samples": [
-          9904.117035739902,
-          9890.94610645257,
-          10013.28725679131
+          11247.936122232304,
+          11189.804785985038,
+          10628.802031803369
         ]
       },
       "aggregate_policy_decisions_per_second": {
-        "mean": 993.611679966126,
-        "std": 5.483203403618813,
-        "min": 989.0946106452569,
-        "max": 1001.3287256791309,
+        "mean": 1102.2180980006904,
+        "std": 27.917146550792403,
+        "min": 1062.8802031803368,
+        "max": 1124.7936122232304,
         "samples": [
-          990.4117035739902,
-          989.0946106452569,
-          1001.3287256791309
+          1124.7936122232304,
+          1118.9804785985039,
+          1062.8802031803368
         ]
       },
       "per_env_physics_ticks_per_second": {
-        "mean": 310.5036499894143,
-        "std": 1.713501063630873,
-        "min": 309.0920658266428,
-        "max": 312.9152267747284,
+        "mean": 344.4431556252157,
+        "std": 8.724108297122612,
+        "min": 332.15006349385527,
+        "max": 351.4980038197595,
         "samples": [
-          309.50365736687195,
-          309.0920658266428,
-          312.9152267747284
+          351.4980038197595,
+          349.6813995620324,
+          332.15006349385527
         ]
       },
       "cpu_utilization_of_one_core": {
-        "mean": 1.4982689556667166,
-        "std": 0.0011856990706772454,
-        "min": 1.4971508686987383,
-        "max": 1.4999102350669158,
+        "mean": 1.8214004735363014,
+        "std": 0.015350680422766695,
+        "min": 1.8060410844579138,
+        "max": 1.8423667010889226,
         "samples": [
-          1.4971508686987383,
-          1.4977457632344955,
-          1.4999102350669158
+          1.8157936350620674,
+          1.8423667010889226,
+          1.8060410844579138
         ]
       },
       "phase_fraction": {
-        "controller_and_fluid_pre": 0.20195518291884382,
-        "tensor_write": 0.047854654902463094,
-        "physx_step": 0.5156436704373898,
-        "tensor_read": 0.023769233194942157,
-        "controller_post_and_shapes": 0.17564515129427186
+        "controller_and_fluid_pre": 0.23884465092480797,
+        "tensor_write": 0.06046407256292161,
+        "physx_step": 0.42780555509541984,
+        "tensor_read": 0.02955024810171281,
+        "controller_post_and_shapes": 0.2024267249803502
       },
-      "reset_all_seconds": 0.2094105239957571,
-      "reset_one_world_seconds": 0.00798297199071385,
-      "snapshot_seconds": 0.030989515013061464,
-      "restore_seconds": 2.0261779300053604,
+      "reset_all_seconds": 0.07244216097751632,
+      "reset_one_world_seconds": 0.0038057529891375452,
+      "snapshot_seconds": 0.031911277008475736,
+      "restore_seconds": 1.9171613880025689,
       "num_workers": 1,
       "layout": {
         "backend": {
@@ -584,14 +576,14 @@
           32
         ]
       },
-      "peak_rss_gib": 3.0878334045410156,
+      "peak_rss_gib": 3.0892791748046875,
       "gpu_after_build": {
         "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "memory_used_mib": 749.0
       },
       "gpu_during_last_window": {
         "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "memory_used_mib": 749.0
       }
     },
     {
@@ -602,63 +594,63 @@
       "windows": 3,
       "warmup_macrosteps": 3,
       "physx_threads": null,
-      "construct_seconds": 12.724391188006848,
-      "geometry_build_seconds": 4.648512404994108,
+      "construct_seconds": 13.173534472007304,
+      "geometry_build_seconds": 4.835272994008847,
       "aggregate_physics_ticks_per_second": {
-        "mean": 9452.19705788723,
-        "std": 101.13581352810398,
-        "min": 9331.579209577641,
-        "max": 9579.073092305734,
+        "mean": 10390.468338274282,
+        "std": 200.25962283679962,
+        "min": 10115.778333747765,
+        "max": 10587.520340696838,
         "samples": [
-          9579.073092305734,
-          9331.579209577641,
-          9445.938871778315
+          10468.106340378245,
+          10115.778333747765,
+          10587.520340696838
         ]
       },
       "aggregate_policy_decisions_per_second": {
-        "mean": 945.219705788723,
-        "std": 10.113581352810426,
-        "min": 933.1579209577641,
-        "max": 957.9073092305734,
+        "mean": 1039.0468338274284,
+        "std": 20.025962283679984,
+        "min": 1011.5778333747764,
+        "max": 1058.7520340696838,
         "samples": [
-          957.9073092305734,
-          933.1579209577641,
-          944.5938871778314
+          1046.8106340378245,
+          1011.5778333747764,
+          1058.7520340696838
         ]
       },
       "per_env_physics_ticks_per_second": {
-        "mean": 147.69057902948796,
-        "std": 1.5802470863766247,
-        "min": 145.80592514965065,
-        "max": 149.6730170672771,
+        "mean": 162.35106778553566,
+        "std": 3.129056606824994,
+        "min": 158.05903646480883,
+        "max": 165.4300053233881,
         "samples": [
-          149.6730170672771,
-          145.80592514965065,
-          147.59279487153617
+          163.56416156841007,
+          158.05903646480883,
+          165.4300053233881
         ]
       },
       "cpu_utilization_of_one_core": {
-        "mean": 1.5559378306220395,
-        "std": 0.0013204321494883343,
-        "min": 1.5540833191511125,
-        "max": 1.5570545645759182,
+        "mean": 1.835003201801776,
+        "std": 0.0017212030192781387,
+        "min": 1.8327025590216424,
+        "max": 1.8368420664722709,
         "samples": [
-          1.5570545645759182,
-          1.5540833191511125,
-          1.5566756081390878
+          1.8354649799114144,
+          1.8368420664722709,
+          1.8327025590216424
         ]
       },
       "phase_fraction": {
-        "controller_and_fluid_pre": 0.2007229455262016,
-        "tensor_write": 0.02822220169940277,
-        "physx_step": 0.5636683795996943,
-        "tensor_read": 0.013790534534747064,
-        "controller_post_and_shapes": 0.1630414903713651
+        "controller_and_fluid_pre": 0.24208322571842097,
+        "tensor_write": 0.03649340572598984,
+        "physx_step": 0.4730354235629526,
+        "tensor_read": 0.018159038857611554,
+        "controller_post_and_shapes": 0.19451123623191033
       },
-      "reset_all_seconds": 0.4126698340114672,
-      "reset_one_world_seconds": 0.008064121997449547,
-      "snapshot_seconds": 0.06161155999870971,
-      "restore_seconds": 2.4983090320019983,
+      "reset_all_seconds": 0.1383550209866371,
+      "reset_one_world_seconds": 0.004097533004824072,
+      "snapshot_seconds": 0.06221361499046907,
+      "restore_seconds": 2.316878561017802,
       "num_workers": 1,
       "layout": {
         "backend": {
@@ -676,14 +668,14 @@
           64
         ]
       },
-      "peak_rss_gib": 3.5391311645507812,
+      "peak_rss_gib": 3.549365997314453,
       "gpu_after_build": {
         "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "memory_used_mib": 749.0
       },
       "gpu_during_last_window": {
-        "utilization_percent": 0.0,
-        "memory_used_mib": 630.0
+        "utilization_percent": 6.0,
+        "memory_used_mib": 749.0
       }
     }
   ]

@@ -6,16 +6,16 @@
   "checks": {
     "startup": {
       "status": "passed",
-      "seconds": 11.665271573001519,
+      "seconds": 12.02442111397977,
       "sizes": [
         2,
         2
       ],
       "pids": [
-        388948,
-        388949
+        1195167,
+        1195168
       ],
-      "log_dir": "/tmp/casu_workers_388830_jlbc9_1_"
+      "log_dir": "/tmp/casu_workers_1195049_97ff7j_1"
     },
     "api_shapes": {
       "status": "passed"
