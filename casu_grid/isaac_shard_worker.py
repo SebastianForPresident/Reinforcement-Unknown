@@ -8,8 +8,6 @@ processes behind.
 """
 from __future__ import annotations
 
-import importlib
-import importlib.util
 import os
 import signal
 import sys
@@ -19,60 +17,16 @@ from pathlib import Path
 
 
 def _die_with_parent():
-    """Ask the kernel to SIGTERM this process when the parent exits (Linux)."""
+    """Ask the kernel to SIGKILL this process when the parent exits (Linux).
+
+    SIGKILL, not SIGTERM: Kit/PhysX can ignore or block SIGTERM (a hung worker survived it), and a worker
+    has nothing to save once its parent is gone.
+    """
     try:
         import ctypes
-        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGTERM)   # PR_SET_PDEATHSIG
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGKILL)   # PR_SET_PDEATHSIG
     except Exception:
         pass
-
-
-def _load_module(module_name, file_path):
-    if file_path and Path(file_path).is_file():
-        # a module that is not importable by name (e.g. a researcher config loaded from a path)
-        try:
-            module = importlib.import_module(module_name)
-            if getattr(module, "__file__", None) and Path(module.__file__).resolve() == Path(file_path).resolve():
-                return module
-        except Exception:
-            pass
-        spec = importlib.util.spec_from_file_location(module_name or "casu_worker_callbacks", file_path)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
-        spec.loader.exec_module(module)
-        return module
-    return importlib.import_module(module_name)
-
-
-def resolve_callable(spec):
-    """Rebuild a callback from ``(module_name, file_path, qualname)`` (see ``callable_spec``)."""
-    if spec is None:
-        return None
-    module_name, file_path, qualname = spec
-    module = _load_module(module_name, file_path)
-    if "<locals>" not in qualname:
-        obj = module
-        for part in qualname.split("."):
-            obj = getattr(obj, part)
-        return obj
-    # closure produced by a no-argument factory (e.g. ``callbacks()``): call the factory, find it
-    outer = qualname.split(".<locals>")[0]
-    factory = module
-    for part in outer.split("."):
-        factory = getattr(factory, part)
-    return _find_by_qualname(factory(), qualname)
-
-
-def _find_by_qualname(produced, qualname, depth=0):
-    if callable(produced) and getattr(produced, "__qualname__", None) == qualname:
-        return produced
-    if depth < 3:
-        items = produced.values() if isinstance(produced, dict) else produced if isinstance(produced, (list, tuple)) else ()
-        for item in items:
-            found = _find_by_qualname(item, qualname, depth + 1)
-            if found is not None:
-                return found
-    return None
 
 
 def _plain(snapshot):
@@ -112,7 +66,8 @@ def main() -> None:
         import numpy as np
         from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
 
-        callbacks = {name: resolve_callable(spec) for name, spec in init["callbacks"].items()}
+        from casu_grid import callback_transport
+        callbacks = callback_transport.loads(init["callbacks"])
         cfg = dataclasses.replace(init["config"], num_envs=init["count"], num_workers=1)
         env = BatchedIsaacLayer1Env(cfg, terrain_mode=init["terrain_mode"], world_offset=init["world_offset"],
                                     action_decoder=callbacks.get("action_decoder"),

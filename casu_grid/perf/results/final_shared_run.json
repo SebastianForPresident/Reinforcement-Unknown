@@ -1,0 +1,690 @@
+{
+  "schema": "casu.isaac-throughput.v2",
+  "label": "final in-process",
+  "terrain_mode": "shared",
+  "workload": "run",
+  "system": {
+    "git_revision": "0d174a50574c1609b171b70b5f99877587547f13",
+    "casu_grid_dirty_files": [
+      "asu_grid/isaac_navigation_env.py",
+      "casu_grid/isaac_sharded_env.py",
+      "casu_grid/isaac_throughput_benchmark.py",
+      "casu_grid/isaac_training_benchmark.py",
+      "casu_grid/isaac_vector_env.py",
+      "casu_grid/workbench/README.md",
+      "casu_grid/workbench/lab.py",
+      "casu_grid/workbench/replay.py",
+      "casu_grid/workbench/test_lab.py",
+      "casu_grid/workbench/train.py",
+      "casu_grid/perf/OPTIMIZATION_LOG.md",
+      "casu_grid/perf/README.md",
+      "casu_grid/perf/mutation_latency.py",
+      "casu_grid/perf/results/final_shared_random.json",
+      "casu_grid/workbench/GUI_ACCEPTANCE_REPORT.md",
+      "casu_grid/workbench/REWARD_COMPONENTS.md",
+      "casu_grid/workbench/components.py",
+      "casu_grid/workbench/gui.py",
+      "casu_grid/workbench/observation_probe.py",
+      "casu_grid/workbench/test_components.py",
+      "casu_grid/workbench/test_gui.py"
+    ],
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "cpu_count": 16,
+    "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "python": "3.10.15",
+    "gpu": "NVIDIA GeForce RTX 3070, 615.71.09, 8192 MiB",
+    "backend": {
+      "requested": "auto",
+      "active": "numba",
+      "compiled_controller": true,
+      "numba_version": "0.59.1",
+      "kernel_version": 1
+    }
+  },
+  "rows": [
+    {
+      "num_envs": 1,
+      "terrain_mode": "shared",
+      "workload": "run",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 6.5668412869854365,
+      "geometry_build_seconds": 4.739562652976019,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 2019.7659782087064,
+        "std": 67.96792755206089,
+        "min": 1935.4185787261706,
+        "max": 2101.8595466118754,
+        "samples": [
+          2101.8595466118754,
+          2022.0198092880735,
+          1935.4185787261706
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 201.97659782087067,
+        "std": 6.796792755206105,
+        "min": 193.54185787261704,
+        "max": 210.18595466118757,
+        "samples": [
+          210.18595466118757,
+          202.20198092880736,
+          193.54185787261704
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 2019.7659782087064,
+        "std": 67.96792755206089,
+        "min": 1935.4185787261706,
+        "max": 2101.8595466118754,
+        "samples": [
+          2101.8595466118754,
+          2022.0198092880735,
+          1935.4185787261706
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.3436636196468477,
+        "std": 0.007037012340641363,
+        "min": 1.337950163542708,
+        "max": 1.353577020323679,
+        "samples": [
+          1.337950163542708,
+          1.3394636750741555,
+          1.353577020323679
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.07575106870808625,
+        "tensor_write": 0.259843209842943,
+        "physx_step": 0.4203370276035849,
+        "tensor_read": 0.12671332526468151,
+        "controller_post_and_shapes": 0.08735847465154138
+      },
+      "reset_all_seconds": 0.008594206010457128,
+      "reset_one_world_seconds": 0.008442599995760247,
+      "snapshot_seconds": 0.0014988819893915206,
+      "restore_seconds": 1.5300674489990342,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 1,
+        "compiled_controller": true,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          1
+        ]
+      },
+      "peak_rss_gib": 2.6464805603027344,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      }
+    },
+    {
+      "num_envs": 2,
+      "terrain_mode": "shared",
+      "workload": "run",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 6.538847712014103,
+      "geometry_build_seconds": 4.598053396999603,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 3347.7880989059117,
+        "std": 97.85094926208147,
+        "min": 3220.782723580172,
+        "max": 3458.8769020439036,
+        "samples": [
+          3220.782723580172,
+          3363.7046710936597,
+          3458.8769020439036
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 334.77880989059116,
+        "std": 9.785094926208142,
+        "min": 322.0782723580172,
+        "max": 345.88769020439037,
+        "samples": [
+          322.0782723580172,
+          336.37046710936596,
+          345.88769020439037
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 1673.8940494529559,
+        "std": 48.925474631040736,
+        "min": 1610.391361790086,
+        "max": 1729.4384510219518,
+        "samples": [
+          1610.391361790086,
+          1681.8523355468299,
+          1729.4384510219518
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.3728722012723988,
+        "std": 0.005264266034662396,
+        "min": 1.3655799641051705,
+        "max": 1.3778168587072686,
+        "samples": [
+          1.3752197810047575,
+          1.3778168587072686,
+          1.3655799641051705
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.09852044455061149,
+        "tensor_write": 0.21207728626897124,
+        "physx_step": 0.4421515655720281,
+        "tensor_read": 0.10964180078119339,
+        "controller_post_and_shapes": 0.10551520526976509
+      },
+      "reset_all_seconds": 0.015161665010964498,
+      "reset_one_world_seconds": 0.00792922600521706,
+      "snapshot_seconds": 0.0021934789838269353,
+      "restore_seconds": 1.5629264330200385,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 2,
+        "compiled_controller": true,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          2
+        ]
+      },
+      "peak_rss_gib": 2.6626129150390625,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      }
+    },
+    {
+      "num_envs": 4,
+      "terrain_mode": "shared",
+      "workload": "run",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 6.869847032998223,
+      "geometry_build_seconds": 4.682122842001263,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 5139.485707121473,
+        "std": 50.99751951812154,
+        "min": 5077.86617893985,
+        "max": 5202.751530823818,
+        "samples": [
+          5202.751530823818,
+          5077.86617893985,
+          5137.839411600749
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 513.9485707121472,
+        "std": 5.099751951812155,
+        "min": 507.78661789398507,
+        "max": 520.2751530823818,
+        "samples": [
+          520.2751530823818,
+          507.78661789398507,
+          513.783941160075
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 1284.8714267803682,
+        "std": 12.749379879530386,
+        "min": 1269.4665447349626,
+        "max": 1300.6878827059545,
+        "samples": [
+          1300.6878827059545,
+          1269.4665447349626,
+          1284.4598529001873
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.3960301246216595,
+        "std": 0.004809903335914091,
+        "min": 1.3892477492057391,
+        "max": 1.3998710822034386,
+        "samples": [
+          1.3892477492057391,
+          1.3998710822034386,
+          1.398971542455801
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.1264024768829888,
+        "tensor_write": 0.1636961408623362,
+        "physx_step": 0.46386423308488417,
+        "tensor_read": 0.08584539278921689,
+        "controller_post_and_shapes": 0.12604606243942898
+      },
+      "reset_all_seconds": 0.03154808399267495,
+      "reset_one_world_seconds": 0.008262490999186411,
+      "snapshot_seconds": 0.003946991986595094,
+      "restore_seconds": 1.6302634530002251,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 4,
+        "compiled_controller": true,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          4
+        ]
+      },
+      "peak_rss_gib": 2.694316864013672,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      }
+    },
+    {
+      "num_envs": 8,
+      "terrain_mode": "shared",
+      "workload": "run",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 7.0712873979937285,
+      "geometry_build_seconds": 4.551115373003995,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 7484.644741719509,
+        "std": 96.79522356811624,
+        "min": 7369.459377508872,
+        "max": 7606.29381977519,
+        "samples": [
+          7369.459377508872,
+          7478.181027874463,
+          7606.29381977519
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 748.4644741719509,
+        "std": 9.679522356811628,
+        "min": 736.9459377508873,
+        "max": 760.6293819775191,
+        "samples": [
+          736.9459377508873,
+          747.8181027874463,
+          760.6293819775191
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 935.5805927149386,
+        "std": 12.09940294601453,
+        "min": 921.182422188609,
+        "max": 950.7867274718988,
+        "samples": [
+          921.182422188609,
+          934.7726284843079,
+          950.7867274718988
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.4273412398542507,
+        "std": 0.0024426595392892524,
+        "min": 1.4254981127321533,
+        "max": 1.430793028750356,
+        "samples": [
+          1.4254981127321533,
+          1.430793028750356,
+          1.4257325780802426
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.15458475400792338,
+        "tensor_write": 0.12136339660299979,
+        "physx_step": 0.4757641477294781,
+        "tensor_read": 0.06284165314310469,
+        "controller_post_and_shapes": 0.1505672163493095
+      },
+      "reset_all_seconds": 0.05454953797743656,
+      "reset_one_world_seconds": 0.007795234996592626,
+      "snapshot_seconds": 0.0078268310171552,
+      "restore_seconds": 1.6272954840096645,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 8,
+        "compiled_controller": true,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          8
+        ]
+      },
+      "peak_rss_gib": 2.743438720703125,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      }
+    },
+    {
+      "num_envs": 16,
+      "terrain_mode": "shared",
+      "workload": "run",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 7.911277857987443,
+      "geometry_build_seconds": 4.598384771001292,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 9251.093279532315,
+        "std": 65.08090058227307,
+        "min": 9173.33261390174,
+        "max": 9332.614491693801,
+        "samples": [
+          9247.332733001402,
+          9173.33261390174,
+          9332.614491693801
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 925.1093279532315,
+        "std": 6.508090058227363,
+        "min": 917.333261390174,
+        "max": 933.2614491693802,
+        "samples": [
+          924.7332733001402,
+          917.333261390174,
+          933.2614491693802
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 578.1933299707697,
+        "std": 4.067556286392067,
+        "min": 573.3332883688588,
+        "max": 583.2884057308626,
+        "samples": [
+          577.9582958125876,
+          573.3332883688588,
+          583.2884057308626
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.4670570066089308,
+        "std": 0.005098656094580411,
+        "min": 1.4603668296586179,
+        "max": 1.4727313847260874,
+        "samples": [
+          1.4603668296586179,
+          1.4680728054420868,
+          1.4727313847260874
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.18096887542535664,
+        "tensor_write": 0.08048575070468705,
+        "physx_step": 0.49616544982864585,
+        "tensor_read": 0.041099899078558315,
+        "controller_post_and_shapes": 0.16561476657217278
+      },
+      "reset_all_seconds": 0.11205882698413916,
+      "reset_one_world_seconds": 0.008767549006734043,
+      "snapshot_seconds": 0.0156190000125207,
+      "restore_seconds": 1.7661768879916053,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 16,
+        "compiled_controller": true,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          16
+        ]
+      },
+      "peak_rss_gib": 2.862945556640625,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      }
+    },
+    {
+      "num_envs": 32,
+      "terrain_mode": "shared",
+      "workload": "run",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 9.793361385003664,
+      "geometry_build_seconds": 4.766587719001109,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 9936.116799661258,
+        "std": 54.832034036187935,
+        "min": 9890.94610645257,
+        "max": 10013.28725679131,
+        "samples": [
+          9904.117035739902,
+          9890.94610645257,
+          10013.28725679131
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 993.611679966126,
+        "std": 5.483203403618813,
+        "min": 989.0946106452569,
+        "max": 1001.3287256791309,
+        "samples": [
+          990.4117035739902,
+          989.0946106452569,
+          1001.3287256791309
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 310.5036499894143,
+        "std": 1.713501063630873,
+        "min": 309.0920658266428,
+        "max": 312.9152267747284,
+        "samples": [
+          309.50365736687195,
+          309.0920658266428,
+          312.9152267747284
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.4982689556667166,
+        "std": 0.0011856990706772454,
+        "min": 1.4971508686987383,
+        "max": 1.4999102350669158,
+        "samples": [
+          1.4971508686987383,
+          1.4977457632344955,
+          1.4999102350669158
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.20195518291884382,
+        "tensor_write": 0.047854654902463094,
+        "physx_step": 0.5156436704373898,
+        "tensor_read": 0.023769233194942157,
+        "controller_post_and_shapes": 0.17564515129427186
+      },
+      "reset_all_seconds": 0.2094105239957571,
+      "reset_one_world_seconds": 0.00798297199071385,
+      "snapshot_seconds": 0.030989515013061464,
+      "restore_seconds": 2.0261779300053604,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 32,
+        "compiled_controller": true,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          32
+        ]
+      },
+      "peak_rss_gib": 3.0878334045410156,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      }
+    },
+    {
+      "num_envs": 64,
+      "terrain_mode": "shared",
+      "workload": "run",
+      "macrosteps_per_window": 30,
+      "windows": 3,
+      "warmup_macrosteps": 3,
+      "physx_threads": null,
+      "construct_seconds": 12.724391188006848,
+      "geometry_build_seconds": 4.648512404994108,
+      "aggregate_physics_ticks_per_second": {
+        "mean": 9452.19705788723,
+        "std": 101.13581352810398,
+        "min": 9331.579209577641,
+        "max": 9579.073092305734,
+        "samples": [
+          9579.073092305734,
+          9331.579209577641,
+          9445.938871778315
+        ]
+      },
+      "aggregate_policy_decisions_per_second": {
+        "mean": 945.219705788723,
+        "std": 10.113581352810426,
+        "min": 933.1579209577641,
+        "max": 957.9073092305734,
+        "samples": [
+          957.9073092305734,
+          933.1579209577641,
+          944.5938871778314
+        ]
+      },
+      "per_env_physics_ticks_per_second": {
+        "mean": 147.69057902948796,
+        "std": 1.5802470863766247,
+        "min": 145.80592514965065,
+        "max": 149.6730170672771,
+        "samples": [
+          149.6730170672771,
+          145.80592514965065,
+          147.59279487153617
+        ]
+      },
+      "cpu_utilization_of_one_core": {
+        "mean": 1.5559378306220395,
+        "std": 0.0013204321494883343,
+        "min": 1.5540833191511125,
+        "max": 1.5570545645759182,
+        "samples": [
+          1.5570545645759182,
+          1.5540833191511125,
+          1.5566756081390878
+        ]
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.2007229455262016,
+        "tensor_write": 0.02822220169940277,
+        "physx_step": 0.5636683795996943,
+        "tensor_read": 0.013790534534747064,
+        "controller_post_and_shapes": 0.1630414903713651
+      },
+      "reset_all_seconds": 0.4126698340114672,
+      "reset_one_world_seconds": 0.008064121997449547,
+      "snapshot_seconds": 0.06161155999870971,
+      "restore_seconds": 2.4983090320019983,
+      "num_workers": 1,
+      "layout": {
+        "backend": {
+          "requested": "auto",
+          "active": "numba",
+          "compiled_controller": true,
+          "numba_version": "0.59.1",
+          "kernel_version": 1
+        },
+        "num_workers": 1,
+        "worlds": 64,
+        "compiled_controller": true,
+        "terrain_mode": "shared",
+        "worlds_per_worker": [
+          64
+        ]
+      },
+      "peak_rss_gib": 3.5391311645507812,
+      "gpu_after_build": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      },
+      "gpu_during_last_window": {
+        "utilization_percent": 0.0,
+        "memory_used_mib": 630.0
+      }
+    }
+  ]
+}

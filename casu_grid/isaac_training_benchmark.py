@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse, json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(os.environ.get("CASU_SRC_ROOT", Path(__file__).resolve().parents[1]))   # CASU_SRC_ROOT: benchmark another checkout
 p = argparse.ArgumentParser()
 p.add_argument("--envs", type=int, default=16)
 p.add_argument("--workers", type=int, default=1)

@@ -17,10 +17,9 @@ Design notes
   * World ``i`` keeps its global index in every layout, so fluid seeds (and, in shared-terrain mode,
     the whole simulation) do not depend on how worlds are partitioned.
   * Researcher callbacks (action decoder, observation encoder, reward function) execute inside the
-    workers. They are shipped as ``(module, file, qualname)`` references and rebuilt there: top-level
-    functions of importable modules or of a config file work directly; closures work when they come
-    from a no-argument factory such as ``callbacks()``. Anything else (lambdas, bound methods) is
-    rejected with an explanatory error before any process starts.
+    workers. They are shipped by value with :mod:`casu_grid.callback_transport` (closures, lambdas and
+    config-file functions included); callbacks that capture unpicklable state are rejected with an
+    explanatory error before any process starts.
   * Fail fast: if a worker dies or reports an error, every worker is terminated (exact-owned
     processes only) and the exception is raised; no silent restarts that would alter the data.
 """
@@ -28,7 +27,6 @@ from __future__ import annotations
 
 import atexit
 import dataclasses
-import inspect
 import multiprocessing as mp
 import os
 import subprocess
@@ -43,33 +41,18 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from .isaac_shard_worker import resolve_callable
+from . import callback_transport
 from .reference import load_layer1_reference
 
 REPO_ROOT = str(Path(__file__).resolve().parents[1])
 
 
-def callable_spec(fn):
-    """``(module, file, qualname)`` reference for a callback, or ``None`` for the default."""
-    if fn is None:
-        return None
-    qualname = getattr(fn, "__qualname__", "")
-    module_name = getattr(fn, "__module__", None)
-    if (not inspect.isfunction(fn)) or qualname.endswith("<lambda>") or not module_name:
-        raise ValueError(
-            f"callback {fn!r} cannot be sent to worker processes; define it as a top-level function or "
-            "inside a no-argument factory such as callbacks(), or run with num_workers=1")
-    file_path = inspect.getsourcefile(fn)
-    spec = (module_name, file_path, qualname)
-    try:   # fail early, in the parent, if the worker could not rebuild it
-        rebuilt = resolve_callable(spec)
-    except Exception as error:
-        raise ValueError(f"callback {qualname} cannot be rebuilt in a worker process ({error}); "
-                         "use a top-level function or a no-argument factory, or num_workers=1") from error
-    if rebuilt is None:
-        raise ValueError(f"callback {qualname} cannot be located by a worker process; "
-                         "use a top-level function or a no-argument factory, or num_workers=1")
-    return spec
+def resolve_worker_count(config) -> int:
+    """Worker processes for ``config``: its ``num_workers``, or for ``0`` (``auto``) up to 4 workers with
+    at least 4 worlds each and at most one worker per 4 logical CPUs."""
+    if config.num_workers > 0:
+        return min(config.num_workers, config.num_envs)
+    return max(1, min(4, (os.cpu_count() or 4) // 4, config.num_envs // 4))
 
 
 def shard_sizes(total: int, workers: int) -> list[int]:
@@ -122,14 +105,16 @@ class ShardedBatchedEnv(gym.Env):
         self.terrain_mode = terrain_mode
         self.count = int(config.num_envs)
         self.world_offset = int(world_offset)
-        self.sizes = shard_sizes(self.count, config.num_workers)
+        self.sizes = shard_sizes(self.count, resolve_worker_count(config))
         self.num_workers = len(self.sizes)
         self.reference = load_layer1_reference()
         self.closed = False
         self.timers = _ShardedTimers(self)
-        specs = {"action_decoder": callable_spec(action_decoder),
-                 "observation_encoder": callable_spec(observation_encoder),
-                 "reward_function": callable_spec(reward_function)}
+        # callbacks run inside the workers; verify in the parent that they survive the trip
+        callbacks = callback_transport.dumps({"action_decoder": action_decoder,
+                                              "observation_encoder": observation_encoder,
+                                              "reward_function": reward_function})
+        callback_transport.loads(callbacks)
         self.action_space = spaces.Dict({"move_x": spaces.MultiDiscrete([3]), "jump": spaces.MultiDiscrete([2]),
                                          "crouch": spaces.MultiDiscrete([2])})
         self.observation_space = spaces.Dict({"player_state": spaces.Box(-np.inf, np.inf, shape=(8,), dtype=np.float32)})
@@ -155,11 +140,12 @@ class ShardedBatchedEnv(gym.Env):
                 self._procs.append(proc)
                 self._conns.append(parent_end)
                 parent_end.send({"config": config, "count": size, "world_offset": base,
-                                 "terrain_mode": terrain_mode, "callbacks": specs,
+                                 "terrain_mode": terrain_mode, "callbacks": callbacks,
                                  "repo_root": REPO_ROOT, "physx_threads": config.worker_physx_threads,
                                  "environ": {}})
                 base += size
-            ready = [self._receive(k) for k in range(self.num_workers)]
+            ready = [self._receive(k, timeout=max(1800.0, self.cfg.worker_timeout_seconds))
+                     for k in range(self.num_workers)]
         except BaseException:
             _terminate(self._procs)
             raise
@@ -174,12 +160,15 @@ class ShardedBatchedEnv(gym.Env):
             raise RuntimeError("workers loaded a different canonical world")
 
     # ------------------------------------------------------------------ plumbing
-    def _receive(self, k):
+    def _receive(self, k, timeout=None):
         conn = self._conns[k]
+        deadline = time.monotonic() + (self.cfg.worker_timeout_seconds if timeout is None else timeout)
         try:
             while not conn.poll(1.0):
                 if self._procs[k].poll() is not None:
                     self._fail(f"worker {k} exited with code {self._procs[k].returncode}", k)
+                if time.monotonic() > deadline:
+                    self._fail(f"worker {k} did not answer within the timeout (hung?)", k)
             kind, payload = conn.recv()
         except (EOFError, OSError):   # ConnectionResetError / BrokenPipeError: the worker is gone
             self._fail(f"worker {k} closed its pipe (exit code {self._procs[k].poll()})", k)

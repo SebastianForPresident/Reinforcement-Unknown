@@ -124,6 +124,8 @@ try:
     n = args.single
     import dataclasses
     extra = {"num_workers": args.workers} if "num_workers" in {f.name for f in dataclasses.fields(IsaacLayer1EnvConfig)} else {}
+    if args.workers > 1 and args.physx_threads is not None:
+        extra["worker_physx_threads"] = args.physx_threads
     cfg = IsaacLayer1EnvConfig(num_envs=n, spawn_mode="fixture", fixture_grid_xy=(483, 1010), **extra)
     started = time.perf_counter()
     env = BatchedIsaacLayer1Env(cfg, terrain_mode=args.terrain_mode)

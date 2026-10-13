@@ -35,8 +35,13 @@ PLAYER_PATH = "/World/CasuPlayer"
 
 
 def _default_workers() -> int:
-    """Worker processes for the batched environment (``CASU_NUM_WORKERS``, default 1 = in-process)."""
-    return int(os.environ.get("CASU_NUM_WORKERS", "1"))
+    """Worker processes for the batched environment.
+
+    ``CASU_NUM_WORKERS``: an integer (default 1 = everything in-process) or ``auto`` (stored as 0:
+    chosen from the CPU count and world count, see ``isaac_sharded_env.resolve_worker_count``).
+    """
+    value = os.environ.get("CASU_NUM_WORKERS", "1").strip().lower()
+    return 0 if value == "auto" else int(value)
 
 
 @dataclass(frozen=True)
@@ -72,7 +77,8 @@ class IsaacLayer1EnvConfig:
     # Execution layout only (never changes the simulated experiment): split the worlds over this
     # many independent Isaac processes. 1 keeps everything in-process. See isaac_sharded_env.py.
     num_workers: int = field(default_factory=_default_workers)
-    worker_physx_threads: int = 2       # PhysX CPU threads per worker when num_workers > 1
+    worker_physx_threads: int = 2       # PhysX CPU threads per worker when num_workers > 1 (1 or fewer hangs PhysX)
+    worker_timeout_seconds: float = 900.0   # a worker that does not answer a request this long is declared failed
 
     def validate(self):
         if self.seed != 391728405:
@@ -95,8 +101,8 @@ class IsaacLayer1EnvConfig:
             raise ValueError("contact_friction cannot be negative")
         if self.crouch_levels < 2:
             raise ValueError("crouch_levels must be at least 2")
-        if self.num_workers < 1 or self.worker_physx_threads < 1:
-            raise ValueError("num_workers and worker_physx_threads must be positive")
+        if self.num_workers < 0 or self.worker_physx_threads < 2 or self.worker_timeout_seconds <= 0:
+            raise ValueError("num_workers must be >= 0 (0 = auto), worker_physx_threads >= 2, worker_timeout_seconds > 0")
         if self.liquid_affect_phase not in {"before_controller", "after_controller"}:
             raise ValueError("liquid_affect_phase must be before_controller or after_controller")
 

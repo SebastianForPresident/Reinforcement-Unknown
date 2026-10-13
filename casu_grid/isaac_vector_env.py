@@ -63,10 +63,11 @@ class BatchedIsaacLayer1Env(gym.Env):
     def __new__(cls, config=None, *args, **kwargs):
         # ``config.num_workers > 1`` transparently returns the multi-process wrapper (same API),
         # so existing launchers need no change. Workers construct this class with num_workers=1.
-        if cls is BatchedIsaacLayer1Env and config is not None and getattr(config, "num_workers", 1) > 1:
-            from .isaac_sharded_env import ShardedBatchedEnv
-            return ShardedBatchedEnv(config, *args, **kwargs)
-        return super().__new__(cls)
+        if cls is BatchedIsaacLayer1Env and config is not None and getattr(config, "num_workers", 1) != 1:
+            from .isaac_sharded_env import ShardedBatchedEnv, resolve_worker_count
+            if resolve_worker_count(config) > 1:
+                return ShardedBatchedEnv(config, *args, **kwargs)
+        return super().__new__(cls)    # one process (num_workers=1, or auto that resolved to 1)
 
     def __init__(self, config: IsaacLayer1EnvConfig, *,
                  action_decoder: Callable[[dict[str, Any]], StandingAction] | None = None,
