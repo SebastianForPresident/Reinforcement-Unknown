@@ -1,83 +1,135 @@
 {
- "schema": "casu.isaac-vector-validation.v2",
- "num_envs": 4,
- "checks": {
-  "world_isolation": {
-   "status": "passed",
-   "world0_max_abs_state_error_when_other_worlds_act_differently": 1.0521034710109234e-08,
-   "worlds_actually_differ": true
-  },
-  "restore_continuation_exact": {
-   "status": "passed",
-   "max_abs_state_error": 0.0,
-   "per_world_error": [
-    0.0,
-    0.0,
-    0.0,
-    0.0
-   ]
-  },
-  "partial_reset": {
-   "status": "passed",
-   "untouched_worlds_max_abs_state_error": 0.0,
-   "reset_world_at_spawn": true
-  },
-  "shared_terrain_edit_rejected": {
-   "status": "passed"
-  },
-  "door_state_per_world": {
-   "status": "passed",
-   "world0": {
-    "activated": true,
-    "progress": 4.519999999999992,
-    "destroyed": false
-   },
-   "world1": {
-    "activated": false,
-    "progress": 0.0,
-    "destroyed": false
-   }
-  },
-  "independent_terrain_edit_and_restore": {
-   "status": "passed",
-   "cell_xy": [
-    0,
-    0
-   ],
-   "world0_chunk_colliders": [
-    205,
-    206,
-    205
-   ],
-   "world1_chunk_colliders": [
-    205,
-    205,
-    205
-   ]
-  },
-  "stress_corner_fall_informational": {
-   "status": "passed",
-   "spread": 0.2799520492553711
-  }
- },
- "build_seconds": 4.1685835729877,
- "throughput_shared": {
+  "schema": "casu.isaac-vector-validation.v2",
   "num_envs": 4,
-  "macrosteps": 10,
-  "elapsed_seconds": 0.6819894670043141,
-  "aggregate_physics_ticks_per_second": 586.5193222954421,
-  "aggregate_policy_decisions_per_second": 58.6519322295442,
-  "per_env_physics_ticks_per_second": 146.62983057386052
- },
- "shared_peak_rss_gib": 2.5106773376464844,
- "stress_corner_fall": {
-  "status": "passed",
-  "world0_branch_spread_m_or_mps": 0.2799520492553711,
-  "other_worlds_max_spread": 0.0,
-  "note": "chaotic corner contact; branch results may depend on other worlds' prior history"
- },
- "doors_peak_rss_gib": 2.414825439453125,
- "independent_peak_rss_gib": 3.2008514404296875,
- "stress_peak_rss_gib": 2.5278282165527344,
- "status": "passed"
+  "checks": {
+    "world_isolation": {
+      "status": "passed",
+      "world0_max_abs_state_error_when_other_worlds_act_differently": 9.458744898438454e-11,
+      "worlds_actually_differ": true
+    },
+    "restore_continuation_exact": {
+      "status": "passed",
+      "max_abs_state_error": 0.0,
+      "per_world_error": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "first": [
+        {
+          "x": -17.91550064086914,
+          "y": 501.6155090332031,
+          "vx": 0.00010882261267397553,
+          "vy": -1.3136549341652426e-06
+        },
+        {
+          "x": -28.5,
+          "y": 501.6155090332031,
+          "vx": 2.6191044352161545e-15,
+          "vy": 2.2410094970837235e-06
+        },
+        {
+          "x": -38.084503173828125,
+          "y": 501.615478515625,
+          "vx": -6.593384750885889e-05,
+          "vy": 3.928759895188705e-08
+        },
+        {
+          "x": -17.915508270263672,
+          "y": 501.615478515625,
+          "vx": 0.000607253285124898,
+          "vy": -0.0014414868783205748
+        }
+      ],
+      "second": [
+        {
+          "x": -17.91550064086914,
+          "y": 501.6155090332031,
+          "vx": 0.00010882261267397553,
+          "vy": -1.3136549341652426e-06
+        },
+        {
+          "x": -28.5,
+          "y": 501.6155090332031,
+          "vx": 2.6191044352161545e-15,
+          "vy": 2.2410094970837235e-06
+        },
+        {
+          "x": -38.084503173828125,
+          "y": 501.615478515625,
+          "vx": -6.593384750885889e-05,
+          "vy": 3.928759895188705e-08
+        },
+        {
+          "x": -17.915508270263672,
+          "y": 501.615478515625,
+          "vx": 0.000607253285124898,
+          "vy": -0.0014414868783205748
+        }
+      ]
+    },
+    "partial_reset": {
+      "status": "passed",
+      "untouched_worlds_max_abs_state_error": 0.0,
+      "reset_world_at_spawn": true
+    },
+    "shared_terrain_edit_rejected": {
+      "status": "passed"
+    },
+    "door_state_per_world": {
+      "status": "passed",
+      "world0": {
+        "activated": true,
+        "progress": 4.459999999999993,
+        "destroyed": false
+      },
+      "world1": {
+        "activated": false,
+        "progress": 0.0,
+        "destroyed": false
+      }
+    },
+    "independent_terrain_edit_and_restore": {
+      "status": "passed",
+      "cell_xy": [
+        0,
+        0
+      ],
+      "world0_chunk_colliders": [
+        205,
+        206,
+        205
+      ],
+      "world1_chunk_colliders": [
+        205,
+        205,
+        205
+      ]
+    },
+    "stress_corner_fall_informational": {
+      "status": "passed",
+      "spread": 0.0
+    }
+  },
+  "build_seconds": 4.752061473991489,
+  "throughput_shared": {
+    "num_envs": 4,
+    "macrosteps": 10,
+    "elapsed_seconds": 0.19800153098185547,
+    "aggregate_physics_ticks_per_second": 2020.1863996529164,
+    "aggregate_policy_decisions_per_second": 202.01863996529164,
+    "per_env_physics_ticks_per_second": 505.0465999132291
+  },
+  "shared_peak_rss_gib": 2.636707305908203,
+  "stress_corner_fall": {
+    "status": "passed",
+    "world0_branch_spread_m_or_mps": 0.0,
+    "other_worlds_max_spread": 0.0,
+    "note": "chaotic corner contact; branch results may depend on other worlds' prior history"
+  },
+  "doors_peak_rss_gib": 2.545154571533203,
+  "independent_peak_rss_gib": 3.4568328857421875,
+  "stress_peak_rss_gib": 2.6579132080078125,
+  "status": "passed"
 }

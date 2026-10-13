@@ -1,186 +1,96 @@
 {
- "schema": "casu.isaac-throughput.v1",
- "terrain_mode": "shared",
- "rows": [
-  {
-   "num_envs": 1,
-   "terrain_mode": "shared",
-   "macrosteps": 20,
-   "construct_seconds": 5.647584298014408,
-   "geometry_build_seconds": 4.0172468020173255,
-   "elapsed_seconds": 0.2315768379776273,
-   "aggregate_physics_ticks_per_second": 863.6442303410415,
-   "aggregate_policy_decisions_per_second": 86.36442303410415,
-   "per_env_physics_ticks_per_second": 863.6442303410415,
-   "phase_seconds": {
-    "controller_and_fluid_pre": 0.054592629021499306,
-    "tensor_write": 0.021907408197876066,
-    "physx_step": 0.07336025283439085,
-    "tensor_read": 0.013711475970922038,
-    "controller_post_and_shapes": 0.06406305206473917
-   },
-   "phase_fraction": {
-    "controller_and_fluid_pre": 0.2357430453678339,
-    "tensor_write": 0.09460103345910849,
-    "physx_step": 0.31678579548390845,
-    "tensor_read": 0.059209185558733245,
-    "controller_post_and_shapes": 0.27663842646874864
-   },
-   "reset_all_seconds": 0.0026679490110836923,
-   "reset_one_world_seconds": 0.0025705849984660745,
-   "snapshot_seconds": 0.0013123940152581781,
-   "restore_seconds": 1.432089943002211,
-   "peak_rss_gib": 2.4269676208496094
-  },
-  {
-   "num_envs": 2,
-   "terrain_mode": "shared",
-   "macrosteps": 20,
-   "construct_seconds": 5.677852269000141,
-   "geometry_build_seconds": 3.9547122529766057,
-   "elapsed_seconds": 0.34449300399865024,
-   "aggregate_physics_ticks_per_second": 1161.1266277023358,
-   "aggregate_policy_decisions_per_second": 116.11266277023357,
-   "per_env_physics_ticks_per_second": 580.5633138511679,
-   "phase_seconds": {
-    "controller_and_fluid_pre": 0.09663178882328793,
-    "tensor_write": 0.025891161058098078,
-    "physx_step": 0.0862736860581208,
-    "tensor_read": 0.01687606397899799,
-    "controller_post_and_shapes": 0.11469369375845417
-   },
-   "phase_fraction": {
-    "controller_and_fluid_pre": 0.2805043577130714,
-    "tensor_write": 0.07515729131671865,
-    "physx_step": 0.25043668538028957,
-    "tensor_read": 0.048988118142056995,
-    "controller_post_and_shapes": 0.3329347546311958
-   },
-   "reset_all_seconds": 0.0036179550224915147,
-   "reset_one_world_seconds": 0.002581730979727581,
-   "snapshot_seconds": 0.0021334129851311445,
-   "restore_seconds": 1.4255172530247364,
-   "peak_rss_gib": 2.4372406005859375
-  },
-  {
-   "num_envs": 4,
-   "terrain_mode": "shared",
-   "macrosteps": 20,
-   "construct_seconds": 5.875571134994971,
-   "geometry_build_seconds": 3.96169780701166,
-   "elapsed_seconds": 0.5645451330055948,
-   "aggregate_physics_ticks_per_second": 1417.0700502559673,
-   "aggregate_policy_decisions_per_second": 141.70700502559671,
-   "per_env_physics_ticks_per_second": 354.26751256399183,
-   "phase_seconds": {
-    "controller_and_fluid_pre": 0.17644492397084832,
-    "tensor_write": 0.0339068321918603,
-    "physx_step": 0.10793482794542797,
-    "tensor_read": 0.02284860995132476,
-    "controller_post_and_shapes": 0.21862133979448117
-   },
-   "phase_fraction": {
-    "controller_and_fluid_pre": 0.3125435215984754,
-    "tensor_write": 0.06006044549767516,
-    "physx_step": 0.191189015076246,
-    "tensor_read": 0.040472601065003465,
-    "controller_post_and_shapes": 0.3872521912119904
-   },
-   "reset_all_seconds": 0.005633327993564308,
-   "reset_one_world_seconds": 0.002634620002936572,
-   "snapshot_seconds": 0.003964636009186506,
-   "restore_seconds": 1.4488944180193357,
-   "peak_rss_gib": 2.4674034118652344
-  },
-  {
-   "num_envs": 8,
-   "terrain_mode": "shared",
-   "macrosteps": 20,
-   "construct_seconds": 6.26740939199226,
-   "geometry_build_seconds": 3.959154437005054,
-   "elapsed_seconds": 0.9940982440020889,
-   "aggregate_physics_ticks_per_second": 1609.4988696073362,
-   "aggregate_policy_decisions_per_second": 160.94988696073364,
-   "per_env_physics_ticks_per_second": 201.18735870091703,
-   "phase_seconds": {
-    "controller_and_fluid_pre": 0.3532205708033871,
-    "tensor_write": 0.04366666785790585,
-    "physx_step": 0.14201109611894935,
-    "tensor_read": 0.03218387207016349,
-    "controller_post_and_shapes": 0.4171222729200963
-   },
-   "phase_fraction": {
-    "controller_and_fluid_pre": 0.3553175683938185,
-    "tensor_write": 0.04392590784801154,
-    "physx_step": 0.14285418667196734,
-    "tensor_read": 0.03237494107282204,
-    "controller_post_and_shapes": 0.4195986417205861
-   },
-   "reset_all_seconds": 0.009551476978231221,
-   "reset_one_world_seconds": 0.002810831996612251,
-   "snapshot_seconds": 0.007786293019307777,
-   "restore_seconds": 1.4854686329781543,
-   "peak_rss_gib": 2.5206985473632812
-  },
-  {
-   "num_envs": 16,
-   "terrain_mode": "shared",
-   "macrosteps": 20,
-   "construct_seconds": 7.015796956984559,
-   "geometry_build_seconds": 3.951825806987472,
-   "elapsed_seconds": 1.8847141409933101,
-   "aggregate_physics_ticks_per_second": 1697.8702129934084,
-   "aggregate_policy_decisions_per_second": 169.78702129934084,
-   "per_env_physics_ticks_per_second": 106.11688831208802,
-   "phase_seconds": {
-    "controller_and_fluid_pre": 0.6655228046874981,
-    "tensor_write": 0.06515427902922966,
-    "physx_step": 0.20596363506047055,
-    "tensor_read": 0.05222214714740403,
-    "controller_post_and_shapes": 0.8880093417537864
-   },
-   "phase_fraction": {
-    "controller_and_fluid_pre": 0.35311604567085403,
-    "tensor_write": 0.03456984675399691,
-    "physx_step": 0.10928110029031804,
-    "tensor_read": 0.027708258781292495,
-    "controller_post_and_shapes": 0.47116394069488676
-   },
-   "reset_all_seconds": 0.016055863990914077,
-   "reset_one_world_seconds": 0.0027185860089957714,
-   "snapshot_seconds": 0.014654617989435792,
-   "restore_seconds": 1.5588800339901354,
-   "peak_rss_gib": 2.623565673828125
-  },
-  {
-   "num_envs": 32,
-   "terrain_mode": "shared",
-   "macrosteps": 20,
-   "construct_seconds": 8.507561568985693,
-   "geometry_build_seconds": 3.92775435798103,
-   "elapsed_seconds": 3.6653605949832126,
-   "aggregate_physics_ticks_per_second": 1746.0765002929575,
-   "aggregate_policy_decisions_per_second": 174.60765002929574,
-   "per_env_physics_ticks_per_second": 54.56489063415492,
-   "phase_seconds": {
-    "controller_and_fluid_pre": 1.2906054368650075,
-    "tensor_write": 0.10691084896097891,
-    "physx_step": 0.33370505608036183,
-    "tensor_read": 0.09330621495610103,
-    "controller_post_and_shapes": 1.829541040933691
-   },
-   "phase_fraction": {
-    "controller_and_fluid_pre": 0.3521087225719243,
-    "tensor_write": 0.029167893905802347,
-    "physx_step": 0.09104289944544738,
-    "tensor_read": 0.025456217072833014,
-    "controller_post_and_shapes": 0.49914353404622397
-   },
-   "reset_all_seconds": 0.030014399002538994,
-   "reset_one_world_seconds": 0.0028226329886820167,
-   "snapshot_seconds": 0.028680685005383566,
-   "restore_seconds": 1.7050452590046916,
-   "peak_rss_gib": 2.8431015014648438
-  }
- ]
+  "schema": "casu.isaac-throughput.v1",
+  "terrain_mode": "shared",
+  "rows": [
+    {
+      "num_envs": 1,
+      "terrain_mode": "shared",
+      "macrosteps": 30,
+      "construct_seconds": 6.4388309179921634,
+      "geometry_build_seconds": 4.6463244009937625,
+      "elapsed_seconds": 0.3430320600164123,
+      "aggregate_physics_ticks_per_second": 874.5538244607416,
+      "aggregate_policy_decisions_per_second": 87.45538244607415,
+      "per_env_physics_ticks_per_second": 874.5538244607416,
+      "phase_seconds": {
+        "controller_and_fluid_pre": 0.08029908104799688,
+        "tensor_write": 0.033709544863086194,
+        "physx_step": 0.10564250990864821,
+        "tensor_read": 0.02066871803253889,
+        "controller_post_and_shapes": 0.09684236007160507
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.23408622810402907,
+        "tensor_write": 0.09826937126947659,
+        "physx_step": 0.30796687022080027,
+        "tensor_read": 0.060253021340191934,
+        "controller_post_and_shapes": 0.2823128545680881
+      },
+      "reset_all_seconds": 0.003927228011889383,
+      "reset_one_world_seconds": 0.0038623699801974,
+      "snapshot_seconds": 0.0013284749875310808,
+      "restore_seconds": 1.5445271290082019,
+      "peak_rss_gib": 2.5564346313476562
+    },
+    {
+      "num_envs": 4,
+      "terrain_mode": "shared",
+      "macrosteps": 30,
+      "construct_seconds": 6.700065596000059,
+      "geometry_build_seconds": 4.665887594979722,
+      "elapsed_seconds": 0.8326041639957111,
+      "aggregate_physics_ticks_per_second": 1441.261108089031,
+      "aggregate_policy_decisions_per_second": 144.12611080890312,
+      "per_env_physics_ticks_per_second": 360.31527702225776,
+      "phase_seconds": {
+        "controller_and_fluid_pre": 0.26452866196632385,
+        "tensor_write": 0.04913509916514158,
+        "physx_step": 0.1611515968979802,
+        "tensor_read": 0.03276841214392334,
+        "controller_post_and_shapes": 0.31768022500909865
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.31771239372241056,
+        "tensor_write": 0.059013756224013655,
+        "physx_step": 0.19355127426291652,
+        "tensor_read": 0.03935653166405752,
+        "controller_post_and_shapes": 0.38155012759548856
+      },
+      "reset_all_seconds": 0.010068222996778786,
+      "reset_one_world_seconds": 0.003772370022488758,
+      "snapshot_seconds": 0.004093968978850171,
+      "restore_seconds": 1.5539603689976502,
+      "peak_rss_gib": 2.599048614501953
+    },
+    {
+      "num_envs": 16,
+      "terrain_mode": "shared",
+      "macrosteps": 30,
+      "construct_seconds": 7.710901422979077,
+      "geometry_build_seconds": 4.53483011899516,
+      "elapsed_seconds": 2.8350823219807353,
+      "aggregate_physics_ticks_per_second": 1693.072530129027,
+      "aggregate_policy_decisions_per_second": 169.3072530129027,
+      "per_env_physics_ticks_per_second": 105.81703313306419,
+      "phase_seconds": {
+        "controller_and_fluid_pre": 1.0043777336832136,
+        "tensor_write": 0.09949101007077843,
+        "physx_step": 0.30767045298125595,
+        "tensor_read": 0.07893332609091885,
+        "controller_post_and_shapes": 1.332762002130039
+      },
+      "phase_fraction": {
+        "controller_and_fluid_pre": 0.35426757307756174,
+        "tensor_write": 0.035092811697005274,
+        "physx_step": 0.10852258172394141,
+        "tensor_read": 0.027841634607552398,
+        "controller_post_and_shapes": 0.47009640312627765
+      },
+      "reset_all_seconds": 0.034405899001285434,
+      "reset_one_world_seconds": 0.0037954840227030218,
+      "snapshot_seconds": 0.014872436004225165,
+      "restore_seconds": 1.6792134899878874,
+      "peak_rss_gib": 2.7621688842773438
+    }
+  ]
 }
