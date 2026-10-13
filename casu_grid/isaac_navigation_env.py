@@ -56,6 +56,9 @@ class IsaacLayer1EnvConfig:
     rounded_player_collider: bool = True   # retained for config compatibility; always modelled
     fluid_rng_seed: int = 391728405
     liquid_affect_phase: str = "before_controller"  # before_controller or after_controller
+    max_depenetration_velocity: float = 100.0
+    physx_solver_type: int = 1          # 0 = PGS (Box2D-like), 1 = TGS
+    step_up_clearance: float = 0.0      # extra lift after TryStepUp so PhysX sees no tangent overlap
     solver_position_iterations: int = 8
     solver_velocity_iterations: int = 8
     record_ticks: bool = False          # keep per-tick samples of the last macrostep (A/B tooling)
@@ -188,7 +191,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
         device = "cuda:0" if self.cfg.use_cuda and torch.cuda.is_available() else "cpu"
         self.sim_cfg = sim_utils.SimulationCfg(
             dt=self.cfg.physics_dt, device=device, gravity=(0.0, 0.0, -55.0),
-            physx=sim_utils.PhysxCfg(enable_ccd=True))
+            physx=sim_utils.PhysxCfg(enable_ccd=True, solver_type=self.cfg.physx_solver_type))
         self.sim = sim_utils.SimulationContext(self.sim_cfg)
         self.stage = stage_utils.get_current_stage()
         UsdGeom.SetStageUpAxis(self.stage, UsdGeom.Tokens.z)
@@ -238,7 +241,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
                 self._build_shuttle_doors(sim_utils, RigidObject, RigidObjectCfg, doors, object_polygons)
         self.geometry_build_seconds = time.perf_counter() - started
 
-        self.controller_config = BodyConfig()
+        self.controller_config = BodyConfig(step_up_clearance=self.cfg.step_up_clearance)
         self.ground_world = GroundWorld(self.grid.blocks, object_polygons)
         self.model = StandingBodyModel(self.ground_world, self.controller_config)
         self.adapter = _PhysxAdapter(self)
@@ -247,6 +250,7 @@ class IsaacLayer1NavigationEnv(gym.Env):
         self.initial_position_x, self.initial_position_z = initial.x, initial.y
         rigid = sim_utils.RigidBodyPropertiesCfg(
             kinematic_enabled=False, disable_gravity=False,
+            max_depenetration_velocity=self.cfg.max_depenetration_velocity,
             solver_position_iteration_count=self.cfg.solver_position_iterations,
             solver_velocity_iteration_count=self.cfg.solver_velocity_iterations)
         spawn = sim_utils.CuboidCfg(
@@ -257,6 +261,9 @@ class IsaacLayer1NavigationEnv(gym.Env):
         self.player = RigidObject(cfg=RigidObjectCfg(
             prim_path=PLAYER_PATH, spawn=spawn,
             init_state=RigidObjectCfg.InitialStateCfg(pos=(initial.x, 0.0, initial.y))))
+        from pxr import PhysxSchema
+        rigid_api = PhysxSchema.PhysxRigidBodyAPI.Apply(self.stage.GetPrimAtPath(PLAYER_PATH))
+        rigid_api.CreateEnableCCDAttr().Set(True)   # the scene flag alone does not enable per-body CCD
         self.collider = RoundedBoxCollider(
             self.stage, PLAYER_PATH, width=self.controller_config.orig_col_size[0],
             standing_height=self.controller_config.orig_col_size[1],
@@ -376,6 +383,38 @@ class IsaacLayer1NavigationEnv(gym.Env):
         """Mutate canonical discrete terrain and synchronize its source chunk."""
         self.grid.set_block(x, y, block_id)
         self._refresh_mutated_colliders()
+
+    def apply_block_edits(self, edits):
+        """Batch ``(x, y, expected_old, new)`` terrain edits with one collider rebuild."""
+        for x, y, old, new in edits:
+            if self.grid.get_block(x, y) != old:
+                raise ValueError(f"edit expects block {old} at {(x, y)}, found {self.grid.get_block(x, y)}")
+            self.grid.set_block(x, y, new)
+        self._refresh_mutated_colliders()
+
+    def load_body_state(self, state: BodyState, *, snap_to_rest_gap: bool = False):
+        """Place the player at an arbitrary controller state (tooling / fixtures).
+
+        ``snap_to_rest_gap`` lifts a body that sits slightly closer to its support than
+        PhysX's rest offset (e.g. a pose recorded right after the source's step-up
+        teleport) so the contact solver does not eject it.
+        """
+        self.model.s = copy.deepcopy(state)
+        s = self.model.s
+        if snap_to_rest_gap:
+            center = (s.x + s.col_offset[0], s.y + s.col_offset[1])
+            hit = self.ground_world.box_cast(center, s.col_size, (0.0, -1.0), 0.3)
+            if hit is not None:
+                deficit = 0.1155 - (hit.distance + 0.0055)
+                if 0.0 < deficit < 0.03:
+                    s.y += deficit
+        center = (s.x + s.col_offset[0], s.y + s.col_offset[1])
+        self.runtime = RuntimeState(frozenset(self.ground_world.touching_colliders(
+            center, s.col_size, 0.125)))
+        self._write_body_to_sim()
+        self.adapter.set_crouch(s.crouch_amount)
+        self.player.update(self.cfg.physics_dt)
+        self._last_state = self._body_state()
 
     def _default_observation(self, _env):
         body = self._body_state()

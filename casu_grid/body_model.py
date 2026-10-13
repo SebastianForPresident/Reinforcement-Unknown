@@ -50,6 +50,7 @@ class BodyConfig:
     auto_jump: bool = False                    # PlayerCamera.autoJump
     slippery_blocks: frozenset = frozenset({27, 28})
     ragdoll_impact_speed: float = 52.0         # max(2*jumpSpeed, 1.5*jumpSpeed)
+    step_up_clearance: float = 0.0             # extra lift after TryStepUp (engine-compatibility knob)
 
 
 @dataclass(frozen=True)
@@ -253,7 +254,7 @@ class StandingBodyModel:
         down = self.world.raycast(probe, (0.0, -1.0), 1.0)
         if down is None:
             return False
-        vec_y = 0.1 + down.point[1] - ray.point[1]
+        vec_y = 0.1 + down.point[1] - ray.point[1] + c.step_up_clearance
         vec_x = direction[0] * (ray.distance - s.col_size[0] * 0.5)
         s.x += vec_x
         s.y += vec_y
