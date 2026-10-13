@@ -85,6 +85,46 @@ def author_layer1_collision(stage, blocks, *, chunk_size: int = 64,
     }
 
 
+def _author_chunk_cuboids(stage, chunk_path, rectangles, *, half_thickness,
+                          world_offset, material_path):
+    """Write one static Cube collider per rectangle directly as Sdf prim specs.
+
+    This is equivalent to the Isaac Lab ``CuboidCfg`` spawner (a unit Cube
+    with translate/scale ops and ``PhysicsCollisionAPI``) but avoids its
+    per-prim material prim and USD notification cost (about 5 ms each).
+    A single shared physics material is bound by relationship.
+    """
+    from pxr import Gf, Sdf
+
+    layer = stage.GetEditTarget().GetLayer()
+    parent = layer.GetPrimAtPath(chunk_path)
+    api_schemas = ["PhysicsCollisionAPI"]
+    if material_path:
+        api_schemas.append("MaterialBindingAPI")
+    count = 0
+    with Sdf.ChangeBlock():
+        for rect in rectangles:
+            center_x, center_z = rect.center_xy
+            spec = Sdf.PrimSpec(
+                parent, f"Rect_{rect.cell_x}_{rect.cell_y}_{rect.width}_{rect.height}",
+                Sdf.SpecifierDef, "Cube")
+            spec.SetInfo("apiSchemas", Sdf.TokenListOp.Create(prependedItems=api_schemas))
+            Sdf.AttributeSpec(spec, "size", Sdf.ValueTypeNames.Double).default = 1.0
+            Sdf.AttributeSpec(spec, "xformOp:translate", Sdf.ValueTypeNames.Double3).default = (
+                Gf.Vec3d(center_x + world_offset[0], world_offset[1], center_z + world_offset[2]))
+            Sdf.AttributeSpec(spec, "xformOp:scale", Sdf.ValueTypeNames.Float3).default = (
+                Gf.Vec3f(float(rect.width), float(2 * half_thickness), float(rect.height)))
+            Sdf.AttributeSpec(spec, "xformOpOrder", Sdf.ValueTypeNames.TokenArray,
+                              variability=Sdf.VariabilityUniform).default = [
+                "xformOp:translate", "xformOp:scale"]
+            Sdf.AttributeSpec(spec, "physics:collisionEnabled", Sdf.ValueTypeNames.Bool).default = True
+            if material_path:
+                relationship = Sdf.RelationshipSpec(spec, "material:binding:physics")
+                relationship.targetPathList.explicitItems = [Sdf.Path(material_path)]
+            count += 1
+    return count
+
+
 def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
                                 half_thickness: float = 0.1,
                                 physics_material=None,
@@ -101,10 +141,11 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
     """
     import numpy as np
     from pxr import UsdGeom
-    import isaaclab.sim as sim_utils
 
     if blocks.ndim != 2 or blocks.shape[0] % chunk_size or blocks.shape[1] % chunk_size:
         raise ValueError("terrain dimensions must be 2D multiples of chunk_size")
+    if physics_material is not None and not physics_material_path:
+        raise ValueError("physics_material requires an absolute shared physics_material_path")
     UsdGeom.Xform.Define(stage, root_path)
     begin = perf_counter()
     collider_count = 0
@@ -128,21 +169,12 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
                     stage.RemovePrim(chunk_path)
             UsdGeom.Xform.Define(stage, chunk_path)
             occupied += cell_count
-            for rect in rectangles_for_chunk(blocks, chunk_x, chunk_y,
-                                             chunk_size=chunk_size):
-                center_x, center_z = rect.center_xy
-                path = (f"{chunk_path}/Rect_{rect.cell_x}_{rect.cell_y}_"
-                        f"{rect.width}_{rect.height}")
-                cfg = sim_utils.CuboidCfg(
-                    size=(float(rect.width), float(2 * half_thickness),
-                          float(rect.height)),
-                    physics_material=physics_material,
-                    physics_material_path=physics_material_path or "material",
-                    collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True))
-                cfg.func(path, cfg, translation=(center_x + world_offset[0],
-                                                  world_offset[1],
-                                                  center_z + world_offset[2]))
-                collider_count += 1
+            collider_count += _author_chunk_cuboids(
+                stage, chunk_path, rectangles_for_chunk(
+                    blocks, chunk_x, chunk_y, chunk_size=chunk_size),
+                half_thickness=half_thickness, world_offset=world_offset,
+                material_path=(physics_material_path
+                               if physics_material is not None else None))
     return {
         "nonempty_chunk_count": nonempty_chunk_count,
         "occupied_cells": occupied,
