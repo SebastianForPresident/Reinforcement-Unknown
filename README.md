@@ -1,4 +1,8 @@
 # Reinforcement-Unknown
+
+## Current research workbench
+
+New Layer 1 Isaac research starts at [RESEARCH_WORKBENCH.md](RESEARCH_WORKBENCH.md). For commands and experiment configuration, see [the five-minute workbench guide](casu_grid/workbench/README.md). Historical Unity/BepInEx work remains under `PPO_Python/` and `PPO_Harness/`.
 A test to measure how PPO would fare in the complex learning problem that is Casualties: Unknown.
 
 ## Overview

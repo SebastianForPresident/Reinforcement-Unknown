@@ -53,6 +53,33 @@ class TinyGoalEnv:
 
 
 class WorkbenchTests(unittest.TestCase):
+    def test_runtime_callback_contract_errors_name_the_field(self):
+        from casu_grid.workbench.runtime_validation import checked_callbacks
+        from casu_grid.workbench.contracts import ObservationContract, ObservationField, RewardContract, RewardTerm
+        observations = ObservationContract(scalar=(ObservationField("state", (2,), "test.state"),))
+        rewards = RewardContract(terms=(RewardTerm("progress", "test.progress", 1.0),))
+        _, observe, reward = checked_callbacks(
+            (lambda _actions: object(), lambda _env: {"state": np.zeros(3)},
+             lambda *_: (0.0, {"unexpected": 1.0})), observations, rewards)
+        with self.assertRaisesRegex(ValueError, "field state has shape"):
+            observe(object())
+        _, observe, reward = checked_callbacks(
+            (None, lambda _env: {"state": np.zeros(2)},
+             lambda *_: (0.0, {"unexpected": 1.0})), observations, rewards)
+        self.assertEqual(observe(object())["state"].shape, (2,))
+        with self.assertRaisesRegex(ValueError, "reward term keys"):
+            reward(None, {}, False, False)
+        action, _, _ = checked_callbacks(
+            (lambda _actions: object(), lambda _env: {"state": np.zeros(2)},
+             lambda *_: (0.0, {"progress": 0.0})), observations, rewards)
+        with self.assertRaisesRegex(ValueError, "move_x, move_y, jump, and crouch"):
+            action({})
+        from casu_grid.player_controller import StandingAction
+        action, _, _ = checked_callbacks(
+            (lambda _actions: StandingAction(move_x=1), lambda _env: {"state": np.zeros(2)},
+             lambda *_: (0.0, {"progress": 0.0})), observations, rewards)
+        self.assertEqual(action({}).move_x, 1)
+
     def test_gae_bootstraps_time_limit_but_not_true_terminal(self):
         rewards = torch.tensor([[1.0], [2.0]])
         values = torch.tensor([[0.5], [0.5]])
@@ -226,6 +253,18 @@ class WorkbenchTests(unittest.TestCase):
                                      PPO.__class__(learning_rate=2e-3), seed=12)
             with self.assertRaisesRegex(ValueError, "incompatible"):
                 incompatible.load(checkpoint)
+
+    def test_atomic_checkpoint_save_preserves_previous_file_on_write_failure(self):
+        from unittest.mock import patch
+        trainer = PPOTrainer(TinyGoalEnv(), ACTION, OBSERVATION, MODEL, PPO, seed=19)
+        with tempfile.TemporaryDirectory() as temporary:
+            checkpoint = Path(temporary) / "latest.pt"
+            checkpoint.write_bytes(b"previous valid checkpoint")
+            with patch("casu_grid.workbench.ppo.torch.save", side_effect=OSError("simulated disk full")):
+                with self.assertRaisesRegex(OSError, "simulated disk full"):
+                    trainer.save(checkpoint)
+            self.assertEqual(checkpoint.read_bytes(), b"previous valid checkpoint")
+            self.assertEqual(list(Path(temporary).glob("*.tmp")), [])
 
     def test_termination_reasons_count_only_finished_worlds(self):
         class ReasonEnv(TinyGoalEnv):

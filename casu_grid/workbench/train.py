@@ -1,6 +1,7 @@
 """Headless research-config training entry point for canonical Layer 1."""
 from __future__ import annotations
 import argparse, importlib.util, json, subprocess, time, traceback
+import os
 import hashlib
 from dataclasses import replace
 from pathlib import Path
@@ -27,6 +28,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig, IsaacLayer1NavigationEnv
 from casu_grid.workbench.ppo import PPOTrainer, write_metrics
 from casu_grid.workbench.contracts import validate_contracts
+from casu_grid.workbench.runtime_validation import checked_callbacks
 from gymnasium import spaces
 
 def main():
@@ -36,6 +38,7 @@ def main():
     print("CASU_TRAIN_CONFIG_LOADED",flush=True)
     config=module
     validate_contracts(config.ACTION,config.OBSERVATION,config.REWARD,config.MODEL,config.PPO)
+    config_source=Path(args.config).resolve().read_bytes()
     print("CASU_TRAIN_CONTRACTS_VALID",flush=True)
     if args.num_envs <= 0:
         raise ValueError('--num-envs must be positive')
@@ -44,21 +47,33 @@ def main():
     if args.geometry_scope == 'spawn_chunk':
         raise ValueError('spawn_chunk is a diagnostic-only geometry scope; PPO training requires full canonical terrain')
     run_dir=args.run_dir or Path('experiments')/time.strftime('%Y%m%d-%H%M%S')
-    run_dir.mkdir(parents=True,exist_ok=False)
+    # The researcher CLI reserves the directory and writes a RUNNING marker;
+    # direct legacy invocations retain the original create-if-absent behavior.
+    run_dir.mkdir(parents=True,exist_ok=os.environ.get('CASU_WORKBENCH_LAUNCHER_PID') is not None)
     print(f"CASU_TRAIN_RUN_DIR {run_dir}",flush=True)
     source=subprocess.run(['git','rev-parse','HEAD'],capture_output=True,text=True).stdout.strip() or None
     working_tree=subprocess.run(['git','status','--porcelain'],capture_output=True,text=True).stdout.splitlines()
     (run_dir/'config.json').write_text(json.dumps({
-        'schema':'casu.training-run.v1','seed':args.seed,'git_revision':source,
+        'schema':'casu.training-run.v1','run_id':run_dir.name,
+        'created_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
+        'seed':args.seed,'git_revision':source,
         'working_tree_status':working_tree,
         'config_path':str(Path(args.config).resolve()),
-        'config_sha256':hashlib.sha256(Path(args.config).read_bytes()).hexdigest(),
+        'experiment':getattr(config,'EXPERIMENT',{'name':Path(args.config).stem,
+            'description':'','hypothesis':'','notes':'','parent':None}),
+        'config_sha256':hashlib.sha256(config_source).hexdigest(),
+        'config_snapshot_path':str((run_dir/'research_config.py').resolve()),
         'contracts':validate_contracts(config.ACTION,config.OBSERVATION,config.REWARD,config.MODEL,config.PPO),
         'environment':{'canonical_seed':391728405,'num_envs':args.num_envs,'geometry_scope':args.geometry_scope,
                        'terrain_mode':args.terrain_mode if args.num_envs>1 else 'single',
                        'episode_steps':args.episode_steps,
-                       'physics_dt':0.02,'action_decimation':10}},indent=2)+'\n')
+                       'physics_dt':0.02,'action_decimation':10},
+        'resume_from':os.environ.get('CASU_WORKBENCH_RESUME_FROM') or None,
+        'run_kind':os.environ.get('CASU_WORKBENCH_RUN_KIND') or 'direct_training',
+        'config_source_sha256':hashlib.sha256(config_source).hexdigest()},indent=2)+'\n')
+    (run_dir/'research_config.py').write_bytes(config_source)
     callbacks=config.callbacks() if hasattr(config,'callbacks') else (None,None,None)
+    callbacks=checked_callbacks(callbacks,config.OBSERVATION,config.REWARD)
     env=trainer=None
     try:
         env_config=IsaacLayer1EnvConfig(
@@ -100,6 +115,7 @@ def main():
             write_metrics(run_dir/'metrics.jsonl',metrics)
             trainer.save(run_dir/'latest.pt',metadata={'source_revision':source,'run_dir':str(run_dir)})
             print(json.dumps(metrics,sort_keys=True),flush=True)
+        (run_dir/'COMPLETE').write_text(time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+'\n')
     finally:
         if trainer is not None: trainer.close(); trainer.env=None
         if env is not None: env.close()

@@ -4,7 +4,9 @@ from __future__ import annotations
 from dataclasses import asdict
 import hashlib
 import json
+import os
 from pathlib import Path
+import tempfile
 import time
 from typing import Any
 
@@ -419,7 +421,7 @@ class PPOTrainer:
     def save(self, path: str | Path, *, metadata: dict[str, Any] | None = None):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save({
+        checkpoint = {
             "schema": "casu.ppo-checkpoint.v1",
             "contract_fingerprint": self.contract_fingerprint,
             "model": self.model.state_dict(), "optimizer": self.optimizer.state_dict(),
@@ -433,7 +435,19 @@ class PPOTrainer:
             "episode_lengths": self._episode_lengths,
             "environment_state": self.env.snapshot() if hasattr(self.env, "snapshot") else None,
             "metadata": metadata or {},
-        }, path)
+        }
+        # A process interruption during serialization must leave the previous
+        # checkpoint intact. The temporary is on the same filesystem so replace
+        # is atomic on supported local filesystems.
+        fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+        os.close(fd)
+        temporary = Path(temporary_name)
+        try:
+            torch.save(checkpoint, temporary)
+            os.replace(temporary, path)
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
         return path
 
     def load(self, path: str | Path):
