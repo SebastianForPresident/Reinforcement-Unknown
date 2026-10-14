@@ -7,7 +7,8 @@ Per decision and world: position, velocity, crouch, grounded, reward terms, term
 and of the physical (collider) terrain. A SHA-256 of the whole record is printed.
 """
 from __future__ import annotations
-import argparse, hashlib, json, os, sys
+import argparse, faulthandler, hashlib, json, os, sys
+faulthandler.dump_traceback_later(int(os.environ.get('DUMP_DEADLINE', '240')), exit=True)
 from pathlib import Path
 from isaaclab.app import AppLauncher
 
