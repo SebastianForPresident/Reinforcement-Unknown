@@ -691,15 +691,28 @@ class BatchedIsaacLayer1Env(gym.Env):
             x0, y0 = px - window_w // 2, py - window_h // 2
             gx = int(rng.integers(x0, x0 + window_w))
             gy = int(rng.integers(y0, y0 + window_h))
-            return (gx,gy),(gx-slot.grid.width/2+0.5,gy-slot.grid.height/2+0.5)
+            if os.environ.get("CASU_LEGACY_MINI_SPAWN", "0") == "1":
+                return (gx,gy),(gx-slot.grid.width/2+0.5,gy-slot.grid.height/2+0.5)
+            index = self.slots.index(slot)           # stage frame, like the spawn: the callers subtract the world offset
+            return (gx,gy),(gx-slot.grid.width/2+0.5+float(self.offsets[index,0]),gy-slot.grid.height/2+0.5+float(self.offsets[index,2]))
         px, py = slot.grid.world_to_cell(*spawn, slot.grid.width, slot.grid.height)
         gx = min(max(px + int(rng.integers(-self.cfg.goal_radius_x,self.cfg.goal_radius_x+1)),0),slot.grid.width-1)
         gy = min(max(py + int(rng.integers(-self.cfg.goal_radius_y,self.cfg.goal_radius_y+1)),0),slot.grid.height-1)
         return (gx,gy),(gx-slot.grid.width/2+0.5,gy-slot.grid.height/2+0.5)
 
     def _mini_center_spawn(self, slot, index):
+        """Centre spawn of a mini-world in the *stage* frame (its local spawn plus the world's offset).
+
+        Everything downstream (``reset``/``reset_done``) subtracts ``self.offsets[index]`` to obtain the slot-local state and adds
+        it again when writing PhysX, exactly as for ``_sample_clear_spawn``. Until Optimization IV the offset was missing here and
+        in :meth:`_sample_goal`, so with more than one world every world but world 0 had a slot-local x of ``-offset``: its body
+        was written to the world-0 position (stacked on the other bodies, on world 0's collider copy), its observation window lay
+        outside the world (all-empty) and its goal offset was ~10^3 tiles. ``CASU_LEGACY_MINI_SPAWN=1`` restores that behaviour
+        (reference trajectories of Optimization III)."""
         x, y = slot.reference.spawn_world_xy
-        return float(x), float(y)
+        if os.environ.get("CASU_LEGACY_MINI_SPAWN", "0") == "1":
+            return float(x), float(y)
+        return float(x) + float(self.offsets[index, 0]), float(y) + float(self.offsets[index, 2])
 
     @staticmethod
     def _goal_distance(position, goal):
