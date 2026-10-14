@@ -92,15 +92,21 @@ def encode_xy1_compact(env):
     cfg = getattr(env, "cfg", None)
     window_w, window_h = tuple(getattr(cfg, "observation_window_tiles", (85, 49)))
     left_x, left_y = window_w // 2, window_h // 2
-    xs = np.arange(px - left_x, px + (window_w - left_x))
-    ys = np.arange(py - left_y, py + (window_h - left_y))
-    valid = ((xs[:, None] >= 0) & (xs[:, None] < grid.width) & (ys[None, :] >= 0) & (ys[None, :] < grid.height))
-    cx = np.clip(xs, 0, grid.width - 1)
-    cy = np.clip(ys, 0, grid.height - 1)
-    block_ids = grid.blocks[np.ix_(cx, cy)].astype(np.uint8)
-    fluid_ids = grid.fluids[np.ix_(cx, cy)].astype(np.uint8)
-    block_ids[~valid] = 0
-    fluid_ids[~valid] = 7
+    x0, y0 = px - left_x, py - left_y
+    if x0 >= 0 and y0 >= 0 and x0 + window_w <= grid.width and y0 + window_h <= grid.height:
+        # window fully inside the world (the common case): plain slices, same values as the general path below
+        block_ids = grid.blocks[x0:x0 + window_w, y0:y0 + window_h].astype(np.uint8)
+        fluid_ids = grid.fluids[x0:x0 + window_w, y0:y0 + window_h].astype(np.uint8)
+    else:
+        xs = np.arange(px - left_x, px + (window_w - left_x))
+        ys = np.arange(py - left_y, py + (window_h - left_y))
+        valid = ((xs[:, None] >= 0) & (xs[:, None] < grid.width) & (ys[None, :] >= 0) & (ys[None, :] < grid.height))
+        cx = np.clip(xs, 0, grid.width - 1)
+        cy = np.clip(ys, 0, grid.height - 1)
+        block_ids = grid.blocks[np.ix_(cx, cy)].astype(np.uint8)
+        fluid_ids = grid.fluids[np.ix_(cx, cy)].astype(np.uint8)
+        block_ids[~valid] = 0
+        fluid_ids[~valid] = 7
     ix = px + int(s.current_action.look_dx) - (px - left_x)
     iy = py + int(s.current_action.look_dy) - (py - left_y)
     cursor = (ix, iy) if (0 <= ix < window_w and 0 <= iy < window_h) else (-1, -1)
