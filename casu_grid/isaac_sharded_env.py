@@ -305,7 +305,10 @@ class ShardedBatchedEnv(gym.Env):
                 counts[reason] = counts.get(reason, 0) + c
         merged["termination_counts"] = counts
         if parts[0].get("nav_episodes") is not None:       # XY1 observability (episode summaries, in-progress episodes, excavation)
-            merged["nav_episodes"] = {k: [v for p in parts for v in p["nav_episodes"][k]] for k in parts[0]["nav_episodes"]}
+            offsets = np.concatenate([[0], np.cumsum(self.sizes)[:-1]]).astype(int)       # worker-local world index -> global index
+            merged["nav_episodes"] = {
+                k: [(v + int(offsets[w])) if k == "world" else v for w, p in enumerate(parts) for v in p["nav_episodes"][k]]
+                for k in parts[0]["nav_episodes"]}
             merged["nav_active"] = {k: np.concatenate([p["nav_active"][k] for p in parts]) for k in parts[0]["nav_active"]}
             merged["nav_blocks_destroyed"] = sum(p["nav_blocks_destroyed"] for p in parts)
         else:

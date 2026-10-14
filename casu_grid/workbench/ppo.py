@@ -696,6 +696,18 @@ class PPOTrainer:
             raise
         return path
 
+    def load_policy(self, path: str | Path) -> dict[str, Any]:
+        """Load only the network weights of a checkpoint (evaluation): same schema and learning-contract checks as :meth:`load`,
+        but no optimizer, RNG or environment state, so the checkpoint may come from a run with a different world count."""
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+        if checkpoint.get("schema") != "casu.ppo-checkpoint.v1":
+            raise ValueError("unsupported PPO checkpoint schema")
+        if checkpoint.get("contract_fingerprint") != self.contract_fingerprint:
+            raise ValueError("PPO checkpoint learning contract is incompatible with this run")
+        self.model.load_state_dict(checkpoint["model"])
+        return {"update_count": int(checkpoint["update_count"]), "total_steps": int(checkpoint["total_steps"]),
+                "metadata": checkpoint.get("metadata", {})}
+
     def load(self, path: str | Path):
         checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         if checkpoint.get("schema") != "casu.ppo-checkpoint.v1":

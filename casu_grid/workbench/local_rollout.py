@@ -148,7 +148,7 @@ class LocalRollout:
         completed_returns, completed_lengths = [], []
         termination_counts: dict[str, int] = {}
         # XY1 observability (read-only: nothing here feeds back into the policy, reward or environment)
-        episodes = {k: [] for k in ("reason", "length", "initial_distance", "best_distance", "final_distance", "blocks_destroyed", "return")}
+        episodes = {k: [] for k in ("world", "reason", "length", "initial_distance", "best_distance", "final_distance", "blocks_destroyed", "return")}
         blocks_prev = getattr(self, "_blocks_prev", None)
         if blocks_prev is None or len(blocks_prev) != n:
             blocks_prev = np.zeros(n, np.float32)
@@ -203,6 +203,7 @@ class LocalRollout:
                         termination_counts[str(reason)] = termination_counts.get(str(reason), 0) + 1
                 if xy1 is not None:
                     for j in np.flatnonzero(mask.numpy()):
+                        episodes["world"].append(int(j))
                         episodes["reason"].append(str(info["termination_reason"][j]))
                         episodes["length"].append(int(lengths[j]))
                         episodes["initial_distance"].append(float(xy1["initial_distance"][j]))
