@@ -1,0 +1,57 @@
+{
+  "schema": "casu.xy1-bench.v1",
+  "label": "opt4_legacy",
+  "envs": 32,
+  "workers": 8,
+  "physx_threads": 2,
+  "updates": 11,
+  "measured_updates": 10,
+  "decisions": 20480,
+  "end_to_end_decisions_per_second": 1536.7807349821928,
+  "rollout_decisions_per_second": 2041.090192659996,
+  "optimizer_decisions_per_second": 6219.808172713224,
+  "simulation_only_decisions_per_second": 2290.9400284959543,
+  "seconds_per_update": {
+    "collection": 1.0033853513014037,
+    "optimization": 0.3292706049978733,
+    "environment_step": 0.8939561815350316
+  },
+  "per_update_end_to_end": [
+    1549.6503843752064,
+    1570.0555521463723,
+    1515.4198045786825,
+    1521.779244962603,
+    1554.9225711699787,
+    1552.0180288602926,
+    1527.2338730407168,
+    1522.45336451307,
+    1530.4457918523092,
+    1525.7515228742
+  ],
+  "worker_seconds": {
+    "worker_env_step_seconds_max": 0.8939561815350316,
+    "worker_env_step_seconds_mean": 0.8534295169702091,
+    "worker_inference_seconds_max": 0.06669542458257638,
+    "worker_inference_seconds_mean": 0.06332324148024782,
+    "worker_reset_seconds_max": 0.0,
+    "worker_reset_seconds_mean": 0.0
+  },
+  "process_wall_seconds_including_startup": 33.29280998400645,
+  "peak_rss_gib": 23.498172760009766,
+  "min_available_memory_gib": 8.636993408203125,
+  "peak_gpu_memory_mib": 3405,
+  "baseline_gpu_memory_mib": 356,
+  "peak_pss_gib": 15.915743827819824,
+  "peak_uss_gib": 15.105728149414062,
+  "peak_system_used_gib": 22.530372619628906,
+  "gpu_utilization_percent_mean": 27.954545454545453,
+  "mean_cpu_percent_steady": 46.43181818181818,
+  "finite_losses": true,
+  "git_revision": "e6e38389f4efad55f8d1f5183d4dbf918ad30259",
+  "environment": {
+    "CASU_LEGACY_MINI_SPAWN": "1",
+    "CASU_SRC_ROOT": "/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-opt4",
+    "CASU_NUM_WORKERS": "8"
+  },
+  "wall_decisions_per_second": 1546.1174798251877
+}
