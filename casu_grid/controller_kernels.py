@@ -25,7 +25,7 @@ from numba import njit
 
 from . import kernels as K
 
-KERNEL_VERSION = 3
+KERNEL_VERSION = 4
 OK, FALLBACK = 0, 1
 
 # ---- state layout (float64; booleans are 0.0/1.0) -------------------------------------------
@@ -46,15 +46,17 @@ N_STATE = 46
  C_N_SLIPPERY) = range(18)
 C_SLIPPERY0 = 18            # up to 8 slippery block ids
 C_CLEARANCE = 26
-N_CONFIG = 27
+C_HALF_W, C_HALF_H = 27, 28       # half the world size in tiles (512.0 canonical, 64.0 XY1 mini-world)
+N_CONFIG = 29
 
 CONTACT_REACH = 0.125
 BUCKET = 8.0          # must match ground_query.BUCKET / BUCKETS
 BUCKETS = 128
 
 
-def pack_config(cfg) -> np.ndarray:
+def pack_config(cfg, world_shape=(1024, 1024)) -> np.ndarray:
     out = np.zeros(N_CONFIG)
+    out[C_HALF_W], out[C_HALF_H] = world_shape[0] / 2.0, world_shape[1] / 2.0
     out[C_MAX_SPEED], out[C_MOVE_FORCE], out[C_JUMP_SPEED] = cfg.max_speed, cfg.move_force, cfg.jump_speed
     out[C_SLOWDOWN], out[C_WALL_SLIDE], out[C_MASS] = cfg.slowdown_amount, cfg.wall_slide_slowdown, cfg.mass
     out[C_ORIG_W], out[C_ORIG_H], out[C_EDGE] = cfg.orig_col_size[0], cfg.orig_col_size[1], cfg.edge_radius
@@ -151,8 +153,8 @@ def _overlap_box(blocks, poly, flag, cx, cy, w, h):
 
 @njit(cache=True)
 def _block_at(blocks, wx, wy):
-    cx = int(math.floor(wx + 512.0))
-    cy = int(math.floor(wy + 512.0))
+    cx = int(math.floor(wx + blocks.shape[0] * 0.5))
+    cy = int(math.floor(wy + blocks.shape[1] * 0.5))
     if cx < 0 or cy < 0 or cx >= blocks.shape[0] or cy >= blocks.shape[1]:
         return 0
     return int(blocks[cx, cy])
@@ -231,10 +233,10 @@ def _apply_actions(S, C):
     S[MOVE_X] = S[CUR_ACTION]
     S[MOVE_Y] = S[CUR_ACTION + 2]
     S[CROUCHING] = 1.0 if S[CUR_ACTION + 3] == 1 else 0.0
-    tile_x = int(math.floor(S[X] + 512.0)) + int(S[CUR_ACTION + 4])
-    tile_y = int(math.floor(S[Y] + 512.0)) + int(S[CUR_ACTION + 5])
-    S[LOOK_X] = tile_x - 511.5
-    S[LOOK_Y] = tile_y - 511.5
+    tile_x = int(math.floor(S[X] + C[C_HALF_W])) + int(S[CUR_ACTION + 4])
+    tile_y = int(math.floor(S[Y] + C[C_HALF_H])) + int(S[CUR_ACTION + 5])
+    S[LOOK_X] = tile_x - C[C_HALF_W] + 0.5
+    S[LOOK_Y] = tile_y - C[C_HALF_H] + 0.5
     for k in range(6):
         S[LAST_ACTION + k] = S[CUR_ACTION + k]
 

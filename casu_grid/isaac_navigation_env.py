@@ -98,7 +98,8 @@ class IsaacLayer1EnvConfig:
     # Execution layout only (never changes the simulated experiment): split the worlds over this
     # many independent Isaac processes. 1 keeps everything in-process. See isaac_sharded_env.py.
     num_workers: int = field(default_factory=_default_workers)
-    worker_physx_threads: int = 2       # PhysX CPU threads per worker when num_workers > 1 (1 or fewer hangs PhysX)
+    # PhysX CPU threads per worker when num_workers > 1 (1 or fewer hangs PhysX); env CASU_WORKER_PHYSX_THREADS
+    worker_physx_threads: int = field(default_factory=lambda: int(os.environ.get("CASU_WORKER_PHYSX_THREADS", "2")))
     worker_timeout_seconds: float = 900.0   # a worker that does not answer a request this long is declared failed
 
     def validate(self):

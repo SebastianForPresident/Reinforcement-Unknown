@@ -1,0 +1,9 @@
+seeds 1-24 (24 paired runs of 8 worlds x 300 decisions with random actions incl. excavation)
+metric         full rebuild    incremental   paired diff mean ± 95% half-width
+mean|vx|             7.4837         7.2073   -0.2764 ± 0.4503  within noise
+mean|vy|             2.5342         2.6851   +0.1509 ± 0.2610  within noise
+mean speed           9.3545         9.1945   -0.1599 ± 0.5686  within noise
+grounded             0.0368         0.0366   -0.0002 ± 0.0049  within noise
+mean y             -44.4740       -43.0136   +1.4604 ± 2.4321  within noise
+crouch               0.5217         0.5217   +0.0000 ± 0.0033  within noise
+edits/world          2.9115         3.0677   +0.1562 ± 0.2540  within noise

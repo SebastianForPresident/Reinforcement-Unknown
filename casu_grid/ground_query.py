@@ -45,10 +45,7 @@ class GroundWorld:
         self._chunk_buf = np.empty(16, dtype=np.int64)
         self.width, self.height = blocks.shape
         self.half_width, self.half_height = self.width / 2.0, self.height / 2.0
-        # Compiled kernels use the canonical 1024-unit origin. Keep that fast
-        # path only when its coordinate convention applies.
-        if (self.width, self.height) != (1024, 1024):
-            self._k = None
+        # compiled tile kernels derive the world origin from the array shape (512.0 canonical, 64.0 XY1 mini-world)
         # polygons: iterable of (name, np.ndarray[N,2] counter-clockwise vertices)
         self.polygons = list(polygons)
         self._aabb = np.zeros((len(self.polygons), 4))

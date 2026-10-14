@@ -152,10 +152,12 @@ def fluid_sweep(fluids, blocks, xmin, xmax, ymin, ymax, width, height, counters,
 # ------------------------------------------------------------------ ground queries
 @njit(cache=True)
 def _cell_range(blocks, x0, x1, y0, y1):
-    cx0 = max(int(math.floor(x0 + HALF_WORLD)), 0)
-    cx1 = min(int(math.floor(x1 + HALF_WORLD)), blocks.shape[0] - 1)
-    cy0 = max(int(math.floor(y0 + HALF_WORLD)), 0)
-    cy1 = min(int(math.floor(y1 + HALF_WORLD)), blocks.shape[1] - 1)
+    half_x = blocks.shape[0] * 0.5            # 512.0 for the canonical 1024 x 1024 world, 64.0 for the XY1 mini-world
+    half_y = blocks.shape[1] * 0.5
+    cx0 = max(int(math.floor(x0 + half_x)), 0)
+    cx1 = min(int(math.floor(x1 + half_x)), blocks.shape[0] - 1)
+    cy0 = max(int(math.floor(y0 + half_y)), 0)
+    cy1 = min(int(math.floor(y1 + half_y)), blocks.shape[1] - 1)
     return cx0, cx1, cy0, cy1
 
 
@@ -200,8 +202,8 @@ def box_cast_tiles(blocks, cx, cy, hw, hh, dx, dy, distance):
         for j in range(cy0, cy1 + 1):
             if blocks[i, j] == 0:
                 continue
-            rx = i - HALF_WORLD
-            ry = j - HALF_WORLD
+            rx = i - blocks.shape[0] * 0.5
+            ry = j - blocks.shape[1] * 0.5
             hit = _sweep_rect(cx, cy, hw, hh, dx, dy, distance,
                               rx - BOX_CAST_SKIN, ry - BOX_CAST_SKIN,
                               rx + 1.0 + BOX_CAST_SKIN, ry + 1.0 + BOX_CAST_SKIN)
@@ -260,8 +262,8 @@ def raycast_tiles(blocks, ox, oy, dx, dy, distance):
         for j in range(cy0, cy1 + 1):
             if blocks[i, j] == 0:
                 continue
-            rx = i - HALF_WORLD
-            ry = j - HALF_WORLD
+            rx = i - blocks.shape[0] * 0.5
+            ry = j - blocks.shape[1] * 0.5
             hit = _ray_rect(ox, oy, dx, dy, distance, rx, ry, rx + 1.0, ry + 1.0)
             if hit[0] and (not best[0] or hit[1] < best[1]):
                 best = hit
@@ -275,8 +277,8 @@ def overlap_box_tiles(blocks, cx, cy, hw, hh):
         for j in range(cy0, cy1 + 1):
             if blocks[i, j] == 0:
                 continue
-            rx = i - HALF_WORLD
-            ry = j - HALF_WORLD
+            rx = i - blocks.shape[0] * 0.5
+            ry = j - blocks.shape[1] * 0.5
             if min(cx + hw, rx + 1.0) - max(cx - hw, rx) > 1e-9 and \
                     min(cy + hh, ry + 1.0) - max(cy - hh, ry) > 1e-9:
                 return True
@@ -298,8 +300,8 @@ def touching_chunks(blocks, cx, cy, hw, hh, reach, out):
         for j in range(cy0, cy1 + 1):
             if blocks[i, j] == 0:
                 continue
-            rx = i - HALF_WORLD
-            ry = j - HALF_WORLD
+            rx = i - blocks.shape[0] * 0.5
+            ry = j - blocks.shape[1] * 0.5
             dx = max(rx - (cx + hw), (cx - hw) - (rx + 1.0), 0.0)
             dy = max(ry - (cy + hh), (cy - hh) - (ry + 1.0), 0.0)
             h = math.hypot(dx, dy)

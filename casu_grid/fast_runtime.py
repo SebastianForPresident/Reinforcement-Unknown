@@ -136,6 +136,12 @@ class FastSlot:
         CK.latch_actions(self.S, self.C, action.move, action.jump, action.vertical, action.crouch,
                          action.look_dx, action.look_dy)
 
+    def relatch(self, action: PolicyAction) -> None:
+        """Second ``apply_actions(latch=...)`` of navigation mode; refreshes the dataclass view (attack/look queries)."""
+        CK.latch_actions(self.S, self.C, action.move, action.jump, action.vertical, action.crouch,
+                         action.look_dx, action.look_dy)
+        self.unpack()
+
     def end_macrostep(self) -> None:
         self.unpack()
         self._unpack_grid()

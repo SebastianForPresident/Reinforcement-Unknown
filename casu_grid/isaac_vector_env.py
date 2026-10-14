@@ -335,15 +335,13 @@ class BatchedIsaacLayer1Env(gym.Env):
     def _build_fast_runtime(self):
         """Compiled per-world tick runtime (``fast_runtime.FastSlot``), or ``None`` for the reference path."""
         from . import backend
-        if self.cfg.world_variant == "xy1_mini_128x128":
-            return None  # compiled controller tile/look coordinates assume 1024 x 1024
         controller = backend.controller_for()
         if controller is None:
             return None
         from .fast_runtime import FastSlot
         self._state_rows = np.zeros((self.count, controller.N_STATE))
         self._result_rows = np.zeros((self.count, 4))
-        vector = controller.pack_config(self.controller_config)
+        vector = controller.pack_config(self.controller_config, self.slots[0].ground_world.blocks.shape)
         return [FastSlot(slot, self._state_rows[i], vector, self.cfg.action_decimation, self._result_rows[i])
                 for i, slot in enumerate(self.slots)]
 
@@ -456,11 +454,18 @@ class BatchedIsaacLayer1Env(gym.Env):
         """Persistent CPU staging buffers (numpy views over torch tensors) for the per-tick writes."""
         if getattr(self, "_stage_pose", None) is None:
             n = self.count   # staging lives on the host (NumPy views); GPU pipelines copy per tick via _dev()
+            self._direct = (self._fast is not None and self.sim.device == "cpu"
+                            and os.environ.get("CASU_DIRECT_TENSOR_IO", "1") != "0")
             self._stage_pose = torch.zeros((n, 7), dtype=torch.float32)
-            self._stage_pose[:, 3] = 1.0
+            self._stage_pose[:, 6 if self._direct else 3] = 1.0     # identity quaternion: xyzw (PhysX view) or wxyz (Isaac Lab API)
             self._stage_vel = torch.zeros((n, 6), dtype=torch.float32)
             self._stage_force = torch.zeros((n, 1, 3), dtype=torch.float32)
             self._stage_torque = torch.zeros((n, 1, 3), dtype=torch.float32)
+            if self._direct:
+                self._pview = self.player.root_physx_view
+                self._idx_all = torch.arange(n, dtype=torch.int32)
+                self._force_flat = self._stage_force.view(n, 3)
+                self._torque_flat = self._stage_torque.view(n, 3)
             self._np_pose, self._np_vel, self._np_force = (
                 self._stage_pose.numpy(), self._stage_vel.numpy(), self._stage_force.numpy())
             self._off_x = self.offsets[:, 0].astype(np.float64)
@@ -488,21 +493,39 @@ class BatchedIsaacLayer1Env(gym.Env):
             stale = [i for i, slot in enumerate(self.slots) if slot.physical_dirty]
             if stale:
                 self._rebuild_dirty(stale)
-        current = self._np(self.player.data.root_pos_w)
-        moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[:, 0].astype(np.float64)) > 1e-6)
-                               | (np.abs(current[:, 2].astype(np.float64) - pose[:, 2].astype(np.float64)) > 1e-6))
-        if moved.size:
-            ids = torch.as_tensor(moved, dtype=torch.int32, device=self.sim.device)
-            self.player.write_root_pose_to_sim(self._dev(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)]), env_ids=ids)
-        self.player.write_root_velocity_to_sim(self._dev(self._stage_vel))
-        self.player.set_external_force_and_torque(self._dev(self._stage_force), self._dev(self._stage_torque), is_global=True)
-        self.player.write_data_to_sim()
-        t2 = clock()
-        self.sim.step(render=False)
-        t3 = clock()
-        self.player.update(self.cfg.physics_dt)
-        pos = self._np(self.player.data.root_pos_w)
-        lin = self._np(self.player.data.root_lin_vel_w)
+        if self._direct:
+            # same PhysX tensor-view calls Isaac Lab's RigidObject wrappers issue, without their per-call bookkeeping
+            view = self._pview
+            current = view.get_transforms().numpy()
+            moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[:, 0].astype(np.float64)) > 1e-6)
+                                   | (np.abs(current[:, 2].astype(np.float64) - pose[:, 2].astype(np.float64)) > 1e-6))
+            if moved.size:
+                view.set_transforms(self._stage_pose, indices=torch.as_tensor(moved, dtype=torch.int32))
+            view.set_velocities(self._stage_vel, indices=self._idx_all)
+            view.apply_forces_and_torques_at_position(force_data=self._force_flat, torque_data=self._torque_flat,
+                                                      position_data=None, indices=self._idx_all, is_global=True)
+            t2 = clock()
+            self.sim.step(render=False)
+            t3 = clock()
+            self.player.update(self.cfg.physics_dt)
+            pos = view.get_transforms().numpy()
+            lin = view.get_velocities().numpy()
+        else:
+            current = self._np(self.player.data.root_pos_w)
+            moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[:, 0].astype(np.float64)) > 1e-6)
+                                   | (np.abs(current[:, 2].astype(np.float64) - pose[:, 2].astype(np.float64)) > 1e-6))
+            if moved.size:
+                ids = torch.as_tensor(moved, dtype=torch.int32, device=self.sim.device)
+                self.player.write_root_pose_to_sim(self._dev(self._stage_pose[torch.as_tensor(moved, dtype=torch.long)]), env_ids=ids)
+            self.player.write_root_velocity_to_sim(self._dev(self._stage_vel))
+            self.player.set_external_force_and_torque(self._dev(self._stage_force), self._dev(self._stage_torque), is_global=True)
+            self.player.write_data_to_sim()
+            t2 = clock()
+            self.sim.step(render=False)
+            t3 = clock()
+            self.player.update(self.cfg.physics_dt)
+            pos = self._np(self.player.data.root_pos_w)
+            lin = self._np(self.player.data.root_lin_vel_w)
         S[:, CK.X] = pos[:, 0].astype(np.float64) - self._off_x
         S[:, CK.Y] = pos[:, 2].astype(np.float64) - self._off_z
         S[:, CK.VX] = lin[:, 0]
@@ -752,8 +775,13 @@ class BatchedIsaacLayer1Env(gym.Env):
             for slot, action in zip(self.slots, actions):
                 slot.model.apply_actions(latch=self._policy_action(action))
         if self.cfg.navigation_mode:
-            for slot, action in zip(self.slots, actions):
-                slot.model.apply_actions(latch=self._policy_action(action))
+            for i, (slot, action) in enumerate(zip(self.slots, actions)):
+                # navigation mode latches the action a second time (the historical XY1 behaviour); compiled
+                # worlds repeat the kernel latch and refresh the dataclass the attack raycast reads
+                if self._fast is not None:
+                    self._fast[i].relatch(self._policy_action(action))
+                else:
+                    slot.model.apply_actions(latch=self._policy_action(action))
                 if action.attack:
                     s=slot.model.s; hit=slot.ground_world.raycast((s.x,s.y),(s.look_x-s.x,s.look_y-s.y),8.0)
                     if hit is not None:
