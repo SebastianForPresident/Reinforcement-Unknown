@@ -1,0 +1,10 @@
+== R1 fresh 4 updates (cuda, worker-local)
+rc=0
+{"env_state_keys": ["canonical_content_id", "schema", "shards", "sizes", "terrain_mode"], "observation_present": true, "optimizer_param_states": 24, "optimizer_steps": [256], "total_steps": 4096, "update_count": 4, "weights_finite": true}
+== R2 resume +4
+rc=0
+{"env_state_keys": ["canonical_content_id", "schema", "shards", "sizes", "terrain_mode"], "observation_present": true, "optimizer_param_states": 24, "optimizer_steps": [512], "total_steps": 8192, "update_count": 8, "weights_finite": true}
+== R3 uninterrupted 8
+rc=0
+{"env_state_keys": ["canonical_content_id", "schema", "shards", "sizes", "terrain_mode"], "observation_present": true, "optimizer_param_states": 24, "optimizer_steps": [512], "total_steps": 8192, "update_count": 8, "weights_finite": true}
+MARK_R3

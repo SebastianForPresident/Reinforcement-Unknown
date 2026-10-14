@@ -1,0 +1,39 @@
+== R4 SIGINT
+SIGINT to group 1665185
+trainer rc = 0 exit latency 0.5 s
+files: ['config.json', 'environment.json', 'latest.pt', 'metrics.jsonl', 'research_config.py', 'tensorboard', 'trajectories.jsonl']
+metrics lines: 3
+leftover shard workers: [1664874]
+{"env_state_keys": ["canonical_content_id", "schema", "shards", "sizes", "terrain_mode"], "observation_present": true, "optimizer_param_states": 24, "optimizer_steps": [192], "total_steps": 3072, "update_count": 3, "weights_finite": true}
+== R4b resume +2
+rc=0
+{"env_state_keys": ["canonical_content_id", "schema", "shards", "sizes", "terrain_mode"], "observation_present": true, "optimizer_param_states": 24, "optimizer_steps": [320], "total_steps": 5120, "update_count": 5, "weights_finite": true}
+== R5 worker SIGKILL
+SIGKILL worker 1670493 of [1670493, 1670494]
+trainer rc = 0 exit latency 10.6 s
+files: ['config.json', 'environment.json', 'failure.json', 'latest.pt', 'metrics.jsonl', 'research_config.py', 'tensorboard', 'trajectories.jsonl']
+failure.json: {   "status": "failed",   "error_type": "WorkerFailure",   "message": "worker 0 closed its pipe (exit code None)\n--- worker log tail (/tmp/casu_workers_1669955_av3g3b_i) ---\n",   "finished_utc": "2026-10-14T16:48:38Z",   "traceback": "Traceback (most recent call last):\n  File \"/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-opt4/casu_grid/isaac_sharded_env.py\", line 184, in _receive\n    kind, payload = conn.recv()\n  File \"/home/sebastian/Applications/Isa
+metrics lines: 3
+leftover shard workers: []
+0
+{"env_state_keys": ["canonical_content_id", "schema", "shards", "sizes", "terrain_mode"], "observation_present": true, "optimizer_param_states": 24, "optimizer_steps": [192], "total_steps": 3072, "update_count": 3, "weights_finite": true}
+== R5b resume +2
+rc=0
+{"env_state_keys": ["canonical_content_id", "schema", "shards", "sizes", "terrain_mode"], "observation_present": true, "optimizer_param_states": 24, "optimizer_steps": [320], "total_steps": 5120, "update_count": 5, "weights_finite": true}
+== R6 num-envs 8 vs 16-env ckpt
+rc=0
+    raise ValueError("snapshot has wrong sharded schema or world partition")
+ValueError: snapshot has wrong sharded schema or world partition
+== R6b terrain-mode shared
+rc=0
+casu_grid.isaac_sharded_env.WorkerFailure: worker 0 reported an error:
+    raise ValueError("XY1 navigation requires independent terrain for per-world excavation")
+ValueError: XY1 navigation requires independent terrain for per-world excavation
+== R6c other config
+rc=0
+    raise ValueError("PPO checkpoint learning contract is incompatible with this run")
+ValueError: PPO checkpoint learning contract is incompatible with this run
+== R7 determinism of resume: second resume from a_ckpt
+rc=0
+resume vs resume identical: False [-0.008965, -0.00976, -0.006229, -0.015117] [-0.008965, -0.00976, -0.006229, -0.015117]
+MARK_R7
