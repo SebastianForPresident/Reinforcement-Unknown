@@ -810,6 +810,10 @@ class BatchedIsaacLayer1Env(gym.Env):
                     s=slot.model.s; hit=slot.ground_world.raycast((s.x,s.y),(s.look_x-s.x,s.look_y-s.y),8.0)
                     if hit is not None:
                         gx=int(np.floor(hit.point[0]+slot.grid.width/2-1e-6));gy=int(np.floor(hit.point[1]+slot.grid.height/2-1e-6))
+                        # a hit on the outer face of the world boundary lies one cell outside; the grid clamps such cells
+                        # (get_block/damage_block/set_block), so the collider update must hit the same cell instead of wrapping
+                        # (negative index) or naming a chunk outside the world
+                        gx=min(max(gx,0),slot.grid.width-1);gy=min(max(gy,0),slot.grid.height-1)
                         bid=slot.grid.get_block(gx,gy)
                         if bid and slot.grid.block_info(bid):
                             if slot.grid.damage_block(gx,gy,25.0,ignore_loot=True):

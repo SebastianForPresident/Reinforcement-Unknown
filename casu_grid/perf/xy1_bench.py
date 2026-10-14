@@ -83,7 +83,7 @@ def monitor():
             tree = [root] + root.children(recursive=True)
             rss = sum(q.memory_info().rss for q in tree if q.is_running())
             if args.series and int(time.perf_counter() - started) % 30 == 0:
-                per_process.append((round(time.perf_counter() - started), {q.pid: q.memory_info().rss for q in tree if q.is_running()}))
+                per_process.append((round(time.perf_counter() - started), {q.pid: (q.memory_info().rss, tree_unique([q])[1]) for q in tree if q.is_running()}))
             if int(time.perf_counter() - started) % 10 == 0 and (not unique_mem or time.perf_counter() - started - unique_mem[-1][0] > 5):
                 pss, uss = tree_unique(tree)
                 vm = psutil.virtual_memory()
