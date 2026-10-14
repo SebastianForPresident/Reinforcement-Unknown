@@ -155,3 +155,24 @@ Remaining uncertainty: (i) incremental terrain and batched shape writes are stat
 * **Inference contention.** Eight workers time-slice one GPU (≈ 2.5–4.5 % of the rollout); CUDA MPS might halve it (not enabled: system-wide daemon).
 * **Housekeeping.** The `e4_random_canonical` stored trajectory is stale (fails on the starting commit too) and should be re-recorded; `casu_grid/workbench/test_gui.py` does not import on this machine (not touched). Checkpoints written by the worker-local path do not resume in the central path.
 * **Not done:** a full-length learning comparison, a multi-hour soak (300 updates / 13 minutes were run), and any PhysX-GPU pipeline experiment (would change the physics).
+
+## G. Switches (all defaults are the optimised behaviour; `0` restores the historical one)
+
+| switch | default | effect |
+|---|---|---|
+| `train.py --train-device` / `CASU_TRAIN_DEVICE` | `auto` (CUDA when present) | device of the PPO model, buffers and update (was hard-wired CPU) |
+| `CASU_LOCAL_ROLLOUT` | auto (XY1 stock observation + CUDA trainer) | worker-local policy copies and rollouts; `0` = parent evaluates the policy after every decision |
+| `CASU_PPO_GRAPH` | on (CUDA) | CUDA-graph minibatch step with `Adam(capturable=True)`; `0` = eager |
+| `CASU_COMPILED_CONTROLLER` | on | compiled controller (now also for the mini-world) |
+| `CASU_DIRECT_TENSOR_IO` | on | PhysX tensor-view calls without Isaac Lab wrappers |
+| `CASU_DIRECT_STEP` | on | `simulate` + `fetch_results` without `sim.step` wrappers |
+| `CASU_SHAPE_BATCH` | on | one `Sdf.ChangeBlock` per tick for all crouch-level writes (not bit-identical to sequential order) |
+| `CASU_SHAPE_SPEC` | on | `Sdf.AttributeSpec` writes instead of `UsdAttribute.Set` (bit-identical) |
+| `CASU_INCREMENTAL_TERRAIN` | on | diff-based chunk collider updates (same prim set; PhysX shape order differs after adjacent edits) |
+| `CASU_NUM_WORKERS` / `CASU_WORKER_PHYSX_THREADS` | workbench default / 2 | worker processes and PhysX threads per worker (≥ 2) |
+| `CASU_WORKER_PROFILE=<prefix>` (+ `CASU_WORKER_PROFILE_SKIP=n`) | off | cProfile dump of every worker's rollouts (skipping the first *n*) |
+
+Bit-exact regression gates run with `CASU_SHAPE_BATCH=0 CASU_INCREMENTAL_TERRAIN=0` (`perf/run_perf_check.py` sets the first itself).
+Tools added under `casu_grid/perf/`: `xy1_bench.py` (end-to-end benchmark with process-tree RSS / GPU / progress monitoring and `--series`), `xy1_env_profile.py`, `xy1_train_profile.py`,
+`xy1_trajectory_dump.py`, `local_rollout_equivalence.py`, `ppo_device_equivalence.py`, `terrain_edit_locality.py`, `learning_compare.py`, `first_update_compare.py`,
+`worker_profile_breakdown.py`, `crouch_switch_bench.py`, `crouch_loop.py`, `resume_test.sh`, `run_kit_tests.py`.
