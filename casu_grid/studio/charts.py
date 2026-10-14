@@ -246,6 +246,12 @@ class ChartView(QtWidgets.QWidget):
             hi = min(hi, self.spec.y_max)
         if hi <= lo:
             hi = lo + 1.0
+        # a series that sits exactly on a hard bound (e.g. 0 % of agents lost) must stay visible inside the frame, not hide on its border
+        margin = 0.04 * (hi - lo)
+        if self.spec.y_min is not None and lo <= self.spec.y_min:
+            lo -= margin
+        if self.spec.y_max is not None and hi >= self.spec.y_max:
+            hi += margin
         return lo, hi
 
     def reset_view(self):

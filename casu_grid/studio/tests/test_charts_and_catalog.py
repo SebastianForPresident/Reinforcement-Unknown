@@ -86,8 +86,15 @@ class ChartViewTests(unittest.TestCase):
     def test_fixed_axis_bounds_for_rates(self):
         view = self.make([0.2, 0.4], y_min=0.0, y_max=1.0, include_zero=True)
         lo, hi = view.y_view(*view.x_view())
-        self.assertEqual(lo, 0.0)
-        self.assertLessEqual(hi, 1.0)
+        self.assertLessEqual(lo, 0.0)
+        self.assertGreater(lo, -0.1)                                   # only a small visual margin below the hard bound
+        self.assertLessEqual(hi, 1.1)
+
+    def test_series_on_a_hard_bound_stays_inside_the_frame(self):
+        view = self.make([0.0, 0.0, 0.0], y_min=0.0, y_max=1.0, include_zero=True)
+        lo, hi = view.y_view(*view.x_view())
+        self.assertLess(lo, 0.0)                                   # the zero line is drawn above the frame's lower edge
+        self.assertEqual([t for t in charts.ticks(lo, hi, 5)][0], 0.0)
 
     def test_csv_export_contains_raw_and_smoothed(self):
         s = series([1.0, None, 3.0])
