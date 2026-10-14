@@ -14,8 +14,12 @@ Requirements handled here:
 """
 from __future__ import annotations
 
+import os
+
 import torch
 from torch.nn.utils import clip_grad_norm_
+
+_CLIP_STAT = os.environ.get("CASU_PPO_CLIP_STAT", "1") != "0"   # clip-fraction statistic inside the captured graph (diagnostic switch)
 
 
 class GraphedMinibatch:
@@ -45,7 +49,9 @@ class GraphedMinibatch:
         grad_norm = clip_grad_norm_(t.model.parameters(), cfg.max_grad_norm)
         t.optimizer.step()
         approx_kl = ((ratio - 1.0) - (new_log_prob - old_log)).mean()
-        return torch.stack((policy, value_loss, entropy_mean, approx_kl, grad_norm, loss)).detach()
+        clip_fraction = (((ratio - 1.0).abs() > cfg.clip_range).float().mean() if _CLIP_STAT
+                         else new_log_prob.new_zeros(()))     # observability only (not part of the loss)
+        return torch.stack((policy, value_loss, entropy_mean, approx_kl, grad_norm, loss, clip_fraction)).detach()
 
     # ---------------------------------------------------------------------------- capture
     def prepare(self, obs, actions, old, adv, ret, expand):
@@ -106,7 +112,7 @@ class GraphedMinibatch:
 
     # ------------------------------------------------------------------------------ run
     def step(self, index_slice):
-        """One minibatch for the given 1-D index tensor; returns the (6,) statistics tensor on the device."""
+        """One minibatch for the given 1-D index tensor; returns the (7,) statistics tensor on the device (policy, value, entropy, KL, grad norm, loss, clip fraction)."""
         if index_slice.shape[0] == self.minibatch and self.graph is not None:
             self.idx.copy_(index_slice)
             self.graph.replay()

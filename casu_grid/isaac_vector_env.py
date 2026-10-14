@@ -667,6 +667,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 local_spawn=(spawn[0]-float(self.offsets[i,0]),spawn[1]-float(self.offsets[i,2]))
                 slot.goal_world_xy=(slot.goal_world_xy[0]-float(self.offsets[i,0]),slot.goal_world_xy[1]-float(self.offsets[i,2]))
                 slot.best_goal_distance = self._goal_distance(local_spawn, slot.goal_world_xy)
+                slot.initial_goal_distance = slot.best_goal_distance; slot.blocks_destroyed = 0
                 from .xy1 import BestDistanceReward
                 slot.xy1_reward=BestDistanceReward(slot.best_goal_distance)
                 s = slot.model.s
@@ -733,6 +734,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 local_spawn=(spawn[0]-float(self.offsets[int(i),0]),spawn[1]-float(self.offsets[int(i),2]))
                 slot.goal_world_xy=(slot.goal_world_xy[0]-float(self.offsets[int(i),0]),slot.goal_world_xy[1]-float(self.offsets[int(i),2]))
                 slot.best_goal_distance=self._goal_distance(local_spawn,slot.goal_world_xy)
+                slot.initial_goal_distance=slot.best_goal_distance;slot.blocks_destroyed=0
                 from .xy1 import BestDistanceReward
                 slot.xy1_reward=BestDistanceReward(slot.best_goal_distance)
                 s=slot.model.s;s.x,s.y=local_spawn;s.vx=s.vy=0.0;s.grounded=False;s.crouch_amount=0.0;s.ragdoll_event=None
@@ -821,6 +823,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                         if bid and slot.grid.block_info(bid):
                             if slot.grid.damage_block(gx,gy,25.0,ignore_loot=True):
                                 slot.physical_blocks[gx,gy]=0;slot.physical_dirty.add((gx//64,gy//64))
+                                slot.blocks_destroyed+=1
             if self.terrain_mode == "independent":
                 dirty=[i for i,s in enumerate(self.slots) if s.physical_dirty]
                 if dirty:self._rebuild_dirty(dirty)
@@ -836,6 +839,7 @@ class BatchedIsaacLayer1Env(gym.Env):
         reasons: list = [None] * self.count
         players = []
         actions = getattr(self, "_last_actions", actions)
+        xy1_diag = {k: np.zeros(self.count, np.float32) for k in ('goal_distance', 'best_distance', 'initial_distance', 'blocks_destroyed')} if self.cfg.navigation_mode else None
         for i, slot in enumerate(self.slots):
             if self.cfg.navigation_mode:
                 current=slot.body_dict();gx,gy=slot.goal_cell
@@ -846,6 +850,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 slot.best_goal_distance=slot.xy1_reward.best_distance
                 slot.elapsed_steps+=1;term=arrived;trunc=slot.elapsed_steps>=self.cfg.episode_length_steps and not term
                 reason='arrival' if term else 'time_limit' if trunc else None;slot.last_state=current
+                xy1_diag['goal_distance'][i]=d;xy1_diag['best_distance'][i]=slot.best_goal_distance;xy1_diag['initial_distance'][i]=slot.initial_goal_distance;xy1_diag['blocks_destroyed'][i]=slot.blocks_destroyed
             else:
                 reward, item_terms, term, trunc, reason, current = slot.finish_step(self.reward_function)
             rewards[i], terminated[i], truncated[i], reasons[i] = reward, term, trunc, reason
@@ -855,6 +860,7 @@ class BatchedIsaacLayer1Env(gym.Env):
         return (self._format_observation() if observe else None), rewards, terminated, truncated, {
             "reward_terms": terms, "termination_reason": reasons,
             "physics_ticks": self.cfg.action_decimation * self.count, "player": players,
+            **({"xy1": xy1_diag} if xy1_diag is not None else {}),
             "canonical_content_id": self.reference.manifest["content_id"]}
 
     # ---------------------------------------------------------------- snapshot

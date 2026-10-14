@@ -213,6 +213,7 @@ class PPOTrainer:
                 frequencies[f"action/{head.name}/choice_{choice}_fraction"] = count / total_rows
         physics_step_seconds = max(res["seconds"]["env_step"]) + max(res["seconds"]["reset"])
         self._last_local_seconds = res["seconds"]
+        self._last_nav = (res.get("nav_episodes"), res.get("nav_active"), res.get("nav_blocks_destroyed"))
         return (records, torch.zeros(n, device=dev), res["completed_returns"], res["completed_lengths"],
                 res["termination_counts"], frequencies, time.perf_counter() - started, physics_step_seconds, res["physics_ticks"])
 
@@ -426,6 +427,7 @@ class PPOTrainer:
         minibatch = min(cfg.minibatch_size, count)
         batches, completed_epochs = 0, 0
         stats = []          # one (5,) float32 row per minibatch; converted once, summed in the reference order
+        clip_fractions = []  # observability only: share of samples whose probability ratio left the clip range
         graphed = self._graph_enabled()
         if graphed:
             from .ppo_graph import GraphedMinibatch
@@ -438,10 +440,11 @@ class PPOTrainer:
                 stop_epoch = False
                 for start in range(0, count, minibatch):
                     row = self._mb_graph.step(permutation[start:start + minibatch])
-                    policy_v, value_v, entropy_v, kl_v, grad_v, loss_v = row.tolist()
+                    policy_v, value_v, entropy_v, kl_v, grad_v, loss_v, clip_v = row.tolist()
                     if not (np.isfinite(loss_v) and np.isfinite(grad_v)):
                         raise FloatingPointError("non-finite PPO loss or gradient norm")
                     stats.append(row[:5])
+                    clip_fractions.append(clip_v)
                     batches += 1
                     if cfg.target_kl is not None and kl_v > cfg.target_kl:
                         stop_epoch = True
@@ -480,6 +483,7 @@ class PPOTrainer:
                 self.optimizer.step()
                 approx_kl = ((ratio - 1.0) - (new_log_prob - old_log)).mean()
                 stats.append(torch.stack((policy, value_loss, entropy_mean, approx_kl, grad_norm)).detach())
+                clip_fractions.append(float(((ratio - 1.0).abs() > cfg.clip_range).float().mean()))
                 batches += 1
                 if cfg.target_kl is not None and float(approx_kl.detach()) > cfg.target_kl:
                     stop_epoch = True
@@ -492,7 +496,12 @@ class PPOTrainer:
             for key, value in zip(totals, row):
                 totals[key] += value
         self.update_count += 1
+        # observability only: how well the critic explained the returns of this rollout (1 = perfectly, <= 0 = no better than the mean)
+        return_var = float(return_flat.var(unbiased=False))
+        explained = (1.0 - float((return_flat - values.flatten()).var(unbiased=False)) / return_var) if return_var > 1e-12 else None
         return {key: value / max(1, batches) for key, value in totals.items()} | {
+            "clip_fraction": (sum(clip_fractions) / len(clip_fractions)) if clip_fractions else None,
+            "explained_variance": explained, "learning_rate": float(cfg.learning_rate),
             "optimizer_batches": batches, "epochs_completed": completed_epochs,
             "parameters": count_parameters(self.model),
         }
@@ -534,6 +543,7 @@ class PPOTrainer:
         totals = {"policy_loss": 0.0, "value_loss": 0.0, "entropy": 0.0,
                   "approx_kl": 0.0, "grad_norm": 0.0}
         batches, completed_epochs = 0, 0
+        clip_total = 0.0       # observability only
         for _ in range(cfg.epochs):
             permutation = torch.randperm(count, device=self.device)
             stop_epoch = False
@@ -570,6 +580,7 @@ class PPOTrainer:
                     raise FloatingPointError("non-finite PPO loss or gradient norm")
                 self.optimizer.step()
                 approx_kl = ((ratio - 1.0) - (new_log_prob - old_log_prob[idx])).mean()
+                clip_total += float(((ratio - 1.0).abs() > cfg.clip_range).float().mean().detach().cpu())
                 for key, value in (("policy_loss", policy), ("value_loss", value_loss),
                                    ("entropy", entropy_mean), ("approx_kl", approx_kl),
                                    ("grad_norm", grad_norm)):
@@ -582,7 +593,12 @@ class PPOTrainer:
             if stop_epoch:
                 break
         self.update_count += 1
+        flat_returns = returns.flatten()
+        return_var = float(flat_returns.var(unbiased=False))
+        explained = (1.0 - float((flat_returns - values.flatten()).var(unbiased=False)) / return_var) if return_var > 1e-12 else None
         return {key: value / max(1, batches) for key, value in totals.items()} | {
+            "clip_fraction": (clip_total / batches) if batches else None,
+            "explained_variance": explained, "learning_rate": float(cfg.learning_rate),
             "optimizer_batches": batches, "epochs_completed": completed_epochs,
             "parameters": count_parameters(self.model),
         }
@@ -624,6 +640,10 @@ class PPOTrainer:
                 metrics[f"worker_{kind}_seconds_max"] = float(np.max(values))
         for reason, count in termination_counts.items():
             metrics[f"termination/{reason}"] = count
+        nav = getattr(self, "_last_nav", None) if self._use_local_rollout() else None
+        if nav and nav[0] is not None:
+            decisions = (rollout_steps or self.config.rollout_steps) * metrics["environment_count"]
+            metrics.update(navigation_metrics(nav[0], nav[1], nav[2], decisions))
         if records["reward_terms"]:
             names = sorted({name for step in records["reward_terms"] for name in step})
             for name in names:
@@ -700,6 +720,47 @@ class PPOTrainer:
         if checkpoint.get("environment_state") is not None and hasattr(self.env, "restore"):
             self.env.restore(checkpoint["environment_state"])
         return checkpoint.get("metadata", {})
+
+
+def navigation_metrics(episodes: dict, active: dict | None, blocks_destroyed: float | None, decisions: int) -> dict[str, Any]:
+    """XY1 task statistics of one rollout window (``nav/*``), for the Studio and for the learning-readiness analysis.
+
+    Pure observability: computed from episode summaries the worker-local rollout already collected; nothing feeds back into learning.
+    ``None`` means *no sample* (e.g. no episode finished in this window), never zero. Distances are in tiles. Episodes still running at
+    the end of the window are reported separately (``nav/active_*``) because completed episodes alone are a biased, censored sample.
+    """
+    reasons = episodes["reason"]
+    completed = len(reasons)
+    arrivals = [i for i, r in enumerate(reasons) if r == "arrival"]
+    mean = lambda values: (float(sum(values) / len(values)) if len(values) else None)
+    out: dict[str, Any] = {
+        "nav/completed_episodes": completed,
+        "nav/arrivals": len(arrivals),
+        "nav/timeouts": sum(1 for r in reasons if r == "time_limit"),
+        "nav/arrival_rate": (len(arrivals) / completed) if completed else None,
+        "nav/arrivals_per_1k_decisions": 1000.0 * len(arrivals) / max(1, decisions),
+        "nav/decisions_to_arrival_mean": mean([episodes["length"][i] for i in arrivals]),
+        "nav/decisions_to_arrival_median": (float(sorted(episodes["length"][i] for i in arrivals)[len(arrivals) // 2]) if arrivals else None),
+        "nav/completed_initial_distance_mean": mean(episodes["initial_distance"]),
+        "nav/completed_best_distance_mean": mean(episodes["best_distance"]),
+        "nav/completed_final_distance_mean": mean(episodes["final_distance"]),
+        "nav/completed_progress_mean": mean([1.0 - b / i for b, i in zip(episodes["best_distance"], episodes["initial_distance"]) if i > 0]),
+    }
+    if active is not None:
+        count = len(active["goal_distance"])
+        progress = [1.0 - float(b) / float(i) for b, i in zip(active["best_distance"], active["initial_distance"]) if i > 0]
+        out.update({
+            "nav/active_episodes": count,
+            "nav/active_progress_mean": mean(progress),
+            "nav/active_distance_mean": mean(active["goal_distance"].tolist()),
+            "nav/active_best_distance_mean": mean(active["best_distance"].tolist()),
+            "nav/active_initial_distance_mean": mean(active["initial_distance"].tolist()),
+            "nav/active_decisions_mean": mean(active["decisions"].tolist()),
+        })
+    if blocks_destroyed is not None:
+        out["nav/blocks_destroyed"] = float(blocks_destroyed)
+        out["nav/blocks_destroyed_per_1k_decisions"] = 1000.0 * float(blocks_destroyed) / max(1, decisions)
+    return out
 
 
 def write_metrics(path: str | Path, metrics: dict[str, Any]):

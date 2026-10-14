@@ -147,6 +147,13 @@ class LocalRollout:
         terms: dict[str, list] = {}
         completed_returns, completed_lengths = [], []
         termination_counts: dict[str, int] = {}
+        # XY1 observability (read-only: nothing here feeds back into the policy, reward or environment)
+        episodes = {k: [] for k in ("reason", "length", "initial_distance", "best_distance", "final_distance", "blocks_destroyed", "return")}
+        blocks_prev = getattr(self, "_blocks_prev", None)
+        if blocks_prev is None or len(blocks_prev) != n:
+            blocks_prev = np.zeros(n, np.float32)
+        blocks_total = 0.0
+        xy1 = None
         action_counts = [torch.zeros(size, dtype=torch.long) for size in self.head_sizes]
         env_seconds = infer_seconds = reset_seconds = 0.0
         clock = time.perf_counter
@@ -181,6 +188,10 @@ class LocalRollout:
             out["reasons"].append(list(info["termination_reason"]))
             for name, values in info["reward_terms"].items():
                 terms.setdefault(name, []).append(torch.as_tensor(values, dtype=torch.float32))
+            xy1 = info.get("xy1")
+            if xy1 is not None:
+                blocks_total += float((xy1["blocks_destroyed"] - blocks_prev).sum())
+                blocks_prev = xy1["blocks_destroyed"].copy()
             returns += reward_t
             lengths += 1
             if bool(done.any()):
@@ -190,6 +201,16 @@ class LocalRollout:
                 for reason, finished in zip(info["termination_reason"], mask.tolist()):
                     if finished:
                         termination_counts[str(reason)] = termination_counts.get(str(reason), 0) + 1
+                if xy1 is not None:
+                    for j in np.flatnonzero(mask.numpy()):
+                        episodes["reason"].append(str(info["termination_reason"][j]))
+                        episodes["length"].append(int(lengths[j]))
+                        episodes["initial_distance"].append(float(xy1["initial_distance"][j]))
+                        episodes["best_distance"].append(float(xy1["best_distance"][j]))
+                        episodes["final_distance"].append(float(xy1["goal_distance"][j]))
+                        episodes["blocks_destroyed"].append(float(xy1["blocks_destroyed"][j]))
+                        episodes["return"].append(float(returns[j]))
+                    blocks_prev[mask.numpy()] = 0
                 returns[mask] = 0
                 lengths[mask] = 0
                 t4 = clock()
@@ -200,6 +221,13 @@ class LocalRollout:
             else:
                 compact, latent_cpu, log_prob, value = next_compact, next_latent, next_log_prob, next_value
         # the policy input of the first decision of the next rollout is recomputed there (weights will have changed)
+        self._blocks_prev = blocks_prev
+        active = None
+        if xy1 is not None:       # episodes still in progress at the end of the rollout (censored: they have not ended yet)
+            keep = ~done.bool().numpy()
+            active = {"decisions": lengths.numpy()[keep].astype(np.int64), "goal_distance": xy1["goal_distance"][keep],
+                      "best_distance": xy1["best_distance"][keep], "initial_distance": xy1["initial_distance"][keep],
+                      "blocks_destroyed": xy1["blocks_destroyed"][keep]}
         stacked = {k: np.stack(v) for k, v in out.items() if k in ("block_ids", "fluid_ids", "cursor", "goal", "players")}
         result = {
             **stacked,
@@ -210,6 +238,7 @@ class LocalRollout:
             "reasons": out["reasons"], "reward_terms": {k: torch.stack(v).numpy() for k, v in terms.items()},
             "completed_returns": completed_returns, "completed_lengths": completed_lengths,
             "termination_counts": termination_counts,
+            "nav_episodes": episodes if xy1 is not None else None, "nav_active": active, "nav_blocks_destroyed": blocks_total if xy1 is not None else None,
             "action_counts": [c.numpy() for c in action_counts],
             "episode_returns": returns.numpy(), "episode_lengths": lengths.numpy(),
             "seconds": {"env_step": env_seconds, "inference": infer_seconds, "reset": reset_seconds},

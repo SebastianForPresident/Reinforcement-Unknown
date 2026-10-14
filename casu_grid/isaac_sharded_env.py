@@ -304,6 +304,12 @@ class ShardedBatchedEnv(gym.Env):
             for reason, c in p["termination_counts"].items():
                 counts[reason] = counts.get(reason, 0) + c
         merged["termination_counts"] = counts
+        if parts[0].get("nav_episodes") is not None:       # XY1 observability (episode summaries, in-progress episodes, excavation)
+            merged["nav_episodes"] = {k: [v for p in parts for v in p["nav_episodes"][k]] for k in parts[0]["nav_episodes"]}
+            merged["nav_active"] = {k: np.concatenate([p["nav_active"][k] for p in parts]) for k in parts[0]["nav_active"]}
+            merged["nav_blocks_destroyed"] = sum(p["nav_blocks_destroyed"] for p in parts)
+        else:
+            merged["nav_episodes"] = merged["nav_active"] = merged["nav_blocks_destroyed"] = None
         merged["action_counts"] = [sum(p["action_counts"][h] for p in parts) for h in range(len(parts[0]["action_counts"]))]
         merged["episode_returns"] = np.concatenate([p["episode_returns"] for p in parts])
         merged["episode_lengths"] = np.concatenate([p["episode_lengths"] for p in parts])

@@ -20,6 +20,10 @@ p.add_argument('--terrain-mode', choices=('shared','independent'), default='shar
 p.add_argument('--episode-steps', type=int, default=None,
                help='truncate episodes after this many policy decisions (default: environment default, 500)')
 p.add_argument('--resume', type=Path)
+p.add_argument('--checkpoint-every', type=int, default=0,
+               help='also keep a numbered copy checkpoints/update_NNNNNN.pt every N updates (latest.pt is always written after every update)')
+p.add_argument('--save-initial-checkpoint', action='store_true',
+               help='save the untrained policy as checkpoints/initial.pt before the first update (fresh runs only)')
 p.add_argument('--train-device', default=os.environ.get('CASU_TRAIN_DEVICE','auto'),
                help="device of the PPO model, rollout buffers and update: 'cpu', 'cuda' or 'auto' (CUDA when available); env CASU_TRAIN_DEVICE")
 AppLauncher.add_app_launcher_args(p); args=p.parse_args(); args.headless=True
@@ -57,6 +61,9 @@ def main():
         raise ValueError('--updates must be positive')
     if args.geometry_scope == 'spawn_chunk':
         raise ValueError('spawn_chunk is a diagnostic-only geometry scope; PPO training requires full canonical terrain')
+    if os.environ.get('CASU_LEGACY_MINI_SPAWN','0')=='1' and os.environ.get('CASU_REPRODUCE_LEGACY','0')!='1':
+        raise ValueError('CASU_LEGACY_MINI_SPAWN=1 restores the pre-Optimization-IV mis-placed mini-world workload and is only for explicit '
+                         'historical reproduction; set CASU_REPRODUCE_LEGACY=1 as well to acknowledge that, or unset it for real training')
     run_dir=args.run_dir or Path('experiments')/time.strftime('%Y%m%d-%H%M%S')
     active_run_dir = run_dir
     # The researcher CLI reserves the directory and writes a RUNNING marker;
@@ -164,14 +171,28 @@ def main():
             environment_manifest['canonical_fixture_id']=env.reference.manifest['fixture_id']
             environment_manifest['canonical_content_id']=env.reference.manifest['content_id']
         (run_dir/'environment.json').write_text(json.dumps(environment_manifest,indent=2)+'\n')
+        checkpoint_metadata={'source_revision':source,'run_dir':str(run_dir)}
+        if args.save_initial_checkpoint and not args.resume:
+            trainer.save(run_dir/'checkpoints'/'initial.pt',metadata=dict(checkpoint_metadata,kind='initial_untrained_policy'))
+        stop_requested=False
         for _ in range(args.updates):
+            if (run_dir/'STOP').exists():      # graceful stop requested by the Studio: finish at an update boundary
+                stop_requested=True
+                break
             metrics=trainer.train_update()
             write_metrics(run_dir/'metrics.jsonl',metrics)
-            trainer.save(run_dir/'latest.pt',metadata={'source_revision':source,'run_dir':str(run_dir)})
+            trainer.save(run_dir/'latest.pt',metadata=checkpoint_metadata)
+            if args.checkpoint_every and trainer.update_count % args.checkpoint_every == 0:
+                trainer.save(run_dir/'checkpoints'/f'update_{trainer.update_count:06d}.pt',metadata=dict(checkpoint_metadata,kind='scheduled'))
             print(json.dumps(metrics,sort_keys=True),flush=True)
-        (run_dir/'COMPLETE').write_text(time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+'\n')
-        (run_dir/'failure.json').unlink(missing_ok=True)
-        (run_dir/'INTERRUPTED').unlink(missing_ok=True)
+        if stop_requested:
+            (run_dir/'INTERRUPTED').write_text(time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+' graceful stop requested\n')
+            (run_dir/'COMPLETE').unlink(missing_ok=True)
+            print('CASU_TRAIN_STOPPED_BY_REQUEST update=%d'%trainer.update_count,flush=True)
+        else:
+            (run_dir/'COMPLETE').write_text(time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+'\n')
+            (run_dir/'failure.json').unlink(missing_ok=True)
+            (run_dir/'INTERRUPTED').unlink(missing_ok=True)
     finally:
         pending_exception = sys.exc_info()[0] is not None
         for close in ((trainer.close if trainer is not None else None),

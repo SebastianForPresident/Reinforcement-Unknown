@@ -60,6 +60,8 @@ class EnvSlot:
         self.goal_cell = None
         self.goal_world_xy = None
         self.best_goal_distance = None
+        self.initial_goal_distance = None     # XY1 observability only: distance at the start of the episode
+        self.blocks_destroyed = 0             # XY1 observability only: blocks destroyed by the player in this episode
         self.spawn_rng = np.random.default_rng(self.fluid_seed)
         self.last_state: dict | None = None
         self.model.s = self.initial_body_state()
@@ -172,6 +174,7 @@ class EnvSlot:
         self.elapsed_steps = 0
         self.physics_ticks = 0
         self.was_water = False
+        self.blocks_destroyed = 0
         self.spawn_rng = np.random.default_rng(self.fluid_seed)
         return changed
 
@@ -198,6 +201,8 @@ class EnvSlot:
         return {"goal_cell": [int(v) for v in self.goal_cell],
                 "goal_world_xy": None if self.goal_world_xy is None else [float(v) for v in self.goal_world_xy],
                 "best_goal_distance": None if self.best_goal_distance is None else float(self.best_goal_distance),
+                "initial_goal_distance": None if self.initial_goal_distance is None else float(self.initial_goal_distance),
+                "blocks_destroyed": int(self.blocks_destroyed),
                 "reward_best_distance": None if reward is None else float(reward.best_distance),
                 "spawn_xy": None if self.spawn_xy is None else [float(v) for v in self.spawn_xy],
                 "spawn_rng": copy.deepcopy(self.spawn_rng.bit_generator.state)}
@@ -208,6 +213,8 @@ class EnvSlot:
         self.goal_cell = tuple(nav["goal_cell"])
         self.goal_world_xy = None if nav["goal_world_xy"] is None else tuple(nav["goal_world_xy"])
         self.best_goal_distance = nav["best_goal_distance"]
+        self.initial_goal_distance = nav.get("initial_goal_distance", nav["best_goal_distance"])   # older checkpoints lack the observability fields
+        self.blocks_destroyed = int(nav.get("blocks_destroyed", 0))
         if nav["reward_best_distance"] is not None:
             from .xy1 import BestDistanceReward
             self.xy1_reward = BestDistanceReward(nav["reward_best_distance"])

@@ -548,6 +548,10 @@ def build_parser() -> argparse.ArgumentParser:
     launch.add_argument("--backend", choices=("auto", "numba", "reference-python"), help="execution backend request (default: CASU_BACKEND or auto)")
     launch.add_argument("--workers", help="process workers request: positive integer or auto (default: CASU_NUM_WORKERS or 1)")
     launch.add_argument("--seed", type=int, default=391728405, help="PPO policy/sampling RNG seed; the world fixture remains canonical seed 391728405"); launch.add_argument("--resume", type=Path); launch.add_argument("--preview", action="store_true"); launch.add_argument("--engineering-smoke", action="store_true", help="explicitly label the engineering-only template")
+    launch.add_argument("--physx-threads", type=int, help="PhysX threads per simulation worker (CASU_WORKER_PHYSX_THREADS; at least 2)")
+    launch.add_argument("--train-device", choices=("auto", "cuda", "cpu"), help="PPO device (default: CASU_TRAIN_DEVICE or auto)")
+    launch.add_argument("--checkpoint-every", type=int, default=0, help="also keep numbered checkpoints every N updates")
+    launch.add_argument("--save-initial-checkpoint", action="store_true", help="save the untrained policy as checkpoints/initial.pt (fresh runs)")
     runs = sub.add_parser("runs", help="discover runs and classify status from artifacts")
     runs.add_argument("--json", action="store_true")
     configs = sub.add_parser("configs", help="list configured Python experiments that have not yet become runs")
@@ -635,6 +639,10 @@ def main(argv: list[str] | None = None) -> int:
             effective_horizon = args.episode_steps or configured_horizon
             if effective_horizon: cmd += ["--episode-steps", str(effective_horizon)]
             if args.resume: cmd += ["--resume", str(args.resume.resolve())]
+            if args.physx_threads is not None and args.physx_threads < 2: raise ValueError("--physx-threads must be at least 2 (one PhysX thread hangs the simulator)")
+            if args.checkpoint_every < 0: raise ValueError("--checkpoint-every must be non-negative")
+            if args.checkpoint_every: cmd += ["--checkpoint-every", str(args.checkpoint_every)]
+            if args.save_initial_checkpoint and not args.resume: cmd += ["--save-initial-checkpoint"]
             if args.engineering_smoke: print("MODE: explicitly labeled ENGINEERING SMOKE; this is not an approved Timmy research experiment.")
             else: print("MODE: researcher-configured PPO training. Verify your scientific contracts before launch.")
             print("Effective launch: " + _display_command(cmd))
@@ -671,6 +679,10 @@ def main(argv: list[str] | None = None) -> int:
                     child_env["CASU_BACKEND"] = args.backend
                 if args.workers:
                     child_env["CASU_NUM_WORKERS"] = args.workers
+                if args.physx_threads:
+                    child_env["CASU_WORKER_PHYSX_THREADS"] = str(args.physx_threads)
+                if args.train_device:
+                    child_env["CASU_TRAIN_DEVICE"] = args.train_device
                 child_env["CASU_WORKBENCH_LAUNCHER_PID"] = str(os.getpid())
                 child_env["CASU_WORKBENCH_RESUME_FROM"] = str(args.resume.resolve()) if args.resume else ""
                 child_env["CASU_WORKBENCH_RUN_KIND"] = "engineering_smoke" if args.engineering_smoke else "research_training"
@@ -709,6 +721,11 @@ def main(argv: list[str] | None = None) -> int:
                 failure_evidence = (run_dir / "failure.json").is_file() or startup_traceback
                 if result_code == 0 and failure_evidence:
                     result_code = 1
+                if result_code == 0 and (run_dir / "INTERRUPTED").is_file() and not (run_dir / "failure.json").is_file():
+                    # graceful stop requested through the STOP file: the trainer ended at an update boundary and keeps its checkpoint
+                    (run_dir / "COMPLETE").unlink(missing_ok=True)
+                    _set_run_status(run_dir, "interrupted")
+                    return 0
                 if result_code == 0:
                     (run_dir / "COMPLETE").write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
                     (run_dir / "failure.json").unlink(missing_ok=True)
