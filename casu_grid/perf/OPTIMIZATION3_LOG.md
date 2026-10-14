@@ -48,3 +48,9 @@ Per update (16 worlds, 1,024 decisions): collection 3.05 s (env step 2.15 s + po
 | channels_last, fused Adam | 2.42–2.56 vs 2.42 ms | rejected |
 | scene attributes (diagnostic only, changed *before* the first play): CCD off −52 % of the PhysX step, `updateType=Asynchronous` −23 %, PGS −14 %, broadphase SAP −5 % / GPU +50 % | CCD off, async stepping and PGS change the physics (tunnelling risk, one-tick latency, different solver) | not adopted |
 | disabled crouch shapes are not free | +0.125 µs per disabled shape and tick (600 extra shapes per world: +600 µs per 8-world tick); the 198 shapes per world cost ≈ 16 % of the PhysX step | not removable without lazy shape authoring (invalidates the simulation view) |
+
+### Later entries
+| # | hypothesis | change | evidence | result | decision |
+|---|---|---|---|---|---|
+| 13 | XY1 checkpoints could not be resumed at all | `EnvSlot.snapshot_logical/restore_logical` carry the navigation state (goal cell, goal world position, best distance, `BestDistanceReward`, spawn, spawn RNG); `PPOTrainer.load` moves the RNG states back to the CPU after `map_location` put them on CUDA | baseline fails on its own checkpoint (`TypeError: cannot unpack non-iterable NoneType`); `test_xy1.test_navigation_state_survives_logical_snapshot`; `perf/resume_test.sh`: 3 + 3 updates on CUDA continue at update 4 / 2,048 steps with continuous statistics (`results/opt3/resume/`) | resume works for checkpoints written by this branch; placeholder-observation limitation documented | keep |
+| 14 | Final measurement, validation and capacity | `perf/xy1_bench.py` (+ `--series`), `perf/worker_profile_breakdown.py`, soak, capacity, gates | `OPTIMIZATION3_REPORT.md` sections B–D | 16/32/64 worlds: 1,125 / 1,404 / 1,652 decisions/s vs 179 / 201 / 223 | — |

@@ -84,6 +84,7 @@ def main() -> None:
         return {k: float(v) for k, v in env.timers.items()}
 
     roll = None
+    rollouts_seen = 0
     profile_path = os.environ.get("CASU_WORKER_PROFILE")      # diagnostic: cProfile of every rollout_run request, dumped at close
     profiler = None
     if profile_path:
@@ -130,7 +131,8 @@ def main() -> None:
                     reply = None
                 elif kind == "rollout_run":
                     roll.load_weights(payload["weights"])
-                    if profiler is not None:
+                    rollouts_seen += 1
+                    if profiler is not None and rollouts_seen > int(os.environ.get("CASU_WORKER_PROFILE_SKIP", "0")):
                         profiler.enable()
                     reply = roll.run(payload["steps"], payload["seed"], payload["deterministic"],
                                      payload["episode_returns"], payload["episode_lengths"])

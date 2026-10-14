@@ -1,0 +1,30 @@
+{
+ "first_step_with_a_different_action": 40,
+ "mean_abs_value": 0.16302016377449036,
+ "all_quantities_identical_before_first_difference": true,
+ "steps": 40,
+ "envs": 4,
+ "workers": 2,
+ "done_count": 0,
+ "reward_max": 0.0006011067307554185,
+ "observations_bit_identical": true,
+ "actions_identical_fraction": 1.0,
+ "rewards_identical": true,
+ "dones_identical": true,
+ "max_abs_value_difference": 9.834766387939453e-07,
+ "max_abs_next_value_difference": 9.5367431640625e-07,
+ "seconds_per_worker": {
+  "env_step": [
+   0.3022151988116093,
+   0.3129786711069755
+  ],
+  "inference": [
+   0.026790332107339054,
+   0.02798712783260271
+  ],
+  "reset": [
+   0.0,
+   0.0
+  ]
+ }
+}

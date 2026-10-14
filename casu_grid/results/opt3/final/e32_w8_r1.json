@@ -1,0 +1,41 @@
+{
+  "schema": "casu.xy1-bench.v1",
+  "label": "final_r1",
+  "envs": 32,
+  "workers": 8,
+  "physx_threads": 2,
+  "updates": 9,
+  "measured_updates": 8,
+  "decisions": 16384,
+  "end_to_end_decisions_per_second": 1405.569786023246,
+  "rollout_decisions_per_second": 1815.9826469041875,
+  "optimizer_decisions_per_second": 6219.323475760939,
+  "simulation_only_decisions_per_second": 2025.4552888586093,
+  "seconds_per_update": {
+    "collection": 1.1277640805055853,
+    "optimization": 0.32929626638360787,
+    "environment_step": 1.0111306881299242
+  },
+  "per_update_end_to_end": [
+    1450.1838052256278,
+    1426.2165516905097,
+    1385.3816408431285,
+    1413.4887239598243,
+    1386.4065530254843,
+    1419.76324749183,
+    1383.117310912535,
+    1383.1452360997391
+  ],
+  "process_wall_seconds_including_startup": 32.14702325098915,
+  "peak_rss_gib": 23.504539489746094,
+  "min_available_memory_gib": 9.335952758789062,
+  "peak_gpu_memory_mib": 3690,
+  "baseline_gpu_memory_mib": 643,
+  "mean_cpu_percent_steady": 51.78181818181818,
+  "finite_losses": true,
+  "git_revision": "d5849acee6daa328ba35084cdc8aa5322f042467",
+  "environment": {
+    "CASU_NUM_WORKERS": "8"
+  },
+  "wall_decisions_per_second": 1389.2674851109186
+}

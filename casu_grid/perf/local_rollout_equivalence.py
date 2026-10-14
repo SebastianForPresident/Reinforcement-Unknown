@@ -17,6 +17,8 @@ p.add_argument("--workers", type=int, default=2)
 p.add_argument("--steps", type=int, default=40)
 p.add_argument("--output", type=Path)
 p.add_argument("--no-tf32", action="store_true")
+p.add_argument("--episode-steps", type=int, default=100000, help="small values force truncations and resets inside the comparison window")
+p.add_argument("--goal-radius", type=int, nargs=2, default=None, help="goal_radius_x goal_radius_y; tiny values force arrivals (terminations + bonus)")
 AppLauncher.add_app_launcher_args(p)
 args = p.parse_args(); args.headless = True
 os.environ["CASU_NUM_WORKERS"] = str(args.workers)
@@ -37,7 +39,8 @@ def main():
     cb = checked_callbacks(cfg.callbacks(), cfg.OBSERVATION, cfg.REWARD)
     env_cfg = IsaacLayer1EnvConfig(seed=391728405, num_envs=args.envs, spawn_mode="canonical", navigation_mode=True,
                                    world_variant="xy1_mini_128x128", observation_window_tiles=(64, 64),
-                                   player_collider="compound", episode_length_steps=100000)
+                                   player_collider="compound", episode_length_steps=args.episode_steps,
+                                   **({"goal_radius_x": args.goal_radius[0], "goal_radius_y": args.goal_radius[1]} if args.goal_radius else {}))
 
     def make_env():
         return BatchedIsaacLayer1Env(env_cfg, action_decoder=cb[0], observation_encoder=cb[1], reward_function=cb[2], terrain_mode="independent")
@@ -89,7 +92,8 @@ def main():
         "all_quantities_identical_before_first_difference": bool(
             np.array_equal(local_obs[:first + 1], central["obs_spatial"][:first + 1]) and np.array_equal(res["reward"][:first], central["reward"][:first])
             and np.array_equal(res["done"][:first] > 0, central["done"][:first])),
-        "steps": args.steps, "envs": args.envs, "workers": args.workers,
+        "steps": args.steps, "envs": args.envs, "workers": args.workers, "done_count": int(central["done"].sum()),
+        "reward_max": float(central["reward"].max()),
         "observations_bit_identical": bool(np.array_equal(local_obs, central["obs_spatial"])),
         "actions_identical_fraction": float((res["latent"] == central["latent"]).mean()),
         "rewards_identical": bool(np.array_equal(res["reward"], central["reward"])),
