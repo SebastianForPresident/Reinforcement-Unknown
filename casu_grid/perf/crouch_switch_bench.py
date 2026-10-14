@@ -84,6 +84,11 @@ def main():
         env.step({n: rng.integers(0, s, args.envs) for n, s in zip(NAMES, SIZES)})
     import statistics
     out = {}
+    for rep in range(6):
+        a = time.perf_counter()
+        for _ in range(200):
+            env.sim.step(render=False)
+        print("RESTSTEP us", round(1e6 * (time.perf_counter() - a) / 200, 1), flush=True)
     from pxr import Sdf
     layer = env.stage.GetEditTarget().GetLayer() if hasattr(env, "stage") else None
     print("LAYER", layer is not None, flush=True)
@@ -124,7 +129,28 @@ def main():
         for spec in c:
             spec.default = v
         self.active_level = level
-    for label, fn in (("usd_attr", orig), ("sdf_cached", orig), ("dummy_attr", variant_dummy)):
+    def variant_one(self, level):
+        if level == self.active_level:
+            return
+        c = self.__dict__.setdefault("_specs1", {})
+        L = self.stage.GetEditTarget().GetLayer()
+        for lv, val in ((self.active_level, False), (level, True)):
+            if lv not in c:
+                c[lv] = L.GetAttributeAtPath(f"{self.root_path}/Level_{lv}/CrossX.physics:collisionEnabled")
+            c[lv].default = val
+        self.active_level = level
+    def variant_three(self, level):
+        if level == self.active_level:
+            return
+        c = self.__dict__.setdefault("_specs3", {})
+        L = self.stage.GetEditTarget().GetLayer()
+        for lv, val in ((self.active_level, False), (level, True)):
+            if lv not in c:
+                c[lv] = [L.GetAttributeAtPath(f"{self.root_path}/Level_{lv}/{n}.physics:collisionEnabled") for n in ("CrossX", "CrossZ", "CornerNE")]
+            for spec in c[lv]:
+                spec.default = val
+        self.active_level = level
+    for label, fn in (("sdf_cached", variant_cached), ("one_shape", variant_one), ("three_shapes", variant_three), ("sdf_cached", variant_cached)):
         ipb.RoundedBoxCollider.set_level = fn
         print("VARIANT", label, flush=True)
         run_k(env, rng, args, ipb.set_levels)

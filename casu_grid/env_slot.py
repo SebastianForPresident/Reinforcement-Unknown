@@ -125,7 +125,13 @@ class EnvSlot:
         return changed
 
     def edit_block(self, x: int, y: int, block_id: int, *, immediate: bool = False) -> None:
-        """Discrete edit now; the physical (collider) edit lands after the refresh delay."""
+        """Discrete edit now; the physical (collider) edit lands after the refresh delay.
+
+        Coordinates are clamped to the world exactly as ``CasUGrid.set_block`` does: an out-of-range request used to edit the
+        clamped grid cell but write the *wrapped* (negative-index) physical cell and mark a nonexistent ``Chunk_-1_*`` dirty.
+        """
+        x = min(max(int(x), 0), self.grid.width - 1)
+        y = min(max(int(y), 0), self.grid.height - 1)
         self.grid.set_block(x, y, block_id)
         if self.collider_delay_ticks == 0:
             self.physical_dirty.add((x // 64, y // 64))

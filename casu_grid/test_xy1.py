@@ -168,4 +168,18 @@ class XY1ContractTests(unittest.TestCase):
         self.assertEqual(b.grid.get_block(2,20),original_b)
         self.assertIn((0,0),a.physical_dirty)
 
+    def test_out_of_range_edit_is_clamped_like_the_grid(self):
+        from casu_grid.body_model import BodyConfig
+        from casu_grid.env_slot import EnvSlot
+        from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig
+        from casu_grid.xy1_mini_world import load_mini_world_reference
+        cfg=IsaacLayer1EnvConfig(navigation_mode=True,world_variant='xy1_mini_128x128',
+            observation_window_tiles=(64,64),include_world_objects=False)
+        a=EnvSlot(cfg,load_mini_world_reference(10),fluid_seed=10,body_config=BodyConfig())
+        before=a.physical_blocks.copy()
+        a.edit_block(-1,5,0,immediate=True); a.edit_block(5,-3,0,immediate=True); a.edit_block(10**6,10**6,0,immediate=True)
+        self.assertTrue(all(cx>=0 and cy>=0 for cx,cy in a.physical_dirty))
+        self.assertEqual(int(a.physical_blocks[-1,5]),int(before[-1,5]))      # no wrapped write
+        self.assertEqual(int(a.physical_blocks[0,5]),0); self.assertEqual(int(a.physical_blocks[-1,-1]),0)
+
 if __name__=='__main__':unittest.main()
