@@ -1,0 +1,12 @@
+Crouch-shape write batching (CASU_SHAPE_BATCH=1, one Sdf.ChangeBlock per tick) vs sequential writes (Hull Qualification III replays),
+compound collider, CasU random tapes rand_2001..2010; metrics from validation/analyze_random_tapes.py (smaller = closer to CasU)
+metric                                          sequential     batched   change
+aggregate/teacher_mean_position_error              0.02224     0.02253    +1.3%
+aggregate/teacher_mean_velocity_error              0.73679     0.74641    +1.3%
+aggregate/segment_mean_position_error              0.28905     0.28457    -1.6%
+aggregate/free_mean_position_error                10.98921     9.73735   -11.4%
+aggregate/free_error_at_decision_50                8.74163     8.87044    +1.5%
+aggregate/free_error_at_decision_200              16.28420    10.85542   -33.3%
+
+Reading: teacher-forced (position, velocity) and segment errors are the tolerance-bearing metrics (predeclared: means within +-3 %, no trace worse than +5 %): +1.3 %, +1.3 %, -1.6 %.
+Free-running error is chaotic (sensitive dependence on the first contact differences) and scatters in both directions per tape; it is reported, not gated.
