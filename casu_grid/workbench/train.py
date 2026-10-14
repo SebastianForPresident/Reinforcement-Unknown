@@ -87,6 +87,7 @@ def main():
                        'terrain_mode':args.terrain_mode if args.num_envs>1 else 'single',
                        'episode_steps':args.episode_steps or getattr(config,'ENVIRONMENT',{}).get('episode_length_steps'),
                        'navigation_mode':bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
+                       'terminate_out_of_world':bool(getattr(config,'ENVIRONMENT',{}).get('terminate_out_of_world',False)),
                        'world_variant':getattr(config,'ENVIRONMENT',{}).get('world_variant','canonical'),
                        'player_collider':getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),
                        'physics_dt':0.02,'action_decimation':10},
@@ -112,6 +113,7 @@ def main():
         env_config=IsaacLayer1EnvConfig(
             seed=391728405,num_envs=args.num_envs,spawn_mode='canonical',geometry_scope=args.geometry_scope,
             navigation_mode=bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
+            terminate_out_of_world=bool(getattr(config,'ENVIRONMENT',{}).get('terminate_out_of_world',False)),
             world_variant=getattr(config,'ENVIRONMENT',{}).get('world_variant','canonical'),
             observation_window_tiles=tuple(getattr(config,'ENVIRONMENT',{}).get('observation_window_tiles',(85,49))),
             player_collider=getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),

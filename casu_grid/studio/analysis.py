@@ -44,6 +44,9 @@ def learning_signal(store: MetricsStore, window: int = 10, min_updates: int = 20
 def _learning_signal(store: MetricsStore, window: int = 10, min_updates: int = 20) -> LearningSignal:
     """Compare goals reached per 1,000 decisions in the first and in the latest ``window`` updates of a run."""
     key = "nav/arrivals_per_1k_decisions"
+    if store.rows == 0:
+        return LearningSignal("too_early", "Waiting for the first update",
+                              "Nothing has been measured yet. The first update comes after Isaac Sim has started and the worlds are built.")
     if not store.has(key):
         return LearningSignal("none", "No navigation statistics in this run",
                               "This run did not record goals reached; start a new run with the current trainer.")

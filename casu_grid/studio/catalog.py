@@ -75,7 +75,7 @@ CHARTS: list[ChartDef] = [
     ChartDef(_spec("nav_episodes", "Episodes finished per update", "episodes", "truncation",
                    "Episodes end by reaching the goal (arrival) or by running out of their decision budget (timeout).", y_min=0, include_zero=True),
              "navigation", [SeriesDef("finished", "nav/completed_episodes"), SeriesDef("arrivals", "nav/arrivals"),
-                            SeriesDef("timeouts", "nav/timeouts", dashed=True)]),
+                            SeriesDef("timeouts", "nav/timeouts", dashed=True), SeriesDef("left the world (variant only)", "nav/out_of_world_resets", dashed=True)]),
     ChartDef(_spec("nav_dig", "Excavation activity", "blocks destroyed / 1,000 decisions", "excavation",
                    "Blocks actually destroyed by the agent, per 1,000 decisions in all worlds.", y_min=0, include_zero=True),
              "navigation", [SeriesDef("blocks destroyed", "nav/blocks_destroyed_per_1k_decisions")]),

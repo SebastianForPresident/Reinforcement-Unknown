@@ -769,6 +769,7 @@ def navigation_metrics(episodes: dict, active: dict | None, blocks_destroyed: fl
         "nav/completed_episodes": completed,
         "nav/arrivals": len(arrivals),
         "nav/timeouts": sum(1 for r in reasons if r == "time_limit"),
+        "nav/out_of_world_resets": sum(1 for r in reasons if r == "out_of_world"),      # exploratory variant only; 0 for XY1 as defined
         "nav/arrival_rate": (len(arrivals) / completed) if completed else None,
         "nav/arrivals_per_1k_decisions": 1000.0 * len(arrivals) / max(1, decisions),
         "nav/decisions_to_arrival_mean": mean([episodes["length"][i] for i in arrivals]),

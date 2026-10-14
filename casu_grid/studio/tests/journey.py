@@ -119,6 +119,8 @@ def main():
     ap.add_argument("--shots", type=Path, default=Path("casu_grid/results/studio/screenshots"))
     ap.add_argument("--run-name", default=None)
     ap.add_argument("--resume-run", default=None)
+    ap.add_argument("--experiment", default=None, help="substring of the experiment file to select (default: the validated XY1 mini-world)")
+    ap.add_argument("--tag", default="")
     args = ap.parse_args()
     h = Harness(args.shots)
     stage = globals()["stage_" + args.stage]
@@ -396,6 +398,67 @@ def stage_gallery(h: Harness, args) -> bool:
         h.shot(name)
     h.ctx.set_theme("light")
     return True
+
+
+def stage_diagnostic(h: Harness, args) -> bool:
+    """The bounded learning diagnostic through the Studio: the validated 64 x 8 layout, ~1 M decisions, then a held-out evaluation."""
+    name = args.run_name or time.strftime("%Y%m%d-%H%M%S-diagnostic-s7") + (f"-{args.tag}" if args.tag else "")
+    if args.experiment:
+        exp_page_ = h.page("experiments")
+        h.go("experiments")
+        row = next(i for i, e in enumerate(h.ctx.experiments) if args.experiment in str(e.path))
+        exp_page_.list.setCurrentRow(row)
+        h.pump(0.5)
+    page = start_from_experiments(h, "diagnostic", name=name, seed=7)
+    plan = page.current_plan()
+    check(plan.is_recommended_layout() and plan.updates == 250 and plan.seed == 7 and plan.checkpoint_every == 25, "diagnostic preset = 64 x 8 x 2 on CUDA, 250 updates, seed 7, checkpoint every 25")
+    errors = [c for c in page._checks if c.level == "error"]
+    check(not errors, "validation passes: " + "; ".join(c.title for c in errors))
+    h.shot(f"70_diagnostic_configuration{args.tag}")
+    press_start(h, plan and page)
+    run_dir = plan.run_dir
+    shots = 0
+    last_shot = 0.0
+    start = time.time()
+    while time.time() - start < 3000:
+        h.pump(2.0)
+        st = _status(h, run_dir)
+        if st in ("completed", "failed", "interrupted"):
+            break
+        if time.time() - last_shot > 150:
+            last_shot = time.time()
+            h.go("training", run_dir)
+            h.shot(f"71_diagnostic_training{args.tag}_{shots:02d}")
+            shots += 1
+    rec = h.run_record(run_dir)
+    check(rec.status == "completed" and rec.updates_done == 250, f"diagnostic run finished: {rec.status}, {rec.updates_done} updates, {rec.decisions:,} decisions")
+    h.go("training", run_dir)
+    h.shot(f"72_diagnostic_training_final{args.tag}")
+    h.go("metrics", {"run": str(run_dir)})
+    h.pump(1.5)
+    h.shot(f"73_diagnostic_metrics{args.tag}")
+    (args.shots.parent / f"last_diagnostic_run{args.tag}.txt").write_text(str(run_dir) + "\n")
+    return all(l.startswith("PASS") for l in LOG)
+
+
+def stage_diag_eval(h: Harness, args) -> bool:
+    run_dir = Path((args.shots.parent / f"last_diagnostic_run{args.tag}.txt").read_text().strip())
+    h.go("evaluation", {"run": str(run_dir)})
+    ep = h.page("evaluation")
+    ep.worlds.setValue(16)
+    ep.rounds.setValue(6)
+    ep.horizon.setValue(1000)
+    ep._estimate()
+    check(ep.start.isEnabled(), "evaluation can start: " + "; ".join(ep._problems))
+    ep._start()
+    done = h.wait(lambda: ep.process is None, 1500, step=2.0)
+    check(done and ep.out_path is not None and ep.out_path.exists(), "evaluation finished")
+    ep._fill_results(select=ep.out_path)
+    h.window.resize(1360, 2300)
+    h.pump(1.5)
+    h.shot(f"74_diagnostic_evaluation{args.tag}")
+    h.window.resize(1360, 860)
+    return all(l.startswith("PASS") for l in LOG)
 
 
 if __name__ == "__main__":

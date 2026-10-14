@@ -219,7 +219,7 @@ class ExperimentsPage(QtWidgets.QWidget):
         self.list.blockSignals(True)
         self.list.clear()
         for exp in self.ctx.experiments:
-            tag = "  ★ recommended" if exp.is_mini else ""
+            tag = "  ★ recommended" if (exp.is_mini and not exp.variant_note) else ("  (exploratory variant)" if exp.variant_note else "")
             item = QtWidgets.QListWidgetItem(f"{exp.name}{tag}")
             item.setToolTip(str(exp.path))
             self.list.addItem(item)
@@ -240,8 +240,10 @@ class ExperimentsPage(QtWidgets.QWidget):
         self.header.title.setText(exp.name)
         self.header.subtitle.setText(str(exp.path.relative_to(launch.env.ROOT)) if exp.path.is_relative_to(launch.env.ROOT) else str(exp.path))
         chips = []
-        if exp.is_mini:
+        if exp.is_mini and not exp.variant_note:
             chips.append("★ validated layout: 64 worlds × 8 workers")
+        if exp.variant_note:
+            chips.append("⚠ EXPLORATORY VARIANT: " + exp.variant_note)
         if exp.error:
             chips.append("✖ file does not load")
         elif exp.mismatches:
@@ -257,7 +259,7 @@ class ExperimentsPage(QtWidgets.QWidget):
             self.error_banner.hide()
             for w in (self.about, self.fixed, self.workload):
                 w.setVisible(True)
-            self.limit_banner.setVisible(exp.is_xy1)
+            self.limit_banner.setVisible(exp.is_xy1 and not exp.variant_note)
             self.about_text.setText(f"{exp.description}<br><br><b>Hypothesis.</b> {exp.hypothesis}<br><br><span class='muted'>{exp.notes}</span>")
             self._fill_fixed(exp)
         self._regen_name()
@@ -303,7 +305,9 @@ class ExperimentsPage(QtWidgets.QWidget):
             for run in self.ctx.runs:
                 if run.latest and run.status not in ("starting", "running", "stopping") and run.latest.fingerprint in (None, exp.fingerprint):
                     self._resume_choices.append((run.latest, run))
-                    self.start_from.addItem(f"Continue “{run.run_id}” from update {run.latest.update if run.latest.update is not None else '?'}", str(run.latest.path))
+                    other = bool(run.config_sha256 and exp.sha256 and run.config_sha256 != exp.sha256)
+                    self.start_from.addItem(f"Continue “{run.run_id}” from update {run.latest.update if run.latest.update is not None else '?'}"
+                                            + ("  ⚠ made with a different experiment file" if other else ""), str(run.latest.path))
         self.start_from.addItem("Browse for a checkpoint file…", "browse")
         index = self.start_from.findData(previous) if previous else 0
         self.start_from.setCurrentIndex(max(0, index))

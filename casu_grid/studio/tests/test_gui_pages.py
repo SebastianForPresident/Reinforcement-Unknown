@@ -312,13 +312,14 @@ class TrainingTests(StudioCase):
 class EvaluationAndHelpTests(StudioCase):
     def test_reading_of_results_is_conservative(self):
         from casu_grid.studio.pages.evaluation import EvaluationPage
-        def result(policy, mode, rate, ci):
-            return {"policy": policy, "mode": mode, "summary": {"success_rate": rate, "success_rate_ci95": ci}}
+        def result(policy, mode, rate, ci, n=40):
+            return {"policy": policy, "mode": mode, "summary": {"success_rate": rate, "success_rate_ci95": ci, "episodes": n, "arrivals": round(rate * n)}}
         overlap = [result("untrained", "deterministic", 0.10, [0.03, 0.25]), result("update_5", "deterministic", 0.20, [0.08, 0.40])]
         level, title, text = EvaluationPage._reading(overlap)
         self.assertEqual(level, "info")
         self.assertIn("not distinguishable", text)
         clear = [result("untrained", "deterministic", 0.05, [0.01, 0.15]), result("update_5", "deterministic", 0.60, [0.45, 0.74])]
+        self.assertIn("p = ", text)
         self.assertEqual(EvaluationPage._reading(clear)[0], "good")
         self.assertEqual(EvaluationPage._reading([result("update_5", "deterministic", 0.6, [0.4, 0.7])])[1], "Compare against the untrained baseline")
 

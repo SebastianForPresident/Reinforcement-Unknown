@@ -188,6 +188,14 @@ class AnalysisTests(unittest.TestCase):
         values = [3.0 - 0.04 * i for i in range(60)]
         self.assertEqual(analysis.learning_signal(self.store(values)).state, "worse")
 
+    def test_before_the_first_update_it_waits_instead_of_complaining(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = runs.MetricsStore(Path(tmp) / "metrics.jsonl")
+            store.refresh()
+            sig = analysis.learning_signal(store)
+            self.assertEqual(sig.state, "too_early")
+            self.assertIn("first update", sig.headline)
+
     def test_missing_metric(self):
         with tempfile.TemporaryDirectory() as tmp:
             row = metrics_row(1)

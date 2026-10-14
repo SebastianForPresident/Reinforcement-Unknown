@@ -1,0 +1,3 @@
+# Research Studio (the desktop application itself). The simulator runs in Isaac Sim's own Python and needs none of this.
+PySide6>=6.5
+psutil>=5.9

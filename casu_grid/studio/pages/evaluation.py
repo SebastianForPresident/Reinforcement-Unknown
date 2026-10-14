@@ -431,25 +431,28 @@ class EvaluationPage(QtWidgets.QWidget):
 
     @staticmethod
     def _reading(results) -> tuple[str, str, str]:
+        from .. import stats
         base = {r["mode"]: r["summary"] for r in results if r["policy"] == "untrained"}
         trained = [r for r in results if r["policy"] != "untrained" and r["policy"] != "initial"]
         if not base or not trained:
             return ("info", "Compare against the untrained baseline", "Include the untrained baseline and a trained checkpoint in one evaluation to see whether anything was learned.")
         lines, verdicts = [], []
         for r in trained:
-            b = base.get(r["mode"])
-            if b is None or b["success_rate_ci95"] is None or r["summary"]["success_rate_ci95"] is None:
+            b, t = base.get(r["mode"]), r["summary"]
+            if b is None or not b.get("episodes") or not t.get("episodes"):
                 continue
-            lo_t, hi_t = r["summary"]["success_rate_ci95"]
-            lo_b, hi_b = b["success_rate_ci95"]
-            if lo_t > hi_b:
-                verdict = "clearly above the untrained baseline"
-            elif hi_t < lo_b:
-                verdict = "clearly below the untrained baseline"
+            d = stats.difference(t["arrivals"], t["episodes"], b["arrivals"], b["episodes"])
+            if d["low"] > 0:
+                verdict = "above the untrained baseline"
+            elif d["high"] < 0:
+                verdict = "below the untrained baseline"
             else:
-                verdict = "not distinguishable from the untrained baseline (the intervals overlap)"
+                verdict = "not distinguishable from the untrained baseline"
             verdicts.append(verdict)
-            lines.append(f"{r['mode']}: {100 * r['summary']['success_rate']:.0f} % vs {100 * b['success_rate']:.0f} % baseline: {verdict}.")
+            lines.append(f"{r['mode']}: {100 * t['success_rate']:.0f} % vs {100 * b['success_rate']:.0f} % baseline, difference {100 * d['difference']:+.1f} points "
+                         f"(95 % interval {100 * d['low']:+.1f} to {100 * d['high']:+.1f}, p = {d['p_value']:.3f}): {verdict}.")
         level = "good" if verdicts and all("above" in v for v in verdicts) else ("warn" if any("below" in v for v in verdicts) else "info")
-        title = {"good": "Held-out success is above the baseline", "warn": "Held-out success is below the baseline", "info": "No demonstrated difference from the untrained baseline"}[level]
-        return (level, title, " ".join(lines) + " Non-overlapping intervals are a necessary, not a sufficient, sign of skill; repeat with more episodes and more seeds before drawing conclusions.")
+        title = {"good": "Held-out success is above the baseline", "warn": "Held-out success is below the baseline",
+                 "info": "No demonstrated difference from the untrained baseline"}[level]
+        return (level, title, " ".join(lines) + " An interval that excludes zero is a necessary, not a sufficient, sign of skill: repeat with more episodes and more seeds "
+                "before drawing conclusions, and remember that several comparisons were made.")

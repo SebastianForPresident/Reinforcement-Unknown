@@ -42,6 +42,7 @@ class ExperimentInfo:
     error: str | None = None
     fingerprint: str | None = None
     mismatches: list[str] = field(default_factory=list)
+    variant_note: str | None = None        # set for exploratory variants whose rules differ from the validated XY1 contract
 
 
 def contract_fingerprint(config) -> str:
@@ -84,6 +85,9 @@ def load_experiment(path: Path) -> ExperimentInfo:
                               fingerprint=contract_fingerprint(cfg))
         if is_xy1:
             info.mismatches = contract_mismatches(summary)
+            if environment.get("terminate_out_of_world"):
+                info.variant_note = "episodes end when the agent leaves the world (differs from XY1)"
+                info.mismatches.append("exploratory variant: " + info.variant_note)
         return info
     except Exception as exc:             # a broken experiment file is shown with its error, it does not break the Studio
         return ExperimentInfo(path=path, name=path.stem, description="", hypothesis="", notes="", sha256="", is_xy1=False, is_mini=False,
@@ -97,5 +101,5 @@ def discover_experiments(directory: Path = EXPERIMENT_DIR) -> list[ExperimentInf
             if not path.name.startswith("_"):
                 found.append(load_experiment(path))
     # the intended XY1 experiment first
-    found.sort(key=lambda e: (not e.is_mini, not e.is_xy1, e.name))
+    found.sort(key=lambda e: (not (e.is_mini and not e.variant_note), not e.is_mini, not e.is_xy1, e.name))
     return found

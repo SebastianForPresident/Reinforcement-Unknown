@@ -59,6 +59,8 @@ class IsaacLayer1EnvConfig:
     episode_length_steps: int = 500
     spawn_mode: str = "canonical"  # canonical or fixture
     navigation_mode: bool = False
+    # EXPLORATORY VARIANT ONLY (default off = the XY1 contract): end an episode, as a truncation, when the agent has left the world
+    terminate_out_of_world: bool = False
     world_variant: str = "canonical"  # canonical or xy1_mini_128x128
     spawn_clearance_attempts: int = 50000
     goal_radius_x: int = 42

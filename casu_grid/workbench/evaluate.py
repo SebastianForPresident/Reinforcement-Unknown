@@ -97,7 +97,7 @@ def main():
         world_variant=environment.get("world_variant", "canonical"),
         observation_window_tiles=tuple(environment.get("observation_window_tiles", (85, 49))),
         player_collider=environment.get("player_collider", "compound"),
-        episode_length_steps=args.horizon)
+        terminate_out_of_world=bool(environment.get("terminate_out_of_world", False)), episode_length_steps=args.horizon)
     from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
     env = trainer = None
     started = time.time()
