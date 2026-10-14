@@ -635,7 +635,10 @@ class BatchedIsaacLayer1Env(gym.Env):
             torch.zeros((len(ids), 1, 3), device=self.sim.device), env_ids=env_ids)
         self.player.write_data_to_sim()
         for i in ids:
-            self.colliders[i].set_level(self.colliders[i].level_for_crouch(self.slots[i].model.s.crouch_amount))
+            # Layer-1 environments reset to the standing-sized collider, as at the source's first tick (the stored canonical
+            # trajectory gate depends on it); XY1 navigation sets its own crouch state before this write
+            self.colliders[i].set_level(self.colliders[i].level_for_crouch(self.slots[i].model.s.crouch_amount)
+                                        if self.cfg.navigation_mode else 0)
         if self.doors:
             self._apply_door_state(list(ids))
 

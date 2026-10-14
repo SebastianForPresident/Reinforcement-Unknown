@@ -1,0 +1,33 @@
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/isaaclab.python.headless.kit
+XY1_TRAJECTORY 284e8dded47e45216b6e0709dfe31b146415572405834fa24b5f2922bde52337 frames 300 compiled True terrain_variants 1200
+Loading user config located at: '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/data/Kit/Isaac-Sim/4.5/user.config.json'
+[Info] [carb] Logging to file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/logs/Kit/Isaac-Sim/4.5/kit_20261014_130750.log
+2026-10-14 17:07:50 [0ms] [Warning] [omni.kit.app.plugin] No crash reporter present, dumps uploading isn't available.
+2026-10-14 17:07:50 [2ms] [Warning] [omni.ext.plugin] [ext: rendering_modes] Extensions config 'extension.toml' doesn't exist '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes' or '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes/config'
+2026-10-14 17:07:51 [303ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-10-14 17:07:51 [479ms] [Warning] [omni.datastore] OmniHub is inaccessible
+2026-10-14 17:07:51 [633ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 615.71.09     | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 3070          | Yes: 0 |     | 8438    MB | 10de      | 0          |
+|     |                                  |        |     |            | 2488      | 364378d9.. |
+|     |                                  |        |     |            | 1         |            |
+|=============================================================================================|
+| OS: 44 (KDE Plasma Desktop Edition) fedora, Version: 44.1852793695.6777190, Kernel: 7.2.9-200.fc44.x86_64
+| XServer Vendor: The X.Org Foundation, XServer Version: 12401014 (1.24.1.14)
+| Processor: 11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz
+| Cores: 8 | Logical Cores: 16
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 31915 | Free Memory: 23866
+| Total Page/Swap (MB): 8191 | Free Page/Swap: 3549
+|---------------------------------------------------------------------------------------------|
+2026-10-14 17:07:56 [5,479ms] [Warning] [omni.physx.plugin] Detected a rigid at /World/Env_00000/CasuPlayer with more than 4 velocity iterations being added to a TGS scene.The related behavior changed recently, please consult the changelog. This warning will only print once.
+2026-10-14 17:07:56 [5,802ms] [Warning] [omni.fabric.plugin] removePath called on non-existent path /World/Env_00002/CasUTerrain/Chunk_0_1/Rect_56_64_7_1 
+
