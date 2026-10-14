@@ -168,6 +168,27 @@ class XY1ContractTests(unittest.TestCase):
         self.assertEqual(b.grid.get_block(2,20),original_b)
         self.assertIn((0,0),a.physical_dirty)
 
+    def test_navigation_state_survives_logical_snapshot(self):
+        from casu_grid.body_model import BodyConfig
+        from casu_grid.env_slot import EnvSlot
+        from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig
+        from casu_grid.xy1 import BestDistanceReward
+        from casu_grid.xy1_mini_world import load_mini_world_reference
+        cfg=IsaacLayer1EnvConfig(navigation_mode=True,world_variant='xy1_mini_128x128',
+            observation_window_tiles=(64,64),include_world_objects=False)
+        a=EnvSlot(cfg,load_mini_world_reference(10),fluid_seed=10,body_config=BodyConfig())
+        a.goal_cell=(40,22); a.goal_world_xy=(40.5,22.5); a.best_goal_distance=12.25; a.spawn_xy=(30.5,20.5)
+        a.xy1_reward=BestDistanceReward(7.5); a.spawn_rng.integers(0,100,5)
+        snap=a.snapshot_logical()
+        b=EnvSlot(cfg,load_mini_world_reference(10),fluid_seed=10,body_config=BodyConfig())
+        self.assertIsNone(b.goal_cell)
+        b.restore_logical(snap)
+        self.assertEqual((b.goal_cell,b.goal_world_xy,b.best_goal_distance,b.spawn_xy),((40,22),(40.5,22.5),12.25,(30.5,20.5)))
+        self.assertEqual(b.xy1_reward.best_distance,7.5)
+        self.assertEqual(a.spawn_rng.integers(0,1000,4).tolist(),b.spawn_rng.integers(0,1000,4).tolist())
+        c=EnvSlot(cfg,load_mini_world_reference(10),fluid_seed=10,body_config=BodyConfig())     # a snapshot without a goal restores to "no goal"
+        c.restore_logical(c.snapshot_logical()); self.assertIsNone(c.goal_cell)
+
     def test_out_of_range_edit_is_clamped_like_the_grid(self):
         from casu_grid.body_model import BodyConfig
         from casu_grid.env_slot import EnvSlot

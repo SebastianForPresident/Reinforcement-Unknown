@@ -185,7 +185,34 @@ class EnvSlot:
             "collider_revision": self.grid.block_revision, "fluid_rng_seed": self.fluid_seed,
             "physical_blocks": None if self.physical_blocks is self.grid.blocks else self.physical_blocks.copy(),
             "pending_edits": list(self.pending_edits),
+            "navigation": self._navigation_snapshot(),
         }
+
+    def _navigation_snapshot(self):
+        """XY1 point-navigation episode state: goal, best-distance reward bookkeeping, spawn (None outside navigation episodes).
+
+        Without it a restored environment has no goal (``goal_cell is None``) and a resumed run fails on its first step."""
+        if self.goal_cell is None:
+            return None
+        reward = getattr(self, "xy1_reward", None)
+        return {"goal_cell": [int(v) for v in self.goal_cell],
+                "goal_world_xy": None if self.goal_world_xy is None else [float(v) for v in self.goal_world_xy],
+                "best_goal_distance": None if self.best_goal_distance is None else float(self.best_goal_distance),
+                "reward_best_distance": None if reward is None else float(reward.best_distance),
+                "spawn_xy": None if self.spawn_xy is None else [float(v) for v in self.spawn_xy],
+                "spawn_rng": copy.deepcopy(self.spawn_rng.bit_generator.state)}
+
+    def _navigation_restore(self, nav) -> None:
+        if nav is None:
+            return
+        self.goal_cell = tuple(nav["goal_cell"])
+        self.goal_world_xy = None if nav["goal_world_xy"] is None else tuple(nav["goal_world_xy"])
+        self.best_goal_distance = nav["best_goal_distance"]
+        if nav["reward_best_distance"] is not None:
+            from .xy1 import BestDistanceReward
+            self.xy1_reward = BestDistanceReward(nav["reward_best_distance"])
+        self.spawn_xy = None if nav["spawn_xy"] is None else tuple(nav["spawn_xy"])
+        self.spawn_rng.bit_generator.state = copy.deepcopy(nav["spawn_rng"])
 
     def restore_logical(self, snap: dict) -> bool:
         """Restore a logical snapshot. Returns True if terrain changed (colliders need a rebuild)."""
@@ -204,6 +231,7 @@ class EnvSlot:
         self.elapsed_steps = int(snap["elapsed_steps"])
         self.physics_ticks = int(snap["physics_ticks"])
         self.was_water = bool(snap.get("was_water", False))
+        self._navigation_restore(snap.get("navigation"))
         return changed
 
     # ------------------------------------------------------------------- tick hooks

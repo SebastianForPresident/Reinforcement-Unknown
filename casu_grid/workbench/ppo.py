@@ -617,6 +617,11 @@ class PPOTrainer:
                                                 max(collection_seconds, 1e-9),
         })
         metrics.update(action_frequencies)
+        worker_seconds = getattr(self, "_last_local_seconds", None) if self._use_local_rollout() else None
+        if worker_seconds:               # per-worker diagnostics of the local rollout (straggler = max / mean)
+            for kind, values in worker_seconds.items():
+                metrics[f"worker_{kind}_seconds_mean"] = float(np.mean(values))
+                metrics[f"worker_{kind}_seconds_max"] = float(np.max(values))
         for reason, count in termination_counts.items():
             metrics[f"termination/{reason}"] = count
         if records["reward_terms"]:
@@ -684,9 +689,10 @@ class PPOTrainer:
         self.update_count = int(checkpoint["update_count"])
         self.total_steps = int(checkpoint["total_steps"])
         self.rng.bit_generator.state = checkpoint["rng_state"]
-        torch.set_rng_state(checkpoint["torch_rng_state"])
+        # ``map_location`` moved the generator states to the training device; the generators want CPU ByteTensors
+        torch.set_rng_state(checkpoint["torch_rng_state"].cpu())
         if checkpoint.get("cuda_rng_state") is not None and torch.cuda.is_available():
-            torch.cuda.set_rng_state_all(checkpoint["cuda_rng_state"])
+            torch.cuda.set_rng_state_all([state.cpu() for state in checkpoint["cuda_rng_state"]])
         self._observation = checkpoint.get("observation")
         self._recurrent_state = checkpoint.get("recurrent_state")
         self._episode_returns = checkpoint.get("episode_returns")
