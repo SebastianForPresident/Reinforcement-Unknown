@@ -461,6 +461,13 @@ class BatchedIsaacLayer1Env(gym.Env):
             self._stage_vel = torch.zeros((n, 6), dtype=torch.float32)
             self._stage_force = torch.zeros((n, 1, 3), dtype=torch.float32)
             self._stage_torque = torch.zeros((n, 1, 3), dtype=torch.float32)
+            self._physx_iface = None
+            if self._direct and os.environ.get("CASU_DIRECT_STEP", "1") != "0":
+                # ``sim.step(render=False)`` = Isaac Lab/Isaac Sim wrappers (stage and timeline queries, a USD read of the physics dt)
+                # around ``simulate(dt, time)`` + ``fetch_results()``; the fast path issues those two calls itself
+                import omni.physx
+                self._physx_iface = omni.physx.get_physx_simulation_interface()
+                self._physics_dt_exact = self.sim.get_physics_dt()
             if self._direct:
                 self._pview = self.player.root_physx_view
                 self._idx_all = torch.arange(n, dtype=torch.int32)
@@ -505,7 +512,11 @@ class BatchedIsaacLayer1Env(gym.Env):
             view.apply_forces_and_torques_at_position(force_data=self._force_flat, torque_data=self._torque_flat,
                                                       position_data=None, indices=self._idx_all, is_global=True)
             t2 = clock()
-            self.sim.step(render=False)
+            if self._physx_iface is not None and self.sim.is_playing():
+                self._physx_iface.simulate(self._physics_dt_exact, self.sim.current_time)
+                self._physx_iface.fetch_results()
+            else:
+                self.sim.step(render=False)
             t3 = clock()
             self.player.update(self.cfg.physics_dt)
             pos = view.get_transforms().numpy()
