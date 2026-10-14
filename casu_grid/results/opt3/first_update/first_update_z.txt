@@ -1,0 +1,4 @@
+cells: 384   mean z +0.001   sd z 0.981   max |z| 2.95   fraction |z|>2: 0.039 (normal: 0.046)   |z|>3: 0
+cells with the largest seed-averaged signed bias (z*sqrt(seeds)): move_x/choice_2_fraction -2.13, look_dx/choice_4_fraction -2.01, look_dy/choice_9_fraction -1.94, move_y/choice_0_fraction +1.19, look_dy/choice_10_fraction +1.27, move_x/choice_0_fraction +2.41
+cells: 384   mean z -0.003   sd z 1.381   max |z| 5.18   fraction |z|>2: 0.143 (normal: 0.046)   |z|>3: 10
+cells with the largest seed-averaged signed bias (z*sqrt(seeds)): crouch/choice_1_fraction -2.89, look_dy/choice_0_fraction -2.30, move_x/choice_0_fraction -1.88, move_x/choice_2_fraction +2.59, look_dx/choice_7_fraction +2.60, crouch/choice_0_fraction +2.89

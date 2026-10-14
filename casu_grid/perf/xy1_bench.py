@@ -25,6 +25,7 @@ p.add_argument("--train-device", default=None)
 p.add_argument("--config", type=Path, default=ROOT / "casu_grid/workbench/experiments/xy1_point_navigation_mini.py")
 p.add_argument("--label", default="")
 p.add_argument("--keep-run", action="store_true")
+p.add_argument("--series", action="store_true", help="store the RSS / available memory / GPU / update-progress time series in the result (soak runs)")
 p.add_argument("--output", type=Path, required=True)
 args = p.parse_args()
 
@@ -41,6 +42,7 @@ log = open(run_dir.parent / "train.log", "wb")
 started = time.perf_counter()
 proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
 samples = []
+progress = []          # (seconds since launch, completed updates)
 stop = threading.Event()
 
 
@@ -60,6 +62,12 @@ def monitor():
             rss = sum(q.memory_info().rss for q in tree if q.is_running())
             avail = psutil.virtual_memory().available
             samples.append((time.perf_counter() - started, rss, avail, gpu_used_mib(), psutil.cpu_percent(interval=None)))
+            try:
+                done = sum(1 for _ in open(run_dir / "metrics.jsonl"))
+            except OSError:
+                done = 0
+            if not progress or progress[-1][1] != done:
+                progress.append((time.perf_counter() - started, done))
         except psutil.Error:
             pass
         stop.wait(1.0)
@@ -98,6 +106,17 @@ result = {
     "git_revision": subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip(),
     "environment": {k: env[k] for k in env if k.startswith("CASU_")},
 }
+second = [item for item in progress if item[1] >= 2]
+if len(second) >= 2:     # wall-clock rate from the completion of update 2 to the last update (includes logging and checkpoint overhead)
+    (t_first, n_first), (t_last, n_last) = second[0], progress[-1]
+    per_update = decisions / max(len(steady), 1)
+    if n_last > n_first:
+        result["wall_decisions_per_second"] = (n_last - n_first) * per_update / (t_last - t_first)
+if args.series:
+    stride = max(1, len(samples) // 1500)
+    result["series"] = {"t": [round(s[0], 1) for s in samples[::stride]], "rss_gib": [round(s[1] / 2**30, 3) for s in samples[::stride]],
+                        "available_gib": [round(s[2] / 2**30, 3) for s in samples[::stride]], "gpu_mib": [s[3] for s in samples[::stride]],
+                        "updates_completed": progress, "per_update_end_to_end": result["per_update_end_to_end"]}
 args.output.parent.mkdir(parents=True, exist_ok=True)
 args.output.write_text(json.dumps(result, indent=2) + "\n")
 if not args.keep_run:
