@@ -16,7 +16,7 @@ def real_row_keys() -> set[str]:
     return set(json.loads(_FIXTURE.read_text()))
 
 
-def metrics_row(update: int, *, arrivals: float | None = None, episodes: int = 0, seed: int = 0) -> dict:
+def metrics_row(update: int, *, arrivals: float | None = None, episodes: int = 0, seed: int = 0, progress: float | None = None) -> dict:
     rnd = random.Random(seed * 1000 + update)
     arrivals = 0.5 + 0.02 * update + rnd.uniform(-0.2, 0.2) if arrivals is None else arrivals
     row = {"update": update, "environment_steps": update * 4096, "environment_count": 64, "collection_seconds": 1.7, "optimization_seconds": 0.65,
@@ -24,7 +24,7 @@ def metrics_row(update: int, *, arrivals: float | None = None, episodes: int = 0
            "clip_fraction": 0.05, "explained_variance": 0.3, "learning_rate": 3e-4, "policy_decisions_per_second": 2400.0, "physics_ticks_per_second": 25000.0,
            "completed_episodes": episodes, "mean_completed_return": 10.5 if episodes else None,
            "nav/arrivals_per_1k_decisions": arrivals, "nav/arrival_rate": 1.0 if episodes else None, "nav/arrivals": episodes, "nav/timeouts": 0,
-           "nav/completed_episodes": episodes, "nav/active_progress_mean": min(1.0, 0.2 + 0.005 * update), "nav/active_distance_mean": 30.0, "nav/active_best_distance_mean": 18.0,
+           "nav/completed_episodes": episodes, "nav/active_progress_mean": progress if progress is not None else min(1.0, 0.2 + 0.005 * update), "nav/active_distance_mean": 30.0, "nav/active_best_distance_mean": 18.0,
            "nav/active_initial_distance_mean": 22.0, "nav/blocks_destroyed_per_1k_decisions": 40.0, "action/attack/choice_1_fraction": 0.5,
            "reward_term/distance_improvement": 0.01, "reward_term/arrival_bonus": 0.001}
     base = json.loads(_FIXTURE.read_text())

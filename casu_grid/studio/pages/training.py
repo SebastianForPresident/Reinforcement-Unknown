@@ -361,7 +361,7 @@ class TrainingPage(QtWidgets.QWidget):
             self.lost_banner.show()
         else:
             self.lost_banner.hide()
-        level = {"improving": "good", "worse": "warn", "no_change": "info", "too_early": "info", "none": "warn"}[sig.state]
+        level = {"improving": "good", "worse": "warn", "no_change": "info", "too_early": "info", "none": "warn", "drained": "bad"}[sig.state]
         self.signal_banner.set(level, sig.headline, sig.detail)
         for key, spark in self.sparks.items():
             series = catalog.build_series(spark.chart, [self.store], "update")[:1]

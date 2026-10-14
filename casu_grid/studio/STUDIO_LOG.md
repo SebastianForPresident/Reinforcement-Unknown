@@ -1,0 +1,17 @@
+# Research Studio V2 — campaign log
+
+Start: Optimization IV revision `95640c9`. Branch `studio-v2`, worktree `Reinforcement-Unknown-Isaac-studio`. The validated Optimization IV revision is preserved on branch
+`optimization4` (worktree `Reinforcement-Unknown-Isaac-opt4`, untouched). Mission: `studio.txt`.
+
+| # | step | result / evidence |
+|---|---|---|
+| 1 | Baseline verified: `a7ebcab`, `e6e3838`, `dafc767`, `1f5d68b` are ancestors of HEAD (the Studio's validation list checks this at every launch); `CASU_LEGACY_MINI_SPAWN` is refused by the Studio **and** by `train.py` (override needs `CASU_REPRODUCE_LEGACY=1`) | `studio/environment.py`, `train.py`, tests |
+| 2 | Metrics audit: the trainer recorded losses, entropy, KL, grad norm, throughput, action fractions, reward terms, termination counts — but no clip fraction, no explained variance, nothing about episode outcomes beyond `completed_episodes` and a mean return, no distance statistics, no excavation count | `ppo.py`, `local_rollout.py` |
+| 3 | Instrumentation added (read-only, nothing feeds back into learning): `nav/*` episode statistics (arrivals, timeouts, arrival rate or *no sample*, arrivals per 1,000 decisions, decisions to arrival, initial/best/final distance, progress, in-progress episodes, blocks destroyed), `clip_fraction`, `explained_variance`, `learning_rate`; checkpoint sidecar `*.pt.json`; scheduled and initial checkpoints; graceful STOP file | trajectory gate `284e8dde…` unchanged; fresh-run PPO statistics within the baseline's own run-to-run noise (4.5e-5 relative vs 6.3e-4 between two identical Optimization IV runs); `tests/test_ppo_execution.py` and `tests/test_navigation_metrics.py` |
+| 4 | Held-out evaluation tool `workbench/evaluate.py`: terrains from seed offset 1,000,000 (training uses 0–63), identical goals for every policy (`reset(seed)` per round, first episode per world scored), fixed horizon, deterministic and stochastic modes, untrained baseline | `results/studio/` |
+| 5 | The Studio: seven pages, interactive chart widget, supervised launch/stop/resume, run browser, evaluation | `studio/`; screenshots `results/studio/screenshots/` |
+| 6 | **Finding while inspecting the first live charts: agents fall out of the world.** The floor can be dug through and nothing ends such an episode; in a 16-world run 19 % of the agents were gone after 21 updates, 56 % after 63, free-falling to y = −10⁷. Added `nav/active_outside_world_fraction`; distance statistics now exclude fallen agents; chart, warnings and a readiness-report finding | see `LEARNING_READINESS_REPORT.md` |
+| 7 | Readiness audit `perf/xy1_readiness_audit.py` (independent recomputation of placement, goals, observation offsets, arrival, reward accumulation, timeout, resets, terrain isolation): **19 of 19 pass** for XY1 as defined; **20 of 20** for the exploratory variant | `results/studio/audit/` |
+| 8 | Journey against the real simulator: smoke, live monitoring + zoom, graceful stop + resume (update numbering continues), deliberate worker kill (explained, checkpoint offered), evaluation | `studio/tests/journey.py`, logs `results/studio/journey_*.log` |
+| 9 | Bounded diagnostic 1 (XY1 as defined, 64 × 8 × 2, CUDA, seed 7, 250 updates = 1,024,000 decisions) through the Studio; held-out evaluation | `LEARNING_READINESS_REPORT.md` |
+| 10 | Exploratory variant (episode ends when the agent leaves the world; opt-in, separate experiment file, default off) and diagnostic 2 on identical settings | `LEARNING_READINESS_REPORT.md` |

@@ -42,6 +42,7 @@ class StudioCase(unittest.TestCase):
 
     def window(self):
         ctx = AppContext(QAPP)
+        ctx.settings.clear()                   # every test starts from default preferences
         ctx.runs_timer.stop()
         ctx.monitor_timer.stop()
         theme.apply_application_style(QAPP, ctx.palette)

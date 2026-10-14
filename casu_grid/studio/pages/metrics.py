@@ -83,6 +83,7 @@ class MetricsPage(QtWidgets.QWidget):
         right.addWidget(self.explain)
         fl.addLayout(right, 1)
         self.stack.addWidget(self.focus_page)
+        self._restore_preferences()
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.refresh)
         self.timer.start(2000)
@@ -130,6 +131,7 @@ class MetricsPage(QtWidgets.QWidget):
         row.addWidget(self.range)
         self.link = QtWidgets.QCheckBox("link zoom")
         self.link.setChecked(True)
+        self.link.toggled.connect(self._settings_changed)
         self.link.setToolTip("Zoom and pan all charts together")
         row.addWidget(self.link)
         reset = QtWidgets.QPushButton("Reset zoom")
@@ -214,7 +216,26 @@ class MetricsPage(QtWidgets.QWidget):
         self.refresh(force=True)
 
     # ------------------------------------------------------------------------------------------ settings and range
+    def _restore_preferences(self):
+        st = self.ctx.settings
+        for widget, key, default in ((self.raw, "metrics_raw", True), (self.smooth, "metrics_smooth", True), (self.link, "metrics_link", True)):
+            widget.blockSignals(True)
+            widget.setChecked(str(st.value(key, default)).lower() in ("true", "1"))
+            widget.blockSignals(False)
+        index = self.axis.findData(st.value("metrics_axis", "update", str))
+        self.axis.blockSignals(True)
+        self.axis.setCurrentIndex(max(0, index))
+        self.axis.blockSignals(False)
+        self.tabs.blockSignals(True)
+        self.tabs.setCurrentIndex(min(int(st.value("metrics_tab", 0)), self.tabs.count() - 1))
+        self.tabs.blockSignals(False)
+
     def _settings_changed(self, *_):
+        st = self.ctx.settings
+        st.setValue("metrics_raw", self.raw.isChecked())
+        st.setValue("metrics_smooth", self.smooth.isChecked())
+        st.setValue("metrics_link", self.link.isChecked())
+        st.setValue("metrics_axis", self.axis.currentData())
         self.ctx.settings.setValue("smooth_window", self.window.value())
         self._dirty = True
         self.refresh(force=True)
@@ -287,6 +308,7 @@ class MetricsPage(QtWidgets.QWidget):
         return [self._card(k) for k in self._category_keys()]
 
     def _tab_changed(self, _i):
+        self.ctx.settings.setValue("metrics_tab", self.tabs.currentIndex())
         self._leave_focus()
         self._layout_grid()
         self._dirty = True

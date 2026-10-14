@@ -1,5 +1,8 @@
 # XY1 operator guide
 
+> **Research Studio V2** (`python3 -m casu_grid.studio`) is the recommended interface: see `casu_grid/studio/README.md` and `casu_grid/studio/UX_REPORT.md`.
+> The text below describes the legacy V1 window (`python -m casu_grid.workbench.gui`) and the command line.
+
 ## Select and inspect
 
 1. Open Research Studio with `python -m casu_grid.workbench.gui`.

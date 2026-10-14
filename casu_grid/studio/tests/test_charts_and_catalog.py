@@ -158,10 +158,10 @@ class CatalogTests(unittest.TestCase):
 
 
 class AnalysisTests(unittest.TestCase):
-    def store(self, values):
+    def store(self, values, progress=0.3):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        rows = [metrics_row(i + 1, arrivals=v) for i, v in enumerate(values)]
+        rows = [metrics_row(i + 1, arrivals=v, progress=progress) for i, v in enumerate(values)]
         run = make_run(Path(tmp.name), "r", rows=rows)
         st = runs.MetricsStore(run / "metrics.jsonl")
         st.refresh()
@@ -183,6 +183,31 @@ class AnalysisTests(unittest.TestCase):
         sig = analysis.learning_signal(self.store(values))
         self.assertEqual(sig.state, "improving")
         self.assertIn("held-out", sig.detail)
+
+    def test_progress_can_reveal_a_trend_that_sparse_arrivals_hide(self):
+        import random
+        rnd = random.Random(8)
+        arrivals = [0.3 + rnd.uniform(-0.3, 0.3) for _ in range(80)]           # noisy and flat
+        rows = [metrics_row(i + 1, arrivals=a, progress=0.45 + 0.002 * i + rnd.uniform(-0.01, 0.01)) for i, a in enumerate(arrivals)]
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp), "r", rows=rows)
+            st = runs.MetricsStore(run / "metrics.jsonl")
+            st.refresh()
+            sig = analysis.learning_signal(st)
+        self.assertEqual(sig.state, "improving")
+        self.assertIn("Progress", sig.headline)
+
+    def test_a_drained_sample_stream_is_not_called_learning(self):
+        rows = [metrics_row(i + 1, arrivals=0.5, progress=0.3 + 0.004 * i) for i in range(60)]
+        for r in rows:
+            r["nav/active_outside_world_fraction"] = 0.9
+        with tempfile.TemporaryDirectory() as tmp:
+            run = make_run(Path(tmp), "r", rows=rows)
+            st = runs.MetricsStore(run / "metrics.jsonl")
+            st.refresh()
+            sig = analysis.learning_signal(st)
+        self.assertEqual(sig.state, "drained")
+        self.assertIn("left the world", sig.headline)
 
     def test_decrease_is_reported(self):
         values = [3.0 - 0.04 * i for i in range(60)]

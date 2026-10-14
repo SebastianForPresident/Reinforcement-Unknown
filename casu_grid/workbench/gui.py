@@ -1,4 +1,8 @@
-"""Local PySide6 research studio backed by the shared workbench CLI/services."""
+"""Legacy (V1) PySide6 research studio backed by the shared workbench CLI/services.
+
+Superseded by Research Studio V2 (``python3 -m casu_grid.studio``), which has the guided XY1 workflow, interactive charts, supervised
+launch/stop/resume and held-out evaluation. This module is kept working for compatibility.
+"""
 from __future__ import annotations
 
 import hashlib
