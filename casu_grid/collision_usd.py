@@ -25,8 +25,8 @@ def author_layer1_collision(stage, blocks, *, chunk_size: int = 64,
     from pxr import Gf, Sdf, UsdGeom, UsdPhysics
     import isaaclab.sim as sim_utils
 
-    if blocks.ndim != 2 or blocks.shape[0] % chunk_size or blocks.shape[1] % chunk_size:
-        raise ValueError("terrain dimensions must be 2D multiples of chunk_size")
+    if blocks.ndim != 2:
+        raise ValueError("terrain must be a 2D array")
     root = UsdGeom.Xform.Define(stage, root_path)
     root.GetPrim().SetMetadata("documentation", "CasU seed 391728405 static chunk collision")
     begin = perf_counter()
@@ -35,12 +35,13 @@ def author_layer1_collision(stage, blocks, *, chunk_size: int = 64,
     face_count = 0
     occupied = 0
     chunk_filter = None if only_chunks is None else {tuple(map(int, pair)) for pair in only_chunks}
-    for chunk_x in range(blocks.shape[0] // chunk_size):
-        for chunk_y in range(blocks.shape[1] // chunk_size):
+    for chunk_x in range((blocks.shape[0] + chunk_size - 1) // chunk_size):
+        for chunk_y in range((blocks.shape[1] + chunk_size - 1) // chunk_size):
             if chunk_filter is not None and (chunk_x, chunk_y) not in chunk_filter:
                 continue
             x0, y0 = chunk_x * chunk_size, chunk_y * chunk_size
-            cells = blocks[x0:x0 + chunk_size, y0:y0 + chunk_size]
+            cells = blocks[x0:min(x0 + chunk_size, blocks.shape[0]),
+                           y0:min(y0 + chunk_size, blocks.shape[1])]
             cell_count = int(np.count_nonzero(cells))
             if cell_count == 0:
                 continue
@@ -158,8 +159,8 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
     import numpy as np
     from pxr import UsdGeom
 
-    if blocks.ndim != 2 or blocks.shape[0] % chunk_size or blocks.shape[1] % chunk_size:
-        raise ValueError("terrain dimensions must be 2D multiples of chunk_size")
+    if blocks.ndim != 2:
+        raise ValueError("terrain must be a 2D array")
     if physics_material is not None and not physics_material_path:
         raise ValueError("physics_material requires an absolute shared physics_material_path")
     UsdGeom.Xform.Define(stage, root_path)
@@ -168,13 +169,13 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
     occupied = 0
     nonempty_chunk_count = 0
     chunk_filter = None if only_chunks is None else {tuple(map(int, pair)) for pair in only_chunks}
-    for chunk_x in range(blocks.shape[0] // chunk_size):
-        for chunk_y in range(blocks.shape[1] // chunk_size):
+    for chunk_x in range((blocks.shape[0] + chunk_size - 1) // chunk_size):
+        for chunk_y in range((blocks.shape[1] + chunk_size - 1) // chunk_size):
             if chunk_filter is not None and (chunk_x, chunk_y) not in chunk_filter:
                 continue
             x0, y0 = chunk_x * chunk_size, chunk_y * chunk_size
-            cell_count = int(np.count_nonzero(blocks[x0:x0 + chunk_size,
-                                                    y0:y0 + chunk_size]))
+            cell_count = int(np.count_nonzero(blocks[x0:min(x0 + chunk_size, blocks.shape[0]),
+                                                    y0:min(y0 + chunk_size, blocks.shape[1])]))
             if not cell_count:
                 continue
             nonempty_chunk_count += 1
@@ -187,7 +188,8 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
             occupied += cell_count
             collider_count += _author_chunk_cuboids(
                 stage, chunk_path, rectangles_for_chunk(
-                    blocks, chunk_x, chunk_y, chunk_size=chunk_size),
+                    blocks, chunk_x, chunk_y, chunk_size=chunk_size,
+                    world_shape=blocks.shape),
                 half_thickness=half_thickness, world_offset=world_offset,
                 material_path=(physics_material_path
                                if physics_material is not None else None),

@@ -59,9 +59,11 @@ class IsaacLayer1EnvConfig:
     episode_length_steps: int = 500
     spawn_mode: str = "canonical"  # canonical or fixture
     navigation_mode: bool = False
+    world_variant: str = "canonical"  # canonical or xy1_mini_128x128
     spawn_clearance_attempts: int = 50000
     goal_radius_x: int = 42
     goal_radius_y: int = 24
+    observation_window_tiles: tuple[int, int] = (85, 49)
     fixture_grid_xy: tuple[int, int] = (483, 1010)
     geometry_scope: str = "full"  # full or spawn_chunk (diagnostic only)
     terrain_extrusion_depth: float = 2.0
@@ -112,8 +114,14 @@ class IsaacLayer1EnvConfig:
             raise ValueError("episode_length_steps must be positive")
         if self.spawn_mode not in {"canonical", "fixture"}:
             raise ValueError("spawn_mode must be 'canonical' or 'fixture'")
+        if self.world_variant not in {"canonical", "xy1_mini_128x128"}:
+            raise ValueError("world_variant must be 'canonical' or 'xy1_mini_128x128'")
+        if self.world_variant != "canonical" and not self.navigation_mode:
+            raise ValueError("the XY1 mini-world requires navigation_mode=True")
         if self.spawn_clearance_attempts <= 0 or self.goal_radius_x < 0 or self.goal_radius_y < 0:
             raise ValueError("navigation sampling limits must be positive")
+        if len(self.observation_window_tiles) != 2 or min(self.observation_window_tiles) <= 0:
+            raise ValueError("observation_window_tiles must be positive (width, height)")
         if self.geometry_scope not in {"full", "spawn_chunk"}:
             raise ValueError("geometry_scope must be 'full' or 'spawn_chunk'")
         if self.terrain_extrusion_depth <= 0 or self.player_depth <= 0:

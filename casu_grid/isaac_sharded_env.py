@@ -43,6 +43,7 @@ from gymnasium import spaces
 
 from . import callback_transport
 from .reference import load_layer1_reference
+from .xy1_mini_world import load_mini_world_reference
 
 REPO_ROOT = str(Path(__file__).resolve().parents[1])
 
@@ -107,7 +108,8 @@ class ShardedBatchedEnv(gym.Env):
         self.world_offset = int(world_offset)
         self.sizes = shard_sizes(self.count, resolve_worker_count(config))
         self.num_workers = len(self.sizes)
-        self.reference = load_layer1_reference()
+        self.reference = (load_mini_world_reference(config.seed)
+                          if config.world_variant == "xy1_mini_128x128" else load_layer1_reference())
         self.closed = False
         self.timers = _ShardedTimers(self)
         # callbacks run inside the workers; verify in the parent that they survive the trip
@@ -154,10 +156,15 @@ class ShardedBatchedEnv(gym.Env):
         self.worker_pids = [r["pid"] for r in ready]
         # per-terrain-copy geometry statistics, as BatchedIsaacLayer1Env exposes (launcher metadata)
         self.geometry_by_env = [g for r in ready for g in r["geometry_by_env"]]
-        content_ids = {r["content_id"] for r in ready}
-        if content_ids != {self.reference.manifest["content_id"]}:
+        if config.world_variant == "xy1_mini_128x128":
+            expected_ids = {load_mini_world_reference(config.seed + self.world_offset + index).manifest["content_id"]
+                            for index in range(self.count)}
+        else:
+            expected_ids = {self.reference.manifest["content_id"]}
+        content_ids = {content_id for result in ready for content_id in result["content_ids"]}
+        if content_ids != expected_ids:
             _terminate(self._procs)
-            raise RuntimeError("workers loaded a different canonical world")
+            raise RuntimeError("workers loaded terrain that does not match their assigned world seeds")
 
     # ------------------------------------------------------------------ plumbing
     def _receive(self, k, timeout=None):

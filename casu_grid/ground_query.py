@@ -44,6 +44,11 @@ class GroundWorld:
         self._near_buf = np.empty(64, dtype=np.int64)
         self._chunk_buf = np.empty(16, dtype=np.int64)
         self.width, self.height = blocks.shape
+        self.half_width, self.half_height = self.width / 2.0, self.height / 2.0
+        # Compiled kernels use the canonical 1024-unit origin. Keep that fast
+        # path only when its coordinate convention applies.
+        if (self.width, self.height) != (1024, 1024):
+            self._k = None
         # polygons: iterable of (name, np.ndarray[N,2] counter-clockwise vertices)
         self.polygons = list(polygons)
         self._aabb = np.zeros((len(self.polygons), 4))
@@ -109,22 +114,22 @@ class GroundWorld:
         return bool(self.blocks[cx, cy])
 
     def block_at(self, wx: float, wy: float) -> int:
-        cx, cy = int(math.floor(wx + HALF_WORLD)), int(math.floor(wy + HALF_WORLD))
+        cx, cy = int(math.floor(wx + self.half_width)), int(math.floor(wy + self.half_height))
         if cx < 0 or cy < 0 or cx >= self.width or cy >= self.height:
             return 0
         return int(self.blocks[cx, cy])
 
     def _tile_rects(self, x0, x1, y0, y1):
         """Solid unit cells overlapping the closed world interval ``[x0,x1]x[y0,y1]``."""
-        cx0 = max(int(math.floor(x0 + HALF_WORLD)), 0)
-        cx1 = min(int(math.floor(x1 + HALF_WORLD)), self.width - 1)
-        cy0 = max(int(math.floor(y0 + HALF_WORLD)), 0)
-        cy1 = min(int(math.floor(y1 + HALF_WORLD)), self.height - 1)
+        cx0 = max(int(math.floor(x0 + self.half_width)), 0)
+        cx1 = min(int(math.floor(x1 + self.half_width)), self.width - 1)
+        cy0 = max(int(math.floor(y0 + self.half_height)), 0)
+        cy1 = min(int(math.floor(y1 + self.half_height)), self.height - 1)
         if cx1 < cx0 or cy1 < cy0:
             return []
         sub = self.blocks[cx0:cx1 + 1, cy0:cy1 + 1]
         xs, ys = np.nonzero(sub)
-        return [(cx0 + int(i) - HALF_WORLD, cy0 + int(j) - HALF_WORLD) for i, j in zip(xs, ys)]
+        return [(cx0 + int(i) - self.half_width, cy0 + int(j) - self.half_height) for i, j in zip(xs, ys)]
 
     # ------------------------------------------------------------- box casts
     def box_cast(self, center, size, direction, distance) -> Hit | None:
@@ -253,7 +258,7 @@ class GroundWorld:
                 dx = max(rx - (cx + hw), (cx - hw) - (rx + 1.0), 0.0)
                 dy = max(ry - (cy + hh), (cy - hh) - (ry + 1.0), 0.0)
                 if math.hypot(dx, dy) <= reach:
-                    found.add(("chunk", int((rx + HALF_WORLD) // 64), int((ry + HALF_WORLD) // 64)))
+                    found.add(("chunk", int((rx + self.half_width) // 64), int((ry + self.half_height) // 64)))
         for index in self._polygons_near(cx - hw - reach, cy - hh - reach, cx + hw + reach, cy + hh + reach):
             found.add(("object", int(index)))
         return found

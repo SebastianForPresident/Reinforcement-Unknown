@@ -78,6 +78,7 @@ def main():
                        'terrain_mode':args.terrain_mode if args.num_envs>1 else 'single',
                        'episode_steps':args.episode_steps or getattr(config,'ENVIRONMENT',{}).get('episode_length_steps'),
                        'navigation_mode':bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
+                       'world_variant':getattr(config,'ENVIRONMENT',{}).get('world_variant','canonical'),
                        'player_collider':getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),
                        'physics_dt':0.02,'action_decimation':10},
         'resume_from':os.environ.get('CASU_WORKBENCH_RESUME_FROM') or None,
@@ -97,10 +98,13 @@ def main():
     callbacks=resolve_reward_reference(config,Path(args.config),callbacks)
     callbacks=checked_callbacks(callbacks,config.OBSERVATION,config.REWARD)
     env=trainer=None
+    env_init_started=time.perf_counter()
     try:
         env_config=IsaacLayer1EnvConfig(
             seed=391728405,num_envs=args.num_envs,spawn_mode='canonical',geometry_scope=args.geometry_scope,
             navigation_mode=bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
+            world_variant=getattr(config,'ENVIRONMENT',{}).get('world_variant','canonical'),
+            observation_window_tiles=tuple(getattr(config,'ENVIRONMENT',{}).get('observation_window_tiles',(85,49))),
             player_collider=getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),
             **({'episode_length_steps':args.episode_steps} if args.episode_steps else
                ({'episode_length_steps':int(config.ENVIRONMENT['episode_length_steps'])} if getattr(config,'ENVIRONMENT',{}).get('episode_length_steps') else {})))
@@ -129,6 +133,7 @@ def main():
         performance = env.performance_info() if callable(getattr(env, 'performance_info', None)) else {
             'backend': {'requested': os.environ.get('CASU_BACKEND', 'auto'), 'active': 'unknown'},
             'num_workers': 1, 'worlds': args.num_envs, 'worlds_per_worker': [args.num_envs]}
+        world_variant=getattr(config,'ENVIRONMENT',{}).get('world_variant','canonical')
         environment_manifest={
             'performance': performance,
             'execution': {'requested_backend': os.environ.get('CASU_BACKEND', 'auto'),
@@ -137,8 +142,12 @@ def main():
                           'effective_workers': performance.get('num_workers'),
                           'num_envs': args.num_envs,
                           'worlds_per_worker': performance.get('worlds_per_worker', [args.num_envs])},
-            'canonical_fixture_id':env.reference.manifest['fixture_id'],
-            'canonical_content_id':env.reference.manifest['content_id'],
+            'world_variant':world_variant,
+            'world_fixture_id':env.reference.manifest['fixture_id'],
+            'world_content_id':env.reference.manifest['content_id'],
+            'env_startup_seconds':time.perf_counter()-env_init_started,
+            'terrain_box_colliders_total':sum(int(g.get('box_collider_count',0)) for g in env.geometry_by_env),
+            'terrain_occupied_cells_per_world':[int(g.get('occupied_cells',0)) for g in env.geometry_by_env],
             'geometry':env.geometry_by_env if hasattr(env,'geometry_by_env') else env.geometry_info,
             'geometry_build_seconds':env.geometry_build_seconds,
             'physics_dt':env.cfg.physics_dt,
@@ -146,6 +155,10 @@ def main():
             'fluid_rng_seed':env.cfg.fluid_rng_seed,
             'liquid_affect_phase':env.cfg.liquid_affect_phase,
         }
+        if world_variant == 'canonical':
+            # Keep the established metadata keys for downstream canonical-run tools.
+            environment_manifest['canonical_fixture_id']=env.reference.manifest['fixture_id']
+            environment_manifest['canonical_content_id']=env.reference.manifest['content_id']
         (run_dir/'environment.json').write_text(json.dumps(environment_manifest,indent=2)+'\n')
         for _ in range(args.updates):
             metrics=trainer.train_update()

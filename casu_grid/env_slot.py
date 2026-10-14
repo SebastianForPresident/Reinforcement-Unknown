@@ -86,7 +86,8 @@ class EnvSlot:
         if not self.grid.get_block(x, y):
             raise ValueError(f"fixture support cell {(x, y)} is empty")
         # tile-centre x, collider standing on the support top (rest gap 0.1155)
-        return x - 511.5, y - 511.0 + self.body_config.orig_col_size[1] / 2 + 0.1155
+        return (x - self.grid.width / 2 + 0.5,
+                y - self.grid.height / 2 + 1.0 + self.body_config.orig_col_size[1] / 2 + 0.1155)
 
     def initial_body_state(self) -> BodyState:
         x, y = self.spawn_world_xy()
@@ -115,9 +116,9 @@ class EnvSlot:
     # ------------------------------------------------------------- terrain edits
     def _mark_physical_dirty(self, before: np.ndarray) -> bool:
         changed = False
-        for cx in range(self.grid.width // 64):
-            for cy in range(self.grid.height // 64):
-                sl = np.s_[cx*64:(cx+1)*64, cy*64:(cy+1)*64]
+        for cx in range((self.grid.width + 63) // 64):
+            for cy in range((self.grid.height + 63) // 64):
+                sl = np.s_[cx*64:min((cx+1)*64, self.grid.width), cy*64:min((cy+1)*64, self.grid.height)]
                 if not np.array_equal(before[sl], self.physical_blocks[sl]):
                     self.physical_dirty.add((cx, cy))
                     changed = True
@@ -255,7 +256,8 @@ class EnvSlot:
         self.elapsed_steps += 1
         current = self.body_dict()
         ragdoll = self.model.s.ragdoll_event
-        out_of_bounds = bool(abs(current["x"]) > 512.0 or abs(current["y"]) > 512.0)
+        out_of_bounds = bool(abs(current["x"]) > self.grid.width / 2 or
+                             abs(current["y"]) > self.grid.height / 2)
         terminated = bool(out_of_bounds or ragdoll)
         truncated = self.elapsed_steps >= self.cfg.episode_length_steps
         reward, terms = reward_function(self.last_state, current, terminated, truncated)

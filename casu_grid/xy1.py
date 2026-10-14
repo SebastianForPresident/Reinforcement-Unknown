@@ -16,9 +16,12 @@ def encode_xy1_observation(env):
     slot, grid = env.slot, env.grid
     s = env.model.s
     px, py = grid.world_to_cell(s.x, s.y, grid.width, grid.height)
-    xs = np.arange(px - 42, px + 43)
-    ys = np.arange(py - 24, py + 25)
-    block_ids = np.zeros((85, 49), dtype=np.int64)
+    cfg = getattr(env, "cfg", None)
+    window_w, window_h = tuple(getattr(cfg, "observation_window_tiles", (85, 49)))
+    left_x, left_y = window_w // 2, window_h // 2
+    xs = np.arange(px - left_x, px + (window_w - left_x))
+    ys = np.arange(py - left_y, py + (window_h - left_y))
+    block_ids = np.zeros((window_w, window_h), dtype=np.int64)
     fluid_ids = np.zeros_like(block_ids)
     valid = ((xs[:, None] >= 0) & (xs[:, None] < grid.width) &
              (ys[None, :] >= 0) & (ys[None, :] < grid.height))
@@ -43,11 +46,11 @@ def encode_xy1_observation(env):
     # This surrogate has no sleep-quality state, so those four channels are zero.
     channels.extend(np.zeros_like(health) for _ in range(4))
     for fluid in range(7): channels.append((fluid_ids == fluid).astype(np.float32))
-    center = np.zeros((85,49),np.float32); center[42,24]=1.0
+    center = np.zeros((window_w,window_h),np.float32); center[left_x,left_y]=1.0
     cursor = np.zeros_like(center)
     look_x = px + int(s.current_action.look_dx); look_y = py + int(s.current_action.look_dy)
-    ix, iy = look_x-(px-42), look_y-(py-24)
-    if 0 <= ix < 85 and 0 <= iy < 49: cursor[ix,iy]=1.0
+    ix, iy = look_x-(px-left_x), look_y-(py-left_y)
+    if 0 <= ix < window_w and 0 <= iy < window_h: cursor[ix,iy]=1.0
     channels.extend((center,cursor))
     spatial=np.ascontiguousarray(np.stack(channels).astype(np.float32))
     goal=slot.goal_cell

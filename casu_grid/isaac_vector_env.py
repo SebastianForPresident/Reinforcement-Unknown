@@ -31,6 +31,7 @@ from .isaac_player_body import set_levels
 from .player_controller import StandingAction
 from .player_runtime import post_physics_phase, pre_physics_phase
 from .reference import load_layer1_reference
+from .xy1_mini_world import load_mini_world_reference
 from .world_objects import ground_polygons, load_physics_audit
 
 
@@ -89,7 +90,8 @@ class BatchedIsaacLayer1Env(gym.Env):
         self.world_offset = int(world_offset)   # global index of this batch's first world (fluid seeds)
         self.np_random = np.random.default_rng(config.seed + self.world_offset)
         self.count = int(config.num_envs)
-        self.reference = load_layer1_reference()
+        self.reference = (load_mini_world_reference(config.seed)
+                          if config.world_variant == "xy1_mini_128x128" else load_layer1_reference())
         self.controller_config = BodyConfig(step_up_clearance=config.step_up_clearance)
         self.action_decoder = action_decoder or self._default_action_decoder
         self.observation_encoder = observation_encoder or self._default_observation
@@ -104,14 +106,19 @@ class BatchedIsaacLayer1Env(gym.Env):
 
         self.world_objects = None
         object_polygons, door_defs = [], []
-        if config.include_world_objects:
+        if config.include_world_objects and config.world_variant == "canonical":
             self.world_objects, _ = load_physics_audit()
             door_defs = [c for c in self.world_objects.colliders if "shuttledoor" in c.name]
             object_polygons = ground_polygons(
                 [c for c in self.world_objects.colliders if "shuttledoor" not in c.name])
-        self.slots = [EnvSlot(config, self.reference, object_polygons=object_polygons, door_defs=door_defs,
-                              fluid_seed=config.fluid_rng_seed + self.world_offset + i, body_config=self.controller_config)
-                      for i in range(self.count)]
+        self.slot_references = [
+            (load_mini_world_reference(config.seed + self.world_offset + i)
+             if config.world_variant == "xy1_mini_128x128" else self.reference)
+            for i in range(self.count)]
+        self.slots = [EnvSlot(config, ref, object_polygons=object_polygons, door_defs=door_defs,
+                              fluid_seed=config.fluid_rng_seed + self.world_offset + i,
+                              body_config=self.controller_config)
+                      for i, ref in enumerate(self.slot_references)]
         for i, slot in enumerate(self.slots):
             slot.on_doors_changed = lambda i=i: self._apply_door_state([i])
         self.views = [_SlotView(self, i) for i in range(self.count)]
@@ -127,8 +134,9 @@ class BatchedIsaacLayer1Env(gym.Env):
             self.action_space=spaces.Dict({"move_x":spaces.Discrete(3),"jump":spaces.Discrete(2),
                 "move_y":spaces.Discrete(3),"crouch":spaces.Discrete(2),"look_dx":spaces.Discrete(9),
                 "look_dy":spaces.Discrete(11),"attack":spaces.Discrete(2)})
-            self.observation_space=spaces.Dict({"spatial":spaces.Box(0,1,shape=(16,85,49),dtype=np.float32),
-                "goal_relative":spaces.Box(-42,42,shape=(2,),dtype=np.float32)})
+            window = tuple(self.cfg.observation_window_tiles)
+            self.observation_space=spaces.Dict({"spatial":spaces.Box(0,1,shape=(16,*window),dtype=np.float32),
+                "goal_relative":spaces.Box(-np.inf,np.inf,shape=(2,),dtype=np.float32)})
 
     # ------------------------------------------------------------ construction
     def _construct_simulation(self):
@@ -167,7 +175,14 @@ class BatchedIsaacLayer1Env(gym.Env):
                 # Terrain copies differ only by a spatial offset: author world 0 once in local coordinates
                 # and Sdf-copy the finished prim tree for the others; each copy's root Xform carries its
                 # offset (USD adds it to the same local translations, so colliders land on identical doubles).
-                if index == 0:
+                if self.cfg.world_variant == "xy1_mini_128x128":
+                    started_world = time.perf_counter()
+                    stats = author_layer1_box_collision(
+                        self.stage, self.slot_references[index].terrain, half_thickness=half,
+                        physics_material=self.material, physics_material_path=self.material_path,
+                        root_path=root, contact_offset=self.cfg.terrain_contact_offset)
+                    stats["build_seconds"] = time.perf_counter() - started_world
+                elif index == 0:
                     stats = author_layer1_box_collision(
                         self.stage, self.reference.terrain, half_thickness=half,
                         physics_material=self.material, physics_material_path=self.material_path,
@@ -181,7 +196,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 self.geometry_by_env.append(stats)
             else:
                 self.geometry_by_env.append(author_layer1_box_collision(
-                    self.stage, self.reference.terrain, half_thickness=half,
+                    self.stage, self.slots[index].physical_blocks, half_thickness=half,
                     physics_material=self.material, physics_material_path=self.material_path,
                     root_path=root, world_offset=offset, contact_offset=self.cfg.terrain_contact_offset))
             if static_objects:
@@ -316,6 +331,8 @@ class BatchedIsaacLayer1Env(gym.Env):
     def _build_fast_runtime(self):
         """Compiled per-world tick runtime (``fast_runtime.FastSlot``), or ``None`` for the reference path."""
         from . import backend
+        if self.cfg.world_variant == "xy1_mini_128x128":
+            return None  # compiled controller tile/look coordinates assume 1024 x 1024
         controller = backend.controller_for()
         if controller is None:
             return None
@@ -574,7 +591,7 @@ class BatchedIsaacLayer1Env(gym.Env):
         if self.cfg.navigation_mode:
             for i,slot in enumerate(self.slots):
                 rng = np.random.default_rng(int(self.np_random.integers(0, 2**32-1)))
-                spawn = self._sample_clear_spawn(slot, rng)
+                spawn = self._mini_center_spawn(slot, i) if self.cfg.world_variant == "xy1_mini_128x128" else self._sample_clear_spawn(slot, rng)
                 slot.spawn_xy = spawn
                 slot.goal_cell, slot.goal_world_xy = self._sample_goal(slot, rng, spawn)
                 local_spawn=(spawn[0]-float(self.offsets[i,0]),spawn[1]-float(self.offsets[i,2]))
@@ -601,10 +618,21 @@ class BatchedIsaacLayer1Env(gym.Env):
         raise RuntimeError("could not find a full-body-clear randomized spawn")
 
     def _sample_goal(self, slot, rng, spawn):
+        if self.cfg.world_variant == "xy1_mini_128x128":
+            px, py = slot.reference.spawn_grid_xy
+            window_w, window_h = self.cfg.observation_window_tiles
+            x0, y0 = px - window_w // 2, py - window_h // 2
+            gx = int(rng.integers(x0, x0 + window_w))
+            gy = int(rng.integers(y0, y0 + window_h))
+            return (gx,gy),(gx-slot.grid.width/2+0.5,gy-slot.grid.height/2+0.5)
         px, py = slot.grid.world_to_cell(*spawn, slot.grid.width, slot.grid.height)
         gx = min(max(px + int(rng.integers(-self.cfg.goal_radius_x,self.cfg.goal_radius_x+1)),0),slot.grid.width-1)
         gy = min(max(py + int(rng.integers(-self.cfg.goal_radius_y,self.cfg.goal_radius_y+1)),0),slot.grid.height-1)
         return (gx,gy),(gx-slot.grid.width/2+0.5,gy-slot.grid.height/2+0.5)
+
+    def _mini_center_spawn(self, slot, index):
+        x, y = slot.reference.spawn_world_xy
+        return float(x), float(y)
 
     @staticmethod
     def _goal_distance(position, goal):
@@ -616,7 +644,8 @@ class BatchedIsaacLayer1Env(gym.Env):
         if self.cfg.navigation_mode:
             for i in ids:
                 slot=self.slots[int(i)];rng=np.random.default_rng(int(self.np_random.integers(0,2**32-1)))
-                spawn=self._sample_clear_spawn(slot,rng,index=i);slot.spawn_xy=spawn
+                spawn=(self._mini_center_spawn(slot,int(i)) if self.cfg.world_variant == "xy1_mini_128x128"
+                       else self._sample_clear_spawn(slot,rng,index=i));slot.spawn_xy=spawn
                 slot.goal_cell,slot.goal_world_xy=self._sample_goal(slot,rng,spawn)
                 local_spawn=(spawn[0]-float(self.offsets[int(i),0]),spawn[1]-float(self.offsets[int(i),2]))
                 slot.goal_world_xy=(slot.goal_world_xy[0]-float(self.offsets[int(i),0]),slot.goal_world_xy[1]-float(self.offsets[int(i),2]))
@@ -651,7 +680,8 @@ class BatchedIsaacLayer1Env(gym.Env):
                 prim = self.stage.GetPrimAtPath(path)
                 if prim and prim.IsValid():
                     self.stage.RemovePrim(path)
-                if np.count_nonzero(slot.physical_blocks[cx*64:(cx+1)*64, cy*64:(cy+1)*64]):
+                x1=min((cx+1)*64,slot.physical_blocks.shape[0]);y1=min((cy+1)*64,slot.physical_blocks.shape[1])
+                if np.count_nonzero(slot.physical_blocks[cx*64:x1, cy*64:y1]):
                     author_layer1_box_collision(
                         self.stage, slot.physical_blocks, half_thickness=self.cfg.terrain_extrusion_depth / 2,
                         physics_material=self.material, physics_material_path=self.material_path,

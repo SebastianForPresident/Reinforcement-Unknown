@@ -171,9 +171,9 @@ class StandingBodyModel:
         s.move_y = float(cur.vertical)
         s.crouching = cur.crouch == 1
         # targetLookPos = centre of the tile (playerTile + look offset)
-        tile_x = math.floor(s.x + 512.0) + cur.look_dx
-        tile_y = math.floor(s.y + 512.0) + cur.look_dy
-        s.look_x, s.look_y = tile_x - 511.5, tile_y - 511.5
+        tile_x = math.floor(s.x + self.world.width / 2.0) + cur.look_dx
+        tile_y = math.floor(s.y + self.world.height / 2.0) + cur.look_dy
+        s.look_x, s.look_y = tile_x - self.world.width / 2.0 + 0.5, tile_y - self.world.height / 2.0 + 0.5
         # ConsumeLatchedPolicyEdges
         s.last_action = s.current_action
 

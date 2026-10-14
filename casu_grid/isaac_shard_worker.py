@@ -74,8 +74,8 @@ def main() -> None:
                                     observation_encoder=callbacks.get("observation_encoder"),
                                     reward_function=callbacks.get("reward_function"))
         conn.send(("ready", {"geometry_build_seconds": env.geometry_build_seconds,
-                             "content_id": env.reference.manifest["content_id"], "pid": os.getpid(),
-                             "geometry_by_env": env.geometry_by_env}))
+                             "content_ids": [ref.manifest["content_id"] for ref in env.slot_references],
+                             "pid": os.getpid(), "geometry_by_env": env.geometry_by_env}))
     except BaseException:
         conn.send(("error", traceback.format_exc()))
         return

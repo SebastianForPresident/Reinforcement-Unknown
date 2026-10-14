@@ -79,6 +79,14 @@ class CollisionFixtureTests(unittest.TestCase):
         self.assertEqual(spec["size_xyz"], [3.0, 0.2, 2.0])
         self.assertIn("Chunk_0_0", spec["prim_path"])
 
+    def test_rectangle_world_origin_defaults_to_canonical_and_can_be_mini_sized(self):
+        blocks = np.zeros((128, 128), dtype=np.uint16)
+        blocks[64, 64] = 1
+        canonical = rectangles_for_chunk(blocks, 1, 1)[0]
+        mini = rectangles_for_chunk(blocks, 1, 1, world_shape=blocks.shape)[0]
+        self.assertEqual(canonical.center_xy, (-447.5, -447.5))
+        self.assertEqual(mini.center_xy, (0.5, 0.5))
+
     def test_surface_mesh_is_closed_and_keeps_source_extrusion_axis(self):
         blocks = np.zeros((4, 4), dtype=np.uint16)
         blocks[1, 1] = 1

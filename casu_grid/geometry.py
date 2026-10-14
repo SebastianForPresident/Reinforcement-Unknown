@@ -24,11 +24,13 @@ class TerrainRectangle:
     cell_y: int
     width: int
     height: int
+    world_width: int = 1024
+    world_height: int = 1024
 
     @property
     def center_xy(self) -> tuple[float, float]:
-        return (self.cell_x + self.width / 2 - 512,
-                self.cell_y + self.height / 2 - 512)
+        return (self.cell_x + self.width / 2 - self.world_width / 2,
+                self.cell_y + self.height / 2 - self.world_height / 2)
 
 
 def _row_runs(row: np.ndarray) -> Iterator[tuple[int, int]]:
@@ -40,7 +42,8 @@ def _row_runs(row: np.ndarray) -> Iterator[tuple[int, int]]:
 
 
 def rectangles_for_chunk(blocks: np.ndarray, chunk_x: int, chunk_y: int,
-                         *, chunk_size: int = 64) -> list[TerrainRectangle]:
+                         *, chunk_size: int = 64,
+                         world_shape: tuple[int, int] = (1024, 1024)) -> list[TerrainRectangle]:
     """Decompose nonzero cells into exact non-overlapping rectangles.
 
     Identical x-runs on consecutive y-rows are extended vertically. All
@@ -49,26 +52,28 @@ def rectangles_for_chunk(blocks: np.ndarray, chunk_x: int, chunk_y: int,
     if blocks.ndim != 2:
         raise ValueError("terrain must be a 2D x-first array")
     x0, y0 = chunk_x * chunk_size, chunk_y * chunk_size
-    x1, y1 = x0 + chunk_size, y0 + chunk_size
-    if x0 < 0 or y0 < 0 or x1 > blocks.shape[0] or y1 > blocks.shape[1]:
+    x1, y1 = min(x0 + chunk_size, blocks.shape[0]), min(y0 + chunk_size, blocks.shape[1])
+    if x0 < 0 or y0 < 0 or x0 >= blocks.shape[0] or y0 >= blocks.shape[1]:
         raise ValueError("chunk lies outside terrain bounds")
+    chunk_height = y1 - y0
     occupancy = blocks[x0:x1, y0:y1] != 0
     active: dict[tuple[int, int], int] = {}
     output: list[TerrainRectangle] = []
-    for local_y in range(chunk_size):
+    for local_y in range(chunk_height):
         runs = set(_row_runs(occupancy[:, local_y]))
         for run, start_y in list(active.items()):
             if run not in runs:
                 output.append(TerrainRectangle(chunk_x, chunk_y,
                                                x0 + run[0], y0 + start_y,
-                                               run[1] - run[0], local_y - start_y))
+                                               run[1] - run[0], local_y - start_y,
+                                               world_shape[0], world_shape[1]))
                 del active[run]
         for run in runs:
             active.setdefault(run, local_y)
     for run, start_y in active.items():
         output.append(TerrainRectangle(chunk_x, chunk_y, x0 + run[0],
                                        y0 + start_y, run[1] - run[0],
-                                       chunk_size - start_y))
+                                       chunk_height - start_y, world_shape[0], world_shape[1]))
     return output
 
 
@@ -76,13 +81,12 @@ def rectangles_for_world(reference: Layer1Reference,
                          *, chunk_size: int = 64) -> list[TerrainRectangle]:
     """Build all occupied terrain rectangles, preserving source chunks."""
     blocks = reference.terrain
-    if blocks.shape[0] % chunk_size or blocks.shape[1] % chunk_size:
-        raise ValueError("terrain dimensions must be divisible by chunk_size")
     result = []
-    for chunk_x in range(blocks.shape[0] // chunk_size):
-        for chunk_y in range(blocks.shape[1] // chunk_size):
+    for chunk_x in range((blocks.shape[0] + chunk_size - 1) // chunk_size):
+        for chunk_y in range((blocks.shape[1] + chunk_size - 1) // chunk_size):
             result.extend(rectangles_for_chunk(blocks, chunk_x, chunk_y,
-                                               chunk_size=chunk_size))
+                                               chunk_size=chunk_size,
+                                               world_shape=blocks.shape))
     return result
 
 
@@ -115,8 +119,8 @@ def chunk_surface_mesh(blocks: np.ndarray, chunk_x: int, chunk_y: int,
     if blocks.ndim != 2:
         raise ValueError("terrain must be a 2D x-first array")
     x0, y0 = chunk_x * chunk_size, chunk_y * chunk_size
-    x1, y1 = x0 + chunk_size, y0 + chunk_size
-    if x0 < 0 or y0 < 0 or x1 > blocks.shape[0] or y1 > blocks.shape[1]:
+    x1, y1 = min(x0 + chunk_size, blocks.shape[0]), min(y0 + chunk_size, blocks.shape[1])
+    if x0 < 0 or y0 < 0 or x0 >= blocks.shape[0] or y0 >= blocks.shape[1]:
         raise ValueError("chunk lies outside terrain bounds")
     occ = blocks[x0:x1, y0:y1] != 0
     vertex_ids: dict[tuple[int, int, int], int] = {}
@@ -145,13 +149,13 @@ def chunk_surface_mesh(blocks: np.ndarray, chunk_x: int, chunk_y: int,
         if x == 0 or not occ[x - 1, z]:
             add_face(((x, low_y, z), (x, low_y, z + 1),
                       (x, high_y, z + 1), (x, high_y, z)))
-        if x == chunk_size - 1 or not occ[x + 1, z]:
+        if x == occ.shape[0] - 1 or not occ[x + 1, z]:
             add_face(((x + 1, low_y, z), (x + 1, high_y, z),
                       (x + 1, high_y, z + 1), (x + 1, low_y, z + 1)))
         if z == 0 or not occ[x, z - 1]:
             add_face(((x, low_y, z), (x, high_y, z),
                       (x + 1, high_y, z), (x + 1, low_y, z)))
-        if z == chunk_size - 1 or not occ[x, z + 1]:
+        if z == occ.shape[1] - 1 or not occ[x, z + 1]:
             add_face(((x, low_y, z + 1), (x + 1, low_y, z + 1),
                       (x + 1, high_y, z + 1), (x, high_y, z + 1)))
 
