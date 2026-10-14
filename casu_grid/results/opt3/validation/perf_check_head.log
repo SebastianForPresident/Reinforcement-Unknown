@@ -1,0 +1,24 @@
+trajectory e16_random_fixture: passed | /results/check_tmp/e16_random_fixture.json: bit-identical=True max-dev={'x': 0.0, 'y': 0.0, 'vx': 0.0, 'vy': 0.0, 'crouch': 0.0, 'reward': 0.0} discrete-diffs=0
+trajectory e4_run_fixture: passed | perf/results/check_tmp/e4_run_fixture.json: bit-identical=True max-dev={'x': 0.0, 'y': 0.0, 'vx': 0.0, 'vy': 0.0, 'crouch': 0.0, 'reward': 0.0} discrete-diffs=0
+trajectory e4_random_canonical: FAILED | eck_tmp/e4_random_canonical.json: bit-identical=False max-dev={'x': 40.2, 'y': 27.0, 'vx': 100.0, 'vy': 190.0, 'crouch': 1.33, 'reward': 0.0} discrete-diffs=120
+trajectory ind4_random_fixture: passed | results/check_tmp/ind4_random_fixture.json: bit-identical=True max-dev={'x': 0.0, 'y': 0.0, 'vx': 0.0, 'vy': 0.0, 'crouch': 0.0, 'reward': 0.0} discrete-diffs=0
+trajectory ind4_run_fixture: passed | rf/results/check_tmp/ind4_run_fixture.json: bit-identical=True max-dev={'x': 0.0, 'y': 0.0, 'vx': 0.0, 'vy': 0.0, 'crouch': 0.0, 'reward': 0.0} discrete-diffs=0
+trajectory hull_e16_random_fixture: passed | lts/check_tmp/hull_e16_random_fixture.json: bit-identical=True max-dev={'x': 0.0, 'y': 0.0, 'vx': 0.0, 'vy': 0.0, 'crouch': 0.0, 'reward': 0.0} discrete-diffs=0
+trajectory hull_e4_run_fixture: passed | results/check_tmp/hull_e4_run_fixture.json: bit-identical=True max-dev={'x': 0.0, 'y': 0.0, 'vx': 0.0, 'vy': 0.0, 'crouch': 0.0, 'reward': 0.0} discrete-diffs=0
+trajectory hull_ind4_random_fixture: passed | ts/check_tmp/hull_ind4_random_fixture.json: bit-identical=True max-dev={'x': 0.0, 'y': 0.0, 'vx': 0.0, 'vy': 0.0, 'crouch': 0.0, 'reward': 0.0} discrete-diffs=0
+baseline  : perf-check random backend=numba rev=ee440308
+candidate : perf-check random backend=numba rev=f69ec477
+ envs  base ticks/s  cand ticks/s  speedup  verdict
+    1        1308.1        1948.5    1.49x  ok
+    4        2847.9        3984.1    1.40x  ok
+   16        4245.9        5285.5    1.24x  ok
+
+baseline  : perf-check run backend=numba rev=ee440308
+candidate : perf-check run backend=numba rev=f69ec477
+ envs  base ticks/s  cand ticks/s  speedup  verdict
+    1        1748.2        2557.3    1.46x  ok
+    4        5077.6        7012.2    1.38x  ok
+   16        9943.0       11023.2    1.11x  ok
+
+correctness gates: FAILED | throughput: ok
+There was an error running python

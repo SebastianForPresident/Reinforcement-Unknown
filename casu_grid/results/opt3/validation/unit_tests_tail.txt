@@ -1,0 +1,5 @@
+]
+MODE: explicitly labeled ENGINEERING SMOKE; this is not an approved Timmy research experiment.
+Effective launch: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/python/bin/python3 -m casu_grid.workbench.train --config '/tmp/path with spaces inmka295/template copy.py' --run-dir '/tmp/path with spaces inmka295/output run' --updates 2 --num-envs 1 --seed 391728405 --geometry-scope full --terrain-mode shared
+Execution request: CASU_BACKEND=auto CASU_NUM_WORKERS=1
+Run output: /tmp/path with spaces inmka295/output run

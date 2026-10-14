@@ -1,0 +1,6 @@
+# Bit-exact trajectory gate: xy1_trajectory_dump.py --steps 300 (4 mini-worlds x 300 decisions, seed 17, all seven heads random)
+# reference: baseline commit 0d46520 tree, reference Python controller (log traj_base300)
+baseline-0d46520 XY1_TRAJECTORY 2ceaaae1c88ed0aa2d670769ca1ce5cd49cfa77f338f1935b5a1745208534976 frames 300 compiled False terrain_variants 1200
+head gate [CASU_SHAPE_BATCH=0 CASU_INCREMENTAL_TERRAIN=0] XY1_TRAJECTORY 2ceaaae1c88ed0aa2d670769ca1ce5cd49cfa77f338f1935b5a1745208534976 frames 300 compiled True terrain_variants 1200
+head default-flags [] XY1_TRAJECTORY e3875ccb71f6e1bde805cb01c6a58578499704aaef3d2a464d82701d6ce38108 frames 300 compiled True terrain_variants 1200
+head incremental-only [CASU_SHAPE_BATCH=0 CASU_INCREMENTAL_TERRAIN=1] XY1_TRAJECTORY 9d957490f5e9d69cf238aa732eae8e17e0440c384a3d909841113890a3bef07c frames 300 compiled True terrain_variants 1200
