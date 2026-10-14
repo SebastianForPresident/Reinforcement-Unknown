@@ -58,6 +58,7 @@ class DeviceEquivalence(unittest.TestCase):
         cpu, gpu = build("cpu"), build("cuda")
         gpu.model.load_state_dict(cpu.model.state_dict())
         gpu.optimizer.load_state_dict(copy.deepcopy(cpu.optimizer.state_dict()))
+        gpu.adopt_optimizer_state()
         records, last_value, *_ = cpu._collect(16)
         real = torch.randperm
         try:
@@ -74,6 +75,40 @@ class DeviceEquivalence(unittest.TestCase):
         worst = max(float((p.cpu() - q.cpu()).abs().max()) for p, q in zip(cpu.model.parameters(), gpu.model.parameters()))
         self.assertLess(worst, ABS_PARAM)
         self.assertEqual(outputs[0]["optimizer_batches"], outputs[1]["optimizer_batches"])
+
+
+@unittest.skipUnless(torch.cuda.is_available(), "CUDA not available")
+class GraphEquivalence(unittest.TestCase):
+    """CUDA-graph minibatch execution vs the eager GPU update: same operations, so near-identical results."""
+
+    def run_mode(self, graph, records, last_value, initial, updates=3):
+        import os
+        from unittest import mock
+        ppo = dataclasses.replace(cfg.PPO, rollout_steps=16)
+        with mock.patch.dict(os.environ, {"CASU_PPO_GRAPH": "1" if graph else "0"}):
+            torch.manual_seed(5)
+            trainer = PPOTrainer(FakeEnv(8), cfg.ACTION, OBS, cfg.MODEL, ppo, device="cuda", seed=1)
+            trainer.model.load_state_dict(initial)
+            outputs = []
+            for u in range(updates):
+                torch.manual_seed(100 + u)
+                outputs.append(trainer._update(copy.deepcopy(records), last_value))
+        return outputs, [p.detach().clone() for p in trainer.model.parameters()], trainer
+
+    def test_graph_matches_eager(self):
+        ppo = dataclasses.replace(cfg.PPO, rollout_steps=16)
+        torch.manual_seed(5)
+        base = PPOTrainer(FakeEnv(8), cfg.ACTION, OBS, cfg.MODEL, ppo, device="cuda", seed=1)
+        records, last_value, *_ = base._collect(16)
+        initial = copy.deepcopy(base.model.state_dict())
+        eager, p_eager, _ = self.run_mode(False, records, last_value, initial)
+        graph, p_graph, trainer = self.run_mode(True, records, last_value, initial)
+        self.assertIsNotNone(trainer._mb_graph and trainer._mb_graph.graph)
+        for a, b in zip(eager, graph):
+            for key in ("policy_loss", "value_loss", "entropy", "approx_kl", "grad_norm"):
+                self.assertLess(abs(a[key] - b[key]), 1e-4 * max(abs(a[key]), 1e-3), key)
+            self.assertEqual(a["optimizer_batches"], b["optimizer_batches"])
+        self.assertLess(max(float((x - y).abs().max()) for x, y in zip(p_eager, p_graph)), 1e-4)   # 0.3 lr after three updates
 
 
 if __name__ == "__main__":

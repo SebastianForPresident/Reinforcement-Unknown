@@ -74,6 +74,7 @@ cuda = build("cuda") if has_cuda else None
 if cuda is not None:
     cuda.model.load_state_dict(cpu.model.state_dict())
     cuda.optimizer.load_state_dict(copy.deepcopy(cpu.optimizer.state_dict()))
+    cuda.adopt_optimizer_state()
 real_randperm = torch.randperm
 for u in range(args.updates):
     seed = 99 + u

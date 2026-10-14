@@ -103,8 +103,10 @@ class PPOTrainer:
         self.model = ConfigurableActorCritic(actions, observations, model).to(self.device)
         # foreach Adam applies the same elementwise operations as the default single-tensor loop (checked
         # bit-identical, perf/ppo_update_bench.py); CASU_PPO_EXECUTION=reference keeps the default loop
+        self._mb_graph = None
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate,
-                                          foreach=os.environ.get("CASU_PPO_EXECUTION", "optimized") != "reference")
+                                          foreach=os.environ.get("CASU_PPO_EXECUTION", "optimized") != "reference",
+                                          capturable=self._graph_enabled())      # device-resident step counter (CUDA graphs)
         self.update_count = 0
         self.total_steps = 0
         self.rng = np.random.default_rng(seed)
@@ -125,6 +127,23 @@ class PPOTrainer:
             "model": asdict(model), "ppo": asdict(config),
         }, sort_keys=True, separators=(",", ":"), default=list).encode("utf-8")
         self.contract_fingerprint = hashlib.sha256(contract_payload).hexdigest()
+
+    def adopt_optimizer_state(self):
+        """After ``optimizer.load_state_dict`` (possibly from a checkpoint written on another device): restore this trainer's
+        ``capturable`` setting and put the Adam step counters where the update expects them."""
+        capturable = self._graph_enabled()
+        for group in self.optimizer.param_groups:
+            group["capturable"] = capturable
+        for p, state in self.optimizer.state.items():
+            step = state.get("step")
+            if torch.is_tensor(step):
+                state["step"] = step.to(device=p.device if capturable else "cpu", dtype=torch.float32)
+        self._mb_graph = None
+
+    def _graph_enabled(self) -> bool:
+        """CUDA-graph minibatch execution (``workbench.ppo_graph``); ``CASU_PPO_GRAPH=0`` selects eager execution."""
+        return (self.device.type == "cuda" and os.environ.get("CASU_PPO_GRAPH", "1") != "0"
+                and os.environ.get("CASU_PPO_EXECUTION", "optimized") != "reference" and not self.model.recurrent)
 
     # ------------------------------------------------------ worker-local rollouts
     def _use_local_rollout(self) -> bool:
@@ -407,8 +426,30 @@ class PPOTrainer:
         minibatch = min(cfg.minibatch_size, count)
         batches, completed_epochs = 0, 0
         stats = []          # one (5,) float32 row per minibatch; converted once, summed in the reference order
+        graphed = self._graph_enabled()
+        if graphed:
+            from .ppo_graph import GraphedMinibatch
+            if self._mb_graph is None or self._mb_graph.minibatch != minibatch:
+                self._mb_graph = GraphedMinibatch(self, minibatch)
+            self._mb_graph.prepare(obs, actions, old_log_prob, advantage_flat, return_flat, expand)
         for _ in range(cfg.epochs):
             permutation = torch.randperm(count, device=self.device)
+            if graphed:
+                stop_epoch = False
+                for start in range(0, count, minibatch):
+                    row = self._mb_graph.step(permutation[start:start + minibatch])
+                    policy_v, value_v, entropy_v, kl_v, grad_v, loss_v = row.tolist()
+                    if not (np.isfinite(loss_v) and np.isfinite(grad_v)):
+                        raise FloatingPointError("non-finite PPO loss or gradient norm")
+                    stats.append(row[:5])
+                    batches += 1
+                    if cfg.target_kl is not None and kl_v > cfg.target_kl:
+                        stop_epoch = True
+                        break
+                completed_epochs += 1
+                if stop_epoch:
+                    break
+                continue
             # one gather per epoch; minibatches are contiguous slices of the permuted copies (same values
             # and memory layout as the reference's per-minibatch ``v[idx]`` gathers)
             p_obs = {k: v[permutation] for k, v in obs.items()}
@@ -638,6 +679,8 @@ class PPOTrainer:
             raise ValueError("PPO checkpoint learning contract is incompatible with this run")
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.adopt_optimizer_state()
+        self._mb_graph = None             # captured graphs reference the old optimizer-state tensors
         self.update_count = int(checkpoint["update_count"])
         self.total_steps = int(checkpoint["total_steps"])
         self.rng.bit_generator.state = checkpoint["rng_state"]
