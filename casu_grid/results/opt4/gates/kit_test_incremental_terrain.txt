@@ -1,0 +1,36 @@
+test_matches_full_rebuild_over_random_edits (casu_grid.tests.test_incremental_terrain.IncrementalTerrain) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 15.394s
+
+OK
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/isaaclab.python.headless.kit
+KIT_TESTS OK 1 0 0
+Loading user config located at: '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/data/Kit/Isaac-Sim/4.5/user.config.json'
+[Info] [carb] Logging to file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/logs/Kit/Isaac-Sim/4.5/kit_20261014_133137.log
+2026-10-14 17:31:37 [0ms] [Warning] [omni.kit.app.plugin] No crash reporter present, dumps uploading isn't available.
+2026-10-14 17:31:37 [2ms] [Warning] [omni.ext.plugin] [ext: rendering_modes] Extensions config 'extension.toml' doesn't exist '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes' or '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes/config'
+2026-10-14 17:31:37 [284ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-10-14 17:31:37 [457ms] [Warning] [omni.datastore] OmniHub is inaccessible
+2026-10-14 17:31:37 [612ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 615.71.09     | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 3070          | Yes: 0 |     | 8438    MB | 10de      | 0          |
+|     |                                  |        |     |            | 2488      | 364378d9.. |
+|     |                                  |        |     |            | 1         |            |
+|=============================================================================================|
+| OS: 44 (KDE Plasma Desktop Edition) fedora, Version: 44.00.0, Kernel: 7.2.9-200.fc44.x86_64
+| XServer Vendor: The X.Org Foundation, XServer Version: 12401014 (1.24.1.14)
+| Processor: 11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz
+| Cores: 8 | Logical Cores: 16
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 31915 | Free Memory: 23821
+| Total Page/Swap (MB): 8191 | Free Page/Swap: 3552
+|---------------------------------------------------------------------------------------------|

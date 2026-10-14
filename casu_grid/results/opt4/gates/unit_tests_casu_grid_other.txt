@@ -1,0 +1,52 @@
+......................Ecasu-lab: error: Run directory not found: /home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-opt4/missing
+.......................
+======================================================================
+ERROR: casu_grid.workbench.test_gui (unittest.loader._FailedTest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: casu_grid.workbench.test_gui
+Traceback (most recent call last):
+  File "/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/python/lib/python3.10/unittest/loader.py", line 436, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/python/lib/python3.10/unittest/loader.py", line 377, in _get_module_from_name
+    __import__(name)
+  File "/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-opt4/casu_grid/workbench/test_gui.py", line 10, in <module>
+    from PySide6 import QtWidgets
+ModuleNotFoundError: No module named 'PySide6'
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 2.117s
+
+FAILED (errors=1)
+[
+  {
+    "run_id": "one",
+    "experiment_name": null,
+    "experiment_id": null,
+    "config_path": null,
+    "path": "/tmp/tmpdn_eizrt/one",
+    "created": "2026-10-14T17:32:32.300353+00:00",
+    "status": "unknown/stale",
+    "revision": "abc",
+    "config_sha256": "one",
+    "num_envs": 2,
+    "resume_from": null,
+    "terrain_mode": "shared",
+    "environment_steps": null,
+    "update": null,
+    "latest_checkpoint": null,
+    "mean_completed_return": null,
+    "completed_episodes": null,
+    "policy_decisions_per_second": null,
+    "physics_ticks_per_second": null,
+    "metrics_rows": 0,
+    "metrics_warning": "incomplete/corrupt metrics row in inspected window at record 1; ignored bad row",
+    "manifest_error": null,
+    "trajectory_available": false
+  }
+]
+MODE: explicitly labeled ENGINEERING SMOKE; this is not an approved Timmy research experiment.
+Effective launch: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/python/bin/python3 -m casu_grid.workbench.train --config '/tmp/path with spaces rql1z9l0/template copy.py' --run-dir '/tmp/path with spaces rql1z9l0/output run' --updates 2 --num-envs 1 --seed 391728405 --geometry-scope full --terrain-mode shared
+Execution request: CASU_BACKEND=auto CASU_NUM_WORKERS=1
+Run output: /tmp/path with spaces rql1z9l0/output run
+There was an error running python

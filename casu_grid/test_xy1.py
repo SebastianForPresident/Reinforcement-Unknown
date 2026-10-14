@@ -130,12 +130,30 @@ class XY1ContractTests(unittest.TestCase):
         class S:
             reference=load_mini_world_reference(2);grid=G()
         e=E();slot=S();rng=np.random.default_rng(17)
+        e.slots=[slot];e.offsets=np.zeros((1,3))
         samples=[BatchedIsaacLayer1Env._sample_goal(e,slot,rng,(0.5,0.5)) for _ in range(12000)]
         goals=[sample[0] for sample in samples]
         self.assertEqual((min(g[0] for g in goals),max(g[0] for g in goals)),(32,95))
         self.assertEqual((min(g[1] for g in goals),max(g[1] for g in goals)),(32,95))
         self.assertLess(abs(float((np.asarray(goals)[:,0]==32).mean())-1/64),.012)
         self.assertEqual(samples[0][1],(goals[0][0]-63.5,goals[0][1]-63.5))
+
+    def test_mini_goal_and_spawn_are_in_the_stage_frame_of_their_world(self):
+        """Worlds other than world 0 must add their world offset (Optimization IV: they used to be placed at world 0's position)."""
+        from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
+        from casu_grid.xy1_mini_world import load_mini_world_reference
+        class E:
+            cfg=type('Cfg',(),{'world_variant':'xy1_mini_128x128','observation_window_tiles':(64,64)})()
+        class G:
+            width=128;height=128
+        class S:
+            reference=load_mini_world_reference(2);grid=G()
+        e=E();slots=[S(),S(),S()];e.slots=slots;e.offsets=np.asarray([[0,0,0],[200.0,0,0],[400.0,0,300.0]])
+        for index in range(3):
+            cell0,xy0=BatchedIsaacLayer1Env._sample_goal(e,slots[index],np.random.default_rng(5),(0.5,0.5))
+            self.assertEqual((cell0[0]-63.5+e.offsets[index,0],cell0[1]-63.5+e.offsets[index,2]),xy0)
+            x,y=slots[index].reference.spawn_world_xy
+            self.assertEqual(BatchedIsaacLayer1Env._mini_center_spawn(e,slots[index],index),(float(x)+e.offsets[index,0],float(y)+e.offsets[index,2]))
 
     def test_mini_goal_offset_can_grow_after_destination_leaves_view(self):
         from casu_grid.xy1 import encode_xy1_observation

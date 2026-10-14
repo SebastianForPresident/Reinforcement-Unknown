@@ -1,0 +1,8 @@
+..../home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/python/lib/python3.10/traceback.py:236: ResourceWarning: unclosed file <_io.TextIOWrapper name='/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-opt4/casu_grid/tests/test_callback_transport.py' mode='r' encoding='UTF-8'>
+  tb.tb_frame.clear()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+...........................................s...................................................................................................
+----------------------------------------------------------------------
+Ran 147 tests in 35.724s
+
+OK (skipped=1)
