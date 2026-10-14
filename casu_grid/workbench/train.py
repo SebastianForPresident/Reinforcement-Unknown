@@ -20,6 +20,8 @@ p.add_argument('--terrain-mode', choices=('shared','independent'), default='shar
 p.add_argument('--episode-steps', type=int, default=None,
                help='truncate episodes after this many policy decisions (default: environment default, 500)')
 p.add_argument('--resume', type=Path)
+p.add_argument('--train-device', default=os.environ.get('CASU_TRAIN_DEVICE','cpu'),
+               help="device of the PPO model, rollout buffers and update: 'cpu', 'cuda' or 'auto' (CUDA when available); env CASU_TRAIN_DEVICE")
 AppLauncher.add_app_launcher_args(p); args=p.parse_args(); args.headless=True
 launcher=AppLauncher(args); app=launcher.app
 print(f"CASU_TRAIN_ENTRY config={args.config} run_dir={args.run_dir} updates={args.updates}",flush=True)
@@ -127,8 +129,10 @@ def main():
             for field in config.OBSERVATION.spatial + config.OBSERVATION.scalar})
         if any(head.hold_physics_ticks != 10 for head in config.ACTION.heads):
             raise ValueError('this environment pins every action head to CasU’s ten-physics-tick cadence')
+        import torch
+        train_device='cuda' if (args.train_device=='auto' and torch.cuda.is_available()) else ('cpu' if args.train_device=='auto' else args.train_device)
         trainer=PPOTrainer(env,config.ACTION,config.OBSERVATION,config.MODEL,config.PPO,
-                           device='cpu',seed=args.seed,log_dir=run_dir/'tensorboard')
+                           device=train_device,seed=args.seed,log_dir=run_dir/'tensorboard')
         if args.resume: trainer.load(args.resume)
         performance = env.performance_info() if callable(getattr(env, 'performance_info', None)) else {
             'backend': {'requested': os.environ.get('CASU_BACKEND', 'auto'), 'active': 'unknown'},
