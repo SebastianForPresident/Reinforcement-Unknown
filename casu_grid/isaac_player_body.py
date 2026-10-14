@@ -169,14 +169,32 @@ class RoundedBoxCollider:
         self.active_level = level
 
 
+import os as _os
+_BATCH_SHAPES = _os.environ.get("CASU_SHAPE_BATCH", "1") != "0"     # one Sdf.ChangeBlock per tick for all level changes (0 = historical sequential writes)
+
+
 def set_levels(colliders, levels) -> None:
     """Switch each collider to its target crouch level, skipping unchanged ones.
 
-    Deliberately *not* wrapped in one ``Sdf.ChangeBlock``: batching the 12 attribute writes of all
-    worlds into a single USD notice is ~2x cheaper but changes PhysX's shape update ordering and
-    therefore the physics (0.1 m divergence within the first macrostep on the batched tape), so the
-    sequential, baseline-identical order is kept. See ``perf/OPTIMIZATION_LOG.md``.
+    By default all attribute writes of one tick (every world, 12 per level change) go through one ``Sdf.ChangeBlock``:
+    one USD change notification instead of one per write, ~2-3x cheaper. The set of enabled shapes after the block is
+    identical to the sequential writes; PhysX only sees the changes in a different internal order, so trajectories are not
+    bit-identical to the historical sequential mode (``CASU_SHAPE_BATCH=0``, used by the bit-exact trajectory gates) but
+    are statistically indistinguishable against CasU (``perf/OPTIMIZATION3_LOG.md``, entry 6).
     """
+    if _BATCH_SHAPES:
+        changed = [(c, lv) for c, lv in zip(colliders, levels) if lv != c.active_level]
+        if changed:
+            from pxr import Sdf
+            with Sdf.ChangeBlock():
+                for collider, level in changed:
+                    collider.set_level(level)
+        return
     for collider, level in zip(colliders, levels):
         if level != collider.active_level:
             collider.set_level(level)
+
+
+def set_level_for(collider, level) -> None:
+    """Single-body variant of :func:`set_levels` (scalar environment)."""
+    set_levels([collider], [level])

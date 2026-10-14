@@ -130,7 +130,8 @@ def _channel_luts():
 def expand_compact_observation(block_ids, fluid_ids, cursor, device=None):
     """(n,W,H) uint8 ids + (n,2) cursor -> (n,16,W,H) float32 channels identical to ``encode_xy1_observation``.
 
-    Accepts NumPy arrays or torch tensors; returns a torch tensor on ``device``.
+    Accepts NumPy arrays or torch tensors and returns a torch tensor on ``device``. Uses only static-shape tensor operations,
+    so it can be captured in a CUDA graph.
     """
     import torch
     device = device or "cpu"
@@ -143,16 +144,11 @@ def expand_compact_observation(block_ids, fluid_ids, cursor, device=None):
     fluids = torch.as_tensor(fluid_ids, device=device).long()
     cursor = torch.as_tensor(cursor, device=device).long()
     n, w, h = blocks.shape
-    out = torch.zeros((n, 16, w, h), dtype=torch.float32, device=device)
-    out[:, 0] = health_t[blocks]
-    out[:, 1] = (blocks == 14).float()
-    out[:, 2] = tox_t[blocks]
-    # channels 3-6 (sleep quality) stay zero
-    for fluid in range(7):
-        out[:, 7 + fluid] = (fluids == fluid).float()
-    out[:, 14, w // 2, h // 2] = 1.0
-    has_cursor = (cursor[:, 0] >= 0)
-    rows = torch.nonzero(has_cursor).flatten()
-    if rows.numel():
-        out[rows, 15, cursor[rows, 0], cursor[rows, 1]] = 1.0
-    return out
+    fluid_one_hot = (fluids.unsqueeze(1) == torch.arange(7, device=device).view(1, 7, 1, 1)).float()
+    center = torch.zeros((n, 1, w, h), dtype=torch.float32, device=device)
+    center[:, 0, w // 2, h // 2] = 1.0
+    xs = torch.arange(w, device=device).view(1, w, 1)
+    ys = torch.arange(h, device=device).view(1, 1, h)
+    cursor_map = ((xs == cursor[:, 0].view(n, 1, 1)) & (ys == cursor[:, 1].view(n, 1, 1))).float().unsqueeze(1)   # -1 never matches
+    return torch.cat((health_t[blocks].unsqueeze(1), (blocks == 14).float().unsqueeze(1), tox_t[blocks].unsqueeze(1),
+                      torch.zeros((n, 4, w, h), dtype=torch.float32, device=device), fluid_one_hot, center, cursor_map), dim=1)

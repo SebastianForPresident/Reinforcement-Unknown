@@ -40,6 +40,7 @@ p.add_argument("--fail-on-regression", action="store_true")
 args = p.parse_args()
 env = dict(os.environ)
 env["PYTHONPATH"] = str(ROOT) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+env.setdefault("CASU_SHAPE_BATCH", "0")      # the bit-exact gates test the historical sequential shape-switch order
 summary = {"schema": "casu.perf-check.v1", "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "gates": {}, "throughput": {}}
 failed = False
 

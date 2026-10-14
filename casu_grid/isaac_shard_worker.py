@@ -84,6 +84,11 @@ def main() -> None:
         return {k: float(v) for k, v in env.timers.items()}
 
     roll = None
+    profile_path = os.environ.get("CASU_WORKER_PROFILE")      # diagnostic: cProfile of every rollout_run request, dumped at close
+    profiler = None
+    if profile_path:
+        import cProfile
+        profiler = cProfile.Profile()
     try:
         while True:
             try:
@@ -125,14 +130,24 @@ def main() -> None:
                     reply = None
                 elif kind == "rollout_run":
                     roll.load_weights(payload["weights"])
+                    if profiler is not None:
+                        profiler.enable()
                     reply = roll.run(payload["steps"], payload["seed"], payload["deterministic"],
                                      payload["episode_returns"], payload["episode_lengths"])
+                    if profiler is not None:
+                        profiler.disable()
                 else:
                     raise ValueError(f"unknown request {kind!r}")
                 conn.send(("ok", reply))
             except BaseException:
                 conn.send(("error", traceback.format_exc()))
     finally:
+        if profiler is not None:
+            import io, pstats
+            for order in ("tottime", "cumulative"):
+                buf = io.StringIO()
+                pstats.Stats(profiler, stream=buf).sort_stats(order).print_stats(60)
+                Path(f"{profile_path}.{os.getpid()}.{order}.txt").write_text(buf.getvalue())
         try:
             env.close()
         finally:

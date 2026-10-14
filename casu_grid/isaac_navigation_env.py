@@ -177,8 +177,9 @@ class _PhysxAdapter:
         return float(pos[0]), float(pos[2]), float(vel[0]), float(vel[2])
 
     def set_crouch(self, crouch_amount):
+        from .isaac_player_body import set_level_for
         body = self.env.collider
-        body.set_level(body.level_for_crouch(crouch_amount))
+        set_level_for(body, body.level_for_crouch(crouch_amount))
 
 
 class IsaacLayer1NavigationEnv(gym.Env):

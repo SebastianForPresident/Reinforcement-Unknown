@@ -24,6 +24,73 @@ import torch
 from .model import ConfigurableActorCritic
 
 
+class _PolicyStep:
+    """expand -> network -> sample, captured as one CUDA graph for a fixed number of worlds.
+
+    Sampling uses the Gumbel-max trick on externally generated uniform noise (exactly categorical sampling), so the graph
+    contains no RNG state. ``deterministic`` multiplies the noise by zero (argmax). The log-probabilities are the
+    normalised logits that ``torch.distributions.Categorical`` stores, gathered at the sampled index, so they equal the
+    values the PPO update recomputes.
+    """
+
+    def __init__(self, owner, count, window):
+        dev = owner.device
+        self.owner, self.dev, self.n = owner, dev, count
+        w, h = window
+        total = sum(owner.head_sizes)
+        self.static = {
+            "block_ids": torch.zeros((count, w, h), dtype=torch.uint8, device=dev),
+            "fluid_ids": torch.zeros((count, w, h), dtype=torch.uint8, device=dev),
+            "cursor": torch.full((count, 2), -1, dtype=torch.int16, device=dev),
+            "goal": torch.zeros((count, 2), dtype=torch.float32, device=dev),
+            "noise": torch.full((count, total), 0.5, dtype=torch.float32, device=dev),
+            "scale": torch.ones((1,), dtype=torch.float32, device=dev)}
+        self.graph = None
+        if dev.type == "cuda":
+            side = torch.cuda.Stream()
+            side.wait_stream(torch.cuda.current_stream())
+            with torch.cuda.stream(side):
+                for _ in range(3):
+                    self._compute()
+            torch.cuda.current_stream().wait_stream(side)
+            self.graph = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(self.graph):
+                self.out = self._compute()
+        else:
+            self.out = None
+
+    def _compute(self):
+        from ..xy1 import expand_compact_observation
+        st, owner = self.static, self.owner
+        with torch.no_grad():
+            obs = {owner.spatial_name: expand_compact_observation(st["block_ids"], st["fluid_ids"], st["cursor"], self.dev),
+                   owner.goal_name: st["goal"]}
+            dists, value = owner.model.distributions(obs)
+            latents, log_prob, offset = [], None, 0
+            for name, size in zip(owner.head_names, owner.head_sizes):
+                logits = dists[name].logits                                   # normalised log-probabilities
+                u = st["noise"][:, offset:offset + size].clamp(1e-20, 1.0 - 1e-7)
+                latent = (logits + st["scale"] * (-torch.log(-torch.log(u)))).argmax(dim=-1)
+                lp = logits.gather(1, latent.unsqueeze(1)).squeeze(1)
+                log_prob = lp if log_prob is None else log_prob + lp
+                latents.append(latent)
+                offset += size
+            return torch.stack(latents, dim=1), log_prob, value
+
+    def run(self, compact, generator, deterministic):
+        st = self.static
+        for key in ("block_ids", "fluid_ids", "cursor", "goal"):
+            st[key].copy_(torch.from_numpy(np.ascontiguousarray(compact[key])), non_blocking=True)
+        st["noise"].uniform_(generator=generator)
+        st["scale"].fill_(0.0 if deterministic else 1.0)
+        if self.graph is not None:
+            self.graph.replay()
+            latent, log_prob, value = self.out
+        else:
+            latent, log_prob, value = self._compute()
+        return latent.cpu(), log_prob.cpu(), value.cpu()
+
+
 class LocalRollout:
     def __init__(self, env, actions, observations, model_contract, device: str = "cuda"):
         if len(observations.spatial) != 1 or len(observations.scalar) != 1:
@@ -38,6 +105,7 @@ class LocalRollout:
         self.model = ConfigurableActorCritic(actions, observations, model_contract).to(self.device).eval()
         self.head_names = [h.name for h in actions.heads]
         self.head_sizes = [h.size for h in actions.heads]
+        self._step_fn = None
 
     def load_weights(self, state) -> None:
         self.model.load_state_dict({k: torch.as_tensor(v) for k, v in state.items()})
@@ -82,14 +150,12 @@ class LocalRollout:
         env_seconds = infer_seconds = reset_seconds = 0.0
         clock = time.perf_counter
         compact = env.compact_observation()
-        cached = None
+        if self._step_fn is None or self._step_fn.n != n:
+            self._step_fn = _PolicyStep(self, n, compact["block_ids"].shape[1:])
+        step_fn = self._step_fn
+        latent_cpu, log_prob, value = step_fn.run(compact, generator, deterministic)
         for _ in range(steps):
-            t0 = clock()
-            dists, value = cached if cached is not None else self._forward(compact)
-            latent, log_prob = self._sample(dists, generator, deterministic)
-            latent_cpu = latent.cpu()
             t1 = clock()
-            infer_seconds += t1 - t0
             for k, count in enumerate(action_counts):
                 count += torch.bincount(latent_cpu[:, k], minlength=len(count))
             env_action = {name: latent_cpu[:, k].numpy() for k, name in enumerate(self.head_names)}
@@ -100,13 +166,15 @@ class LocalRollout:
             done = torch.as_tensor(np.logical_or(terminated, truncated), dtype=torch.float32)
             terminated_t = torch.as_tensor(terminated, dtype=torch.float32)
             next_compact = env.compact_observation()
-            next_dists, next_value = self._forward(next_compact)          # value of the state reached, before any reset
+            # one network evaluation of the state reached (before any reset): its value bootstraps GAE, and its sample is the
+            # next decision's action when no world was reset
+            next_latent, next_log_prob, next_value = step_fn.run(next_compact, generator, deterministic)
             t3 = clock()
             infer_seconds += t3 - t2
             out["block_ids"].append(compact["block_ids"]); out["fluid_ids"].append(compact["fluid_ids"])
             out["cursor"].append(compact["cursor"]); out["goal"].append(compact["goal"])
-            out["latent"].append(latent_cpu); out["log_prob"].append(log_prob.cpu()); out["value"].append(value.cpu())
-            out["next_value"].append(next_value.cpu()); out["reward"].append(reward_t); out["done"].append(done)
+            out["latent"].append(latent_cpu); out["log_prob"].append(log_prob); out["value"].append(value)
+            out["next_value"].append(next_value); out["reward"].append(reward_t); out["done"].append(done)
             out["terminated"].append(terminated_t); out["truncated"].append(torch.as_tensor(truncated))
             out["players"].append([(p["x"], p["y"], p["vx"], p["vy"]) for p in info["player"]])
             out["reasons"].append(list(info["termination_reason"]))
@@ -114,8 +182,7 @@ class LocalRollout:
                 terms.setdefault(name, []).append(torch.as_tensor(values, dtype=torch.float32))
             returns += reward_t
             lengths += 1
-            reset_any = bool(done.any())
-            if reset_any:
+            if bool(done.any()):
                 mask = done.bool()
                 completed_returns.extend(returns[mask].tolist())
                 completed_lengths.extend(lengths[mask].tolist())
@@ -127,10 +194,10 @@ class LocalRollout:
                 t4 = clock()
                 env.reset_done(mask.numpy(), observe=False)
                 compact = env.compact_observation()
-                cached = None
+                latent_cpu, log_prob, value = step_fn.run(compact, generator, deterministic)
                 reset_seconds += clock() - t4
             else:
-                compact, cached = next_compact, (next_dists, next_value)
+                compact, latent_cpu, log_prob, value = next_compact, next_latent, next_log_prob, next_value
         # the policy input of the first decision of the next rollout is recomputed there (weights will have changed)
         stacked = {k: np.stack(v) for k, v in out.items() if k in ("block_ids", "fluid_ids", "cursor", "goal", "players")}
         result = {

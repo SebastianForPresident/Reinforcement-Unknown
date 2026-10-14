@@ -15,6 +15,7 @@ Terrain modes
 from __future__ import annotations
 
 import copy
+import os
 import time
 from collections import defaultdict
 from typing import Any, Callable
@@ -33,6 +34,9 @@ from .player_runtime import post_physics_phase, pre_physics_phase
 from .reference import load_layer1_reference
 from .xy1_mini_world import load_mini_world_reference
 from .world_objects import ground_polygons, load_physics_audit
+
+
+_INCREMENTAL_TERRAIN = os.environ.get("CASU_INCREMENTAL_TERRAIN", "1") != "0"   # diff-based collider updates after excavation
 
 
 class _SlotView:
@@ -706,6 +710,14 @@ class BatchedIsaacLayer1Env(gym.Env):
             offset = tuple(float(v) for v in self.offsets[i])
             for cx, cy in sorted(slot.physical_dirty):
                 path = f"{root}/Chunk_{cx}_{cy}"
+                if _INCREMENTAL_TERRAIN:
+                    # only the rectangles whose cells changed are removed/added (same final collider set as a full rebuild)
+                    from .collision_usd import update_chunk_cuboids
+                    update_chunk_cuboids(
+                        self.stage, path, slot.physical_blocks, cx, cy, half_thickness=self.cfg.terrain_extrusion_depth / 2,
+                        material_path=self.material_path, contact_offset=self.cfg.terrain_contact_offset)
+                    any_change = True
+                    continue
                 prim = self.stage.GetPrimAtPath(path)
                 if prim and prim.IsValid():
                     self.stage.RemovePrim(path)

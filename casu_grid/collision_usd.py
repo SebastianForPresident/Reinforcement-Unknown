@@ -136,6 +136,47 @@ def _author_chunk_cuboids(stage, chunk_path, rectangles, *, half_thickness,
     return count
 
 
+def rect_prim_name(rect) -> str:
+    return f"Rect_{rect.cell_x}_{rect.cell_y}_{rect.width}_{rect.height}"
+
+
+def update_chunk_cuboids(stage, chunk_path, blocks, chunk_x, chunk_y, *, chunk_size=64, half_thickness,
+                         world_offset=(0.0, 0.0, 0.0), material_path=None, contact_offset=None) -> dict:
+    """Bring an authored chunk to the rectangle set of its current occupancy by adding/removing only the rectangles that differ.
+
+    The decomposition is the same deterministic ``rectangles_for_chunk`` result that a full rebuild would author, and a
+    rectangle prim is fully determined by its name (cell origin and size), so the resulting set of colliders is
+    identical to removing and re-authoring the whole chunk -- only unchanged rectangles are left untouched (and keep their
+    PhysX actors) instead of being destroyed and recreated.
+    """
+    from pxr import Sdf, UsdGeom
+
+    rectangles = rectangles_for_chunk(blocks, chunk_x, chunk_y, chunk_size=chunk_size, world_shape=blocks.shape)
+    prim = stage.GetPrimAtPath(chunk_path)
+    if not rectangles:
+        if prim and prim.IsValid():
+            stage.RemovePrim(chunk_path)
+        return {"removed": 0, "added": 0, "kept": 0, "chunk_removed": bool(prim and prim.IsValid())}
+    if not (prim and prim.IsValid()):
+        UsdGeom.Xform.Define(stage, chunk_path)
+        added = _author_chunk_cuboids(stage, chunk_path, rectangles, half_thickness=half_thickness,
+                                      world_offset=world_offset, material_path=material_path, contact_offset=contact_offset)
+        return {"removed": 0, "added": added, "kept": 0, "chunk_removed": False}
+    wanted = {rect_prim_name(r): r for r in rectangles}
+    existing = set(prim.GetChildrenNames())
+    stale = existing - wanted.keys()
+    fresh = [r for name, r in wanted.items() if name not in existing]
+    if stale:
+        layer = stage.GetEditTarget().GetLayer()
+        parent = layer.GetPrimAtPath(chunk_path)
+        with Sdf.ChangeBlock():
+            for name in stale:
+                del parent.nameChildren[name]
+    added = (_author_chunk_cuboids(stage, chunk_path, fresh, half_thickness=half_thickness, world_offset=world_offset,
+                                   material_path=material_path, contact_offset=contact_offset) if fresh else 0)
+    return {"removed": len(stale), "added": added, "kept": len(existing) - len(stale), "chunk_removed": False}
+
+
 def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
                                 half_thickness: float = 0.1,
                                 physics_material=None,
