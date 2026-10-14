@@ -20,7 +20,7 @@ p.add_argument('--terrain-mode', choices=('shared','independent'), default='shar
 p.add_argument('--episode-steps', type=int, default=None,
                help='truncate episodes after this many policy decisions (default: environment default, 500)')
 p.add_argument('--resume', type=Path)
-p.add_argument('--train-device', default=os.environ.get('CASU_TRAIN_DEVICE','cpu'),
+p.add_argument('--train-device', default=os.environ.get('CASU_TRAIN_DEVICE','auto'),
                help="device of the PPO model, rollout buffers and update: 'cpu', 'cuda' or 'auto' (CUDA when available); env CASU_TRAIN_DEVICE")
 AppLauncher.add_app_launcher_args(p); args=p.parse_args(); args.headless=True
 launcher=AppLauncher(args); app=launcher.app
