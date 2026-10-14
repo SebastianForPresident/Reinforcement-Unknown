@@ -1,0 +1,20 @@
+== unit
+Ran 151 tests in 37.724s
+
+OK (skipped=1)
+== xy1 gate
+XY1_TRAJECTORY 284e8dded47e45216b6e0709dfe31b146415572405834fa24b5f2922bde52337 frames 300 compiled True terra
+== perf check
+trajectory e16_random_fixture: passed | /results/check_tmp/e16_random_fixture.json: bit-identical=True max-dev
+trajectory e4_run_fixture: passed | perf/results/check_tmp/e4_run_fixture.json: bit-identical=True max-dev={'x
+trajectory e4_random_canonical: passed | results/check_tmp/e4_random_canonical.json: bit-identical=True max-de
+trajectory ind4_random_fixture: passed | results/check_tmp/ind4_random_fixture.json: bit-identical=True max-de
+trajectory ind4_run_fixture: passed | rf/results/check_tmp/ind4_run_fixture.json: bit-identical=True max-dev={
+trajectory hull_e16_random_fixture: passed | lts/check_tmp/hull_e16_random_fixture.json: bit-identical=True ma
+trajectory hull_e4_run_fixture: passed | results/check_tmp/hull_e4_run_fixture.json: bit-identical=True max-de
+trajectory hull_ind4_random_fixture: passed | ts/check_tmp/hull_ind4_random_fixture.json: bit-identical=True m
+correctness gates: passed | throughput: ok
+== kit
+Ran 1 test in 16.203s
+OK
+GATEDONE
