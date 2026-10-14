@@ -43,6 +43,7 @@ started = time.perf_counter()
 proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
 samples = []
 progress = []          # (seconds since launch, completed updates)
+per_process = []       # (seconds since launch, {pid: rss bytes}) every ~30 s with --series
 stop = threading.Event()
 
 
@@ -60,6 +61,8 @@ def monitor():
         try:
             tree = [root] + root.children(recursive=True)
             rss = sum(q.memory_info().rss for q in tree if q.is_running())
+            if args.series and int(time.perf_counter() - started) % 30 == 0:
+                per_process.append((round(time.perf_counter() - started), {q.pid: q.memory_info().rss for q in tree if q.is_running()}))
             avail = psutil.virtual_memory().available
             samples.append((time.perf_counter() - started, rss, avail, gpu_used_mib(), psutil.cpu_percent(interval=None)))
             try:
@@ -116,7 +119,7 @@ if args.series:
     stride = max(1, len(samples) // 1500)
     result["series"] = {"t": [round(s[0], 1) for s in samples[::stride]], "rss_gib": [round(s[1] / 2**30, 3) for s in samples[::stride]],
                         "available_gib": [round(s[2] / 2**30, 3) for s in samples[::stride]], "gpu_mib": [s[3] for s in samples[::stride]],
-                        "updates_completed": progress, "per_update_end_to_end": result["per_update_end_to_end"]}
+                        "updates_completed": progress, "per_process_rss": per_process, "per_update_end_to_end": result["per_update_end_to_end"]}
 args.output.parent.mkdir(parents=True, exist_ok=True)
 args.output.write_text(json.dumps(result, indent=2) + "\n")
 if not args.keep_run:
