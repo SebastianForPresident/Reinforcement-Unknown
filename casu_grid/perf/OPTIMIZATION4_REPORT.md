@@ -18,8 +18,8 @@ fidelity or the PPO configuration was changed. Experiment ledger: `OPTIMIZATION4
 2. **Throughput gains of Optimization IV are small: +2.2 % at 64 worlds, +5.2 % at 32, +1.8 % at 16** (corrected workload, same code base and worker layout, clean machine,
    two repeats each). The remaining cost is native PhysX/USD work in eight CPU-saturated processes; the cheap Python/NumPy wins were already taken in Optimization III. The one
    measurable code change is the vectorised terrain rectangle decomposition (+4 % on the corrected workload, where worlds actually dig).
-3. **Soak and memory are healthy**: a 27-minute 700-update 64 × 8 run and the final soak (section D) completed without failure; unique memory (PSS/USS, not summed RSS)
-   is ≈ 17 GiB and grows ≈ 0.35 GiB/h in total. Summed RSS (25 GiB) overstates real use by shared pages.
+3. **Soak and memory are healthy**: a 27-minute 700-update and a 36-minute 899-update soak at 64 × 8 (1,752 decisions/s end-to-end, 1,716 wall-clock) completed without failure; unique memory (PSS/USS, not summed RSS)
+   is ≈ 17 GiB and grows ≈ 0.35–0.4 GiB/h in total. Summed RSS (25 GiB) overstates real use by shared pages.
 4. **Two latent bugs found and fixed**: a crash when a world's boundary cell was dug (`dafc767`) — only reachable after the spawn fix, because before it worlds ≥ 1 never
    dug in their own terrain — and the "stale" `e4_random_canonical` regression gate, which turned out to be a real behaviour change in the Layer-1 environment introduced by
    the XY1 commit `dd6b66f` (collider level at reset); restored for non-XY1 environments (`e6e3838`), all 8 of 8 trajectory gates are now bit-identical.
@@ -86,7 +86,7 @@ cache-invalidation risk; they were not taken. Larger steps would need native cha
 
 * 700-update soak after the boundary fix (`results/opt4/mem30_e64_w8.json`): no failure; 1,722 decisions/s end-to-end (1,686 wall-clock); first / last 100 updates 1,665 → 1,758;
   PSS 16.9 → 17.0 GiB, USS 16.08 → 16.23 GiB; USS slope after 300 s ≈ 34 MiB/h per worker, ≈ 55 MiB/h trainer, ≈ 344 MiB/h total; peak system used 23.3 GiB, minimum available 7.9 GiB; no swapping.
-* Final soak: SOAK_PLACEHOLDER
+* Final soak: 899 measured updates (3,682,304 decisions, 36 minutes) at 64 × 8 on the corrected workload: **1,752 decisions/s end-to-end, 1,716 wall-clock** (logging, trajectory file and per-update checkpoint cost 2 %); per-100-update means 1,708 → 1,740 → 1,752 → 1,742 → 1,773 → 1,800 → 1,738 → 1,747 → 1,779 (no degradation); all losses finite; peak PSS 17.25 GiB, USS 16.44 GiB (USS slope ≈ 0.4 GiB/h), summed RSS 24.9 GiB, GPU 3.6 GiB, minimum available memory 6.8 GiB, no swapping (`results/opt4/soak_final_e64_w8.json`).
 * Summed RSS (≈ 25 GiB) is not the footprint: ≈ 8 GiB of it is pages shared between the Kit processes. Use PSS/USS when sizing; the machine stays 7–8 GiB below its limit at 64 × 8,
   which still rules out 12 workers (each Kit worker has ≈ 1.8 GiB of unique memory plus shared pages; the 10- and 9-worker runs were slower anyway).
 
@@ -125,10 +125,10 @@ legacy runs trained on stacked bodies with off-world observations.
 ## G. Recommendation
 
 * Configuration unchanged: **64 worlds × 8 workers × 2 PhysX threads, CUDA trainer**, corrected workload. Do not use 10+ workers.
-* Expect ≈ 1,700–1,750 decisions/s sustained (≈ 6.2 M per hour). 8-hour forecast: FORECAST_PLACEHOLDER
+* Expect ≈ 1,700–1,750 decisions/s sustained (≈ 6.2 M per hour). 8-hour forecast: ≈ 1,716 × 28,800 s ≈ **49 M decisions** (range 48–50 M), unique memory ≈ 17 → 20 GiB.
 * Memory: ≈ 17 GiB unique, +0.35 GiB/h; keep 7+ GiB free; `trajectories.jsonl` grows ≈ 16 MB/min (≈ 7.7 GB per 8 h).
 * Before the learning campaign: review commit `a7ebcab` (workload fix) and `e6e3838` (Layer-1 reset), then re-run any learning baselines that were collected with more than one world.
-* Best validated commit: BEST_PLACEHOLDER; worktree `Reinforcement-Unknown-Isaac-opt4`, branch `optimization4` (not merged; `optimization3` untouched).
+* Best validated commit: the commit that contains this report (`git log -1 -- casu_grid/perf/OPTIMIZATION4_REPORT.md`; code identical to `92022c2`); worktree `Reinforcement-Unknown-Isaac-opt4`, branch `optimization4` (not merged; `optimization3` untouched).
 
 ## H. Tools added
 
