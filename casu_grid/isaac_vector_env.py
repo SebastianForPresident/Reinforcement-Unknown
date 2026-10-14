@@ -839,7 +839,7 @@ class BatchedIsaacLayer1Env(gym.Env):
         reasons: list = [None] * self.count
         players = []
         actions = getattr(self, "_last_actions", actions)
-        xy1_diag = {k: np.zeros(self.count, np.float32) for k in ('goal_distance', 'best_distance', 'initial_distance', 'blocks_destroyed')} if self.cfg.navigation_mode else None
+        xy1_diag = {k: np.zeros(self.count, np.float32) for k in ('goal_distance', 'best_distance', 'initial_distance', 'blocks_destroyed', 'outside_world')} if self.cfg.navigation_mode else None
         for i, slot in enumerate(self.slots):
             if self.cfg.navigation_mode:
                 current=slot.body_dict();gx,gy=slot.goal_cell
@@ -850,7 +850,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 slot.best_goal_distance=slot.xy1_reward.best_distance
                 slot.elapsed_steps+=1;term=arrived;trunc=slot.elapsed_steps>=self.cfg.episode_length_steps and not term
                 reason='arrival' if term else 'time_limit' if trunc else None;slot.last_state=current
-                xy1_diag['goal_distance'][i]=d;xy1_diag['best_distance'][i]=slot.best_goal_distance;xy1_diag['initial_distance'][i]=slot.initial_goal_distance;xy1_diag['blocks_destroyed'][i]=slot.blocks_destroyed
+                xy1_diag['outside_world'][i]=float(abs(current['x'])>slot.grid.width/2 or abs(current['y'])>slot.grid.height/2);xy1_diag['goal_distance'][i]=d;xy1_diag['best_distance'][i]=slot.best_goal_distance;xy1_diag['initial_distance'][i]=slot.initial_goal_distance;xy1_diag['blocks_destroyed'][i]=slot.blocks_destroyed
             else:
                 reward, item_terms, term, trunc, reason, current = slot.finish_step(self.reward_function)
             rewards[i], terminated[i], truncated[i], reasons[i] = reward, term, trunc, reason

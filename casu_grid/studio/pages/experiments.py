@@ -92,6 +92,11 @@ class ExperimentsPage(QtWidgets.QWidget):
         self.error_banner = Banner("bad", "", "")
         self.error_banner.hide()
         self.layout_.addWidget(self.error_banner)
+        self.limit_banner = Banner("warn", "Known limitation of XY1 as defined: agents can fall out of the world",
+                                   "The floor of a world can be destroyed, and nothing ends an episode when the agent falls out of the world. In real runs "
+                                   "about a fifth of the agents are gone after roughly 20 updates and most after 100; they are lost to training until the 100,000-decision ceiling. "
+                                   "The Studio measures this (chart “Agents that left the world”) but does not change the experiment. See the learning-readiness report.")
+        self.layout_.addWidget(self.limit_banner)
         self.about = Card("About this experiment")
         self.about_text = make_label("")
         self.about.add(self.about_text)
@@ -245,12 +250,14 @@ class ExperimentsPage(QtWidgets.QWidget):
         if exp.error:
             self.error_banner.set("bad", "This experiment file does not load", exp.error)
             self.error_banner.show()
+            self.limit_banner.hide()
             for w in (self.about, self.fixed, self.workload):
                 w.setVisible(False)
         else:
             self.error_banner.hide()
             for w in (self.about, self.fixed, self.workload):
                 w.setVisible(True)
+            self.limit_banner.setVisible(exp.is_xy1)
             self.about_text.setText(f"{exp.description}<br><br><b>Hypothesis.</b> {exp.hypothesis}<br><br><span class='muted'>{exp.notes}</span>")
             self._fill_fixed(exp)
         self._regen_name()

@@ -129,6 +129,9 @@ class TrainingPage(QtWidgets.QWidget):
         # learning
         self.learning = Card("Is it learning?", "Training-time signal on the training terrains. It is not held-out evidence; see Evaluation.", help_key="learning_curve",
                              help_callback=ctx.show_help)
+        self.lost_banner = Banner("warn", "", "")
+        self.lost_banner.hide()
+        self.learning.add(self.lost_banner)
         self.signal_banner = Banner("info", "", "")
         self.learning.add(self.signal_banner)
         self.sparks_row = FlowRow(260)
@@ -350,6 +353,14 @@ class TrainingPage(QtWidgets.QWidget):
         if self.store is None:
             return
         sig = analysis.learning_signal(self.store.metrics)
+        lost = analysis.outside_world_share(self.store.metrics)
+        if lost is not None and lost >= 0.10:
+            self.lost_banner.set("bad" if lost >= 0.4 else "warn", f"{100 * lost:.0f} % of the agents have left the world",
+                                 "They dug through the floor and are falling; nothing ends such an episode, so they are lost to training until the 100,000-decision ceiling. "
+                                 "This is a property of the experiment as defined, not a Studio fault. See the chart “Agents that left the world”.")
+            self.lost_banner.show()
+        else:
+            self.lost_banner.hide()
         level = {"improving": "good", "worse": "warn", "no_change": "info", "too_early": "info", "none": "warn"}[sig.state]
         self.signal_banner.set(level, sig.headline, sig.detail)
         for key, spark in self.sparks.items():

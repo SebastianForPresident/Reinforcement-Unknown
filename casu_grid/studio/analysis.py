@@ -27,7 +27,21 @@ def _window_stats(values: list[float]) -> tuple[float, float]:
     return mean, math.sqrt(var / n)
 
 
+def outside_world_share(store: MetricsStore, n: int = 3) -> float | None:
+    vals = [float(v) for v in store.column("nav/active_outside_world_fraction")[-n:] if isinstance(v, (int, float))]
+    return sum(vals) / len(vals) if vals else None
+
+
 def learning_signal(store: MetricsStore, window: int = 10, min_updates: int = 20) -> LearningSignal:
+    signal = _learning_signal(store, window, min_updates)
+    lost = outside_world_share(store)
+    if lost is not None and lost >= 0.10:
+        signal.detail += (f" Caution: {100 * lost:.0f} % of the agents have left the world (fell through the floor) and cannot contribute any more, "
+                          "so the signal gets weaker the longer the run goes on.")
+    return signal
+
+
+def _learning_signal(store: MetricsStore, window: int = 10, min_updates: int = 20) -> LearningSignal:
     """Compare goals reached per 1,000 decisions in the first and in the latest ``window`` updates of a run."""
     key = "nav/arrivals_per_1k_decisions"
     if not store.has(key):

@@ -228,7 +228,7 @@ class LocalRollout:
             keep = ~done.bool().numpy()
             active = {"decisions": lengths.numpy()[keep].astype(np.int64), "goal_distance": xy1["goal_distance"][keep],
                       "best_distance": xy1["best_distance"][keep], "initial_distance": xy1["initial_distance"][keep],
-                      "blocks_destroyed": xy1["blocks_destroyed"][keep]}
+                      "blocks_destroyed": xy1["blocks_destroyed"][keep], "outside_world": xy1["outside_world"][keep]}
         stacked = {k: np.stack(v) for k, v in out.items() if k in ("block_ids", "fluid_ids", "cursor", "goal", "players")}
         result = {
             **stacked,

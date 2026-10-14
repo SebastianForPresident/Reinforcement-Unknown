@@ -358,5 +358,45 @@ def stage_evaluation(h: Harness, args) -> bool:
     return all(l.startswith("PASS") for l in LOG)
 
 
+def stage_gallery(h: Harness, args) -> bool:
+    """Screenshots of every page with real run data (no simulator): light and dark theme, tall pages, a narrow window."""
+    def tall(key, name, payload=None, height=2000):
+        h.window.resize(1360, height)
+        h.go(key, payload)
+        h.pump(1.0)
+        h.shot(name)
+        h.window.resize(1360, 860)
+        h.pump(0.3)
+
+    runs = {r.run_id.split("-")[-1]: r for r in h.ctx.runs}
+    live = next((r for r in h.ctx.runs if r.run_id.endswith("-live")), None)
+    fail = next((r for r in h.ctx.runs if r.run_id.endswith("-failure")), None)
+    stop = next((r for r in h.ctx.runs if r.run_id.endswith("-resumed")), None)
+    check(live is not None and fail is not None and stop is not None, "journey runs exist")
+    tall("overview", "50_overview_with_runs", height=1000)
+    tall("experiments", "51_experiments_full", height=2300)
+    h.go("training", live.path)
+    tall("training", "52_training_completed_full", live.path, 1700)
+    tall("metrics", "53_metrics_overview", {"run": str(live.path)}, 1400)
+    h.page("metrics")._enter_focus("ppo_entropy") if False else None
+    tall("runs", "54_runs_history", live.path, 1000)
+    tall("evaluation", "55_evaluation_full", {"run": str(stop.path)}, 2300)
+    tall("help", "56_help", None, 1800)
+    h.window.resize(980, 700)
+    for key, name in (("overview", "57_narrow_overview"), ("experiments", "58_narrow_experiments"), ("metrics", "59_narrow_metrics")):
+        h.go(key, {"run": str(live.path)} if key == "metrics" else None)
+        h.pump(0.8)
+        h.shot(name)
+    h.window.resize(1360, 860)
+    h.ctx.set_theme("dark")
+    h.pump(0.5)
+    for key, name, payload in (("overview", "60_dark_overview", None), ("metrics", "61_dark_metrics", {"run": str(live.path)}), ("training", "62_dark_training", fail.path)):
+        h.go(key, payload)
+        h.pump(1.0)
+        h.shot(name)
+    h.ctx.set_theme("light")
+    return True
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

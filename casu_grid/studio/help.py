@@ -54,6 +54,10 @@ TOPICS: dict[str, Topic] = {t.key: t for t in [
     _t("decisions_to_arrival", "Decisions to arrival", "How many decisions the episodes that reached their goal needed.",
        "Only episodes that ended in arrival are counted, so the value is missing in updates without any arrival. Lower is better; compare it with the "
        "starting distance because far goals take longer."),
+    _t("out_of_world", "Agents outside the world", "Share of running episodes whose agent has left the 128 × 128 world, usually by digging through the floor and falling.",
+       "The floor of an XY1 world can be destroyed and nothing ends an episode when the agent falls out of the world, so a fallen agent keeps falling until the "
+       "100,000-decision ceiling. Every such agent is lost to training. Rising values mean fewer and fewer agents can learn anything, whatever the policy does. "
+       "This is a property of the experiment as defined (the Studio does not change it); distance statistics therefore count only agents still inside the world."),
     _t("excavation", "Excavation", "Blocks the agent destroyed by attacking, counted per 1,000 decisions.",
        "Counts blocks actually destroyed (not attack presses). Digging is an exploratory behaviour in XY1; whether it helps navigation is part of what "
        "the experiment studies."),

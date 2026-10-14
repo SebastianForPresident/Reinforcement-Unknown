@@ -1,0 +1,8 @@
+PASS run is running
+PASS killed simulation worker pid 2938824
+PASS status becomes 'failed' from the real process state
+PASS explanation names the cause: '<b>A simulation worker process died.</b>'
+PASS technical details are available
+PASS checkpoint survives (update 6) and is offered for resume
+PASS 'Resume from latest checkpoint' is offered
+PASS overview surfaces the failure as the next action

@@ -780,11 +780,17 @@ def navigation_metrics(episodes: dict, active: dict | None, blocks_destroyed: fl
     }
     if active is not None:
         count = len(active["goal_distance"])
+        outside = active["outside_world"] > 0.5
+        inside = ~outside
         progress = [1.0 - float(b) / float(i) for b, i in zip(active["best_distance"], active["initial_distance"]) if i > 0]
         out.update({
             "nav/active_episodes": count,
+            # agents that left the 128 x 128 world (the floor can be dug through and nothing ends such an episode) are reported on their own: a
+            # free-falling body would otherwise dominate every distance average
+            "nav/active_outside_world_fraction": float(outside.mean()) if count else None,
+            "nav/active_in_world_episodes": int(inside.sum()),
             "nav/active_progress_mean": mean(progress),
-            "nav/active_distance_mean": mean(active["goal_distance"].tolist()),
+            "nav/active_distance_mean": mean(active["goal_distance"][inside].tolist()),
             "nav/active_best_distance_mean": mean(active["best_distance"].tolist()),
             "nav/active_initial_distance_mean": mean(active["initial_distance"].tolist()),
             "nav/active_decisions_mean": mean(active["decisions"].tolist()),
