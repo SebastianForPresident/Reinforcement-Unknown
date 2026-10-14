@@ -1,0 +1,9 @@
+PASS overview says plainly that no learning run exists
+PASS validation passes for the smoke configuration (9 checks, 2 warnings)
+PASS smoke preset sets 16 worlds x 2 workers x 5 updates
+PASS Start navigates to the training monitor
+PASS status observed while launching: ['completed', 'none', 'running', 'starting']
+FAIL run reached 'running' with live metrics (>= 3 updates)
+PASS run finished with status completed
+PASS 5 updates recorded (5)
+PASS latest checkpoint is at update 5 and has a compatibility sidecar

@@ -694,7 +694,27 @@ class PPOTrainer:
         except BaseException:
             temporary.unlink(missing_ok=True)
             raise
+        self._write_checkpoint_sidecar(path, checkpoint)
         return path
+
+    @staticmethod
+    def _write_checkpoint_sidecar(path: Path, checkpoint: dict) -> None:
+        """``<name>.pt.json``: what the Studio needs to judge a checkpoint without importing torch (best effort; never fails a save)."""
+        try:
+            environment = checkpoint.get("environment_state")
+            sizes = environment.get("sizes") if isinstance(environment, dict) else None
+            info = {"schema": "casu.checkpoint-info.v1", "checkpoint_schema": checkpoint["schema"],
+                    "contract_fingerprint": checkpoint["contract_fingerprint"], "update_count": int(checkpoint["update_count"]),
+                    "total_steps": int(checkpoint["total_steps"]), "world_partition": list(sizes) if sizes is not None else None,
+                    "terrain_mode": environment.get("terrain_mode") if isinstance(environment, dict) else None,
+                    "saved_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "size_bytes": path.stat().st_size,
+                    "metadata": checkpoint.get("metadata", {})}
+            sidecar = path.with_name(path.name + ".json")
+            temporary = sidecar.with_name(sidecar.name + ".tmp")
+            temporary.write_text(json.dumps(info, indent=1) + "\n")
+            os.replace(temporary, sidecar)
+        except Exception:
+            pass
 
     def load_policy(self, path: str | Path) -> dict[str, Any]:
         """Load only the network weights of a checkpoint (evaluation): same schema and learning-contract checks as :meth:`load`,
