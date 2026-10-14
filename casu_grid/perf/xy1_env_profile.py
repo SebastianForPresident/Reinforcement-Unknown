@@ -3,7 +3,8 @@
     python casu_grid/perf/xy1_env_profile.py --envs 4 --steps 60 --cprofile --output out.json
 """
 from __future__ import annotations
-import argparse, cProfile, io, json, pstats, sys, time
+import argparse, cProfile, faulthandler, io, json, os, pstats, sys, time
+faulthandler.dump_traceback_later(int(os.environ.get('PROFILE_DEADLINE', '300')), exit=True)      # hard stop with a Python stack if a physics call hangs
 from pathlib import Path
 from isaaclab.app import AppLauncher
 
