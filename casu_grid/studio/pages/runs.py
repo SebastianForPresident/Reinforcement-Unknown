@@ -201,7 +201,7 @@ class RunsPage(QtWidgets.QWidget):
         launch_rec = {}
         from ..runs import read_json
         launch_rec = read_json(run.path / "studio_launch.json") or {}
-        rows = [("Experiment", run.experiment), ("Folder", str(run.path)),
+        rows = [("Experiment", run.experiment), ("Termination contract", run.termination_contract), ("Folder", str(run.path)),
                 ("Source revision", (run.revision or "unknown")[:10] + (" (uncommitted changes)" if launch_rec.get("dirty_files") else "")),
                 ("Seed / layout", f"seed {run.seed} · {run.num_envs} worlds × {run.workers} workers × {run.physx_threads} PhysX threads · PPO on {(launch_rec.get('device') or run.device or '?').upper()}"),
                 ("Progress", (f"{run.updates_in_run} updates in this run (continuing from update {run.start_update}; the counter is now {run.updates_done}), " if run.start_update else f"{run.updates_done} updates, ")
@@ -245,6 +245,8 @@ class RunsPage(QtWidgets.QWidget):
             return False, "untrained policy: use it as the evaluation baseline, or start a new run"
         if exp is None or exp.fingerprint is None:
             return False, "no experiment selected"
+        if c.termination_contract != exp.termination_contract:
+            return False, f"trained under {c.termination_contract}, not {exp.termination_contract} (a different experiment)"
         if c.fingerprint is None:
             return True, "no compatibility record; the trainer will verify it on loading"
         if c.fingerprint != exp.fingerprint:

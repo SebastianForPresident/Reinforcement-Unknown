@@ -1,0 +1,4 @@
+PASS experiment is xy1-termination-v2-layer-exit
+PASS validation names the termination contract
+PASS run finished: completed, 60 updates
+PASS run record carries the termination contract

@@ -1,0 +1,21 @@
+{
+  "schema": "casu.studio-launch.v1",
+  "created_utc": "2026-10-14T22:24:53Z",
+  "command": "/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/python.sh -m casu_grid.workbench.lab --experiments '/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-layerexit/experiments' launch '/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-layerexit/casu_grid/workbench/experiments/xy1_point_navigation_mini_layer_exit.py' --run-dir '/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-layerexit/experiments/20261014-182448-layer-exit-smoke' --updates 60 --num-envs 16 --workers 2 --physx-threads 2 --train-device cuda --seed 7 --terrain-mode independent --checkpoint-every 2 --save-initial-checkpoint",
+  "worlds": 16,
+  "workers": 2,
+  "physx_threads": 2,
+  "device": "cuda",
+  "seed": 7,
+  "updates": 60,
+  "checkpoint_every": 2,
+  "save_initial": true,
+  "resume": null,
+  "source_revision": "d2b1cc3cfd0422eb9b5cde3636efa752c787a284",
+  "source_branch": "xy1-layer-exit",
+  "dirty_files": 26,
+  "legacy_spawn": false,
+  "estimated_decisions": 61440,
+  "experiment_sha256": "e7e07933de4b058951f61482d1fbff397263d18a8fa2fd274801f0c3b23e285d",
+  "termination_contract": "xy1-termination-v2-layer-exit"
+}

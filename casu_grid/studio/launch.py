@@ -121,6 +121,12 @@ def resume_checks(plan: LaunchPlan) -> list[Check]:
                             "It cannot be resumed; start a new run (or restore the original experiment file)."))
     else:
         checks.append(Check(OK, "Learning contract matches", "Actions, observations, network and PPO settings are identical."))
+    if ck.termination_contract != exp.termination_contract:
+        checks.append(Check(ERROR, "Termination contract differs",
+                            f"The checkpoint was trained under {ck.termination_contract}; this experiment uses {exp.termination_contract}. These are different experiments "
+                            "(for example, whether leaving through the bottom of the layer ends the episode); results and checkpoints must not be mixed. Start a new run."))
+    else:
+        checks.append(Check(OK, "Termination contract matches", exp.termination_contract))
     run = plan.resume_run
     if run is not None and run.config_sha256 and exp.sha256 and run.config_sha256 != exp.sha256:
         checks.append(Check(WARN, "Experiment file changed since the run started",
@@ -161,6 +167,11 @@ def validate(plan: LaunchPlan, install: env.IsaacInstall, *, owned_pids: set[int
         checks.append(Check(WARN, "Differs from the intended XY1 contract", "; ".join(exp.mismatches)))
     if not exp.is_xy1:
         checks.append(Check(ERROR, "Not an XY1 navigation experiment", "The Studio's learning workflow covers XY1 navigation experiments."))
+    contract_text = {"xy1-termination-v2-layer-exit": ("Termination contract v2: bottom-of-layer exit ends the episode", "Leaving through the bottom (y < −halfHeight + 3.1, CasU's layer transition) is a true terminal event with no extra reward or penalty; the world, Timmy and the goal are re-initialised."),
+                     "xy1-termination-v1": ("Reference termination contract v1", "Episodes end only by goal arrival or the 100,000-decision ceiling; an agent that digs through the floor falls out of the world and is never reset. Reproducible reference, not recommended for learning."),
+                     "xy1-termination-v1x-out-of-world-truncation": ("Superseded exploratory termination variant", "Truncates the episode when the agent is outside the world; replaced by termination contract v2.")}.get(exp.termination_contract)
+    if contract_text:
+        checks.append(Check(OK if exp.role == "recommended" else WARN, contract_text[0], contract_text[1] + f" (id {exp.termination_contract})"))
     # execution layout
     if plan.worlds < 1 or plan.workers < 1 or plan.updates < 1:
         checks.append(Check(ERROR, "Worlds, workers and updates must be positive"))
@@ -295,7 +306,7 @@ def write_launch_record(session: Session) -> None:
               "save_initial": plan.save_initial, "resume": str(plan.resume.path) if plan.resume else None,
               "source_revision": src.revision, "source_branch": src.branch, "dirty_files": src.dirty_files,
               "legacy_spawn": env.inherited_overrides().get("CASU_LEGACY_MINI_SPAWN") == "1",
-              "estimated_decisions": plan.total_decisions, "experiment_sha256": plan.experiment.sha256}
+              "estimated_decisions": plan.total_decisions, "experiment_sha256": plan.experiment.sha256, "termination_contract": plan.experiment.termination_contract}
     try:
         (run_dir / "studio_launch.json").write_text(json.dumps(record, indent=2) + "\n")
         session.meta_written = True

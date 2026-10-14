@@ -182,3 +182,22 @@ def validate_contracts(actions: ActionContract, observations: ObservationContrac
         "model": asdict(model),
         "ppo": asdict(ppo),
     }
+
+
+# ----------------------------------------------------------------------------------------------------------------------- termination contracts
+# The learning contract (actions, observations, model, PPO) is fingerprinted into every checkpoint; the *termination* rule of the environment is not part of
+# that fingerprint, so it carries its own identifier. A checkpoint can only be resumed under the termination contract it was trained with.
+TERMINATION_V1 = "xy1-termination-v1"                                    # reference XY1: arrival or the decision ceiling only (agents can fall out of the world forever)
+TERMINATION_V1_OUT_OF_WORLD = "xy1-termination-v1x-out-of-world-truncation"   # superseded exploratory variant (truncation when |y| > half the world)
+TERMINATION_V2_LAYER_EXIT = "xy1-termination-v2-layer-exit"              # arrival, or CasU's bottom-of-layer exit (true terminal), or the decision ceiling
+
+
+def termination_contract_id(environment: dict | None) -> str:
+    environment = environment or {}
+    if not environment.get("navigation_mode"):
+        return "layer1-default"
+    if environment.get("bottom_exit_terminates"):
+        return TERMINATION_V2_LAYER_EXIT
+    if environment.get("terminate_out_of_world"):
+        return TERMINATION_V1_OUT_OF_WORLD
+    return TERMINATION_V1

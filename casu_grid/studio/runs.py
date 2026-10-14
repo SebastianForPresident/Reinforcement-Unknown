@@ -69,6 +69,7 @@ class CheckpointInfo:
     fingerprint: str | None
     world_partition: list[int] | None
     mtime: float
+    termination_contract: str = "xy1-termination-v1"      # checkpoints written before contract ids are the reference XY1
 
     @property
     def label(self) -> str:
@@ -95,7 +96,7 @@ def checkpoint_info(path: Path, kind: str | None = None) -> CheckpointInfo:
         except ValueError:
             pass
     return CheckpointInfo(path, kind, update, meta.get("total_steps"), meta.get("saved_utc"), size, meta.get("contract_fingerprint"),
-                          meta.get("world_partition"), mtime)
+                          meta.get("world_partition"), mtime, ((meta.get("environment_contract") or {}).get("termination")) or "xy1-termination-v1")
 
 
 @dataclass
@@ -127,6 +128,7 @@ class RunRecord:
     legacy_spawn: bool = False
     start_update: int = 0           # >0 for a resumed run: the update of the checkpoint it continued from
     start_decisions: int = 0
+    termination_contract: str = "xy1-termination-v1"
 
     @property
     def updates_in_run(self) -> int:
@@ -198,6 +200,7 @@ def load_run(path: Path) -> RunRecord | None:
         origin = read_json(Path(run.resume_from).with_name(Path(run.resume_from).name + ".json")) or {}
         run.start_update = int(origin.get("update_count") or 0)
         run.start_decisions = int(origin.get("total_steps") or 0)
+    run.termination_contract = contracts_env.get("termination_contract") or "xy1-termination-v1"
     run.status = derive_status(path, manifest, last is not None)
     checkpoints = []
     for candidate in [path / "latest.pt"]:

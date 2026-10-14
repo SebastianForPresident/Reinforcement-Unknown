@@ -17,6 +17,7 @@ p.add_argument("--envs", type=int, default=4)
 p.add_argument("--steps", type=int, default=60)
 p.add_argument("--seed", type=int, default=17)
 p.add_argument("--output", type=Path, required=True)
+p.add_argument("--bottom-exit", action="store_true", help="termination contract v2 (layer exit); the dump does not reset finished worlds, so it only checks the trajectory up to the first terminal event")
 AppLauncher.add_app_launcher_args(p)
 args = p.parse_args(); args.headless = True
 app = AppLauncher(args).app
@@ -33,7 +34,7 @@ def main():
     cb = cfg.callbacks()
     env_cfg = IsaacLayer1EnvConfig(seed=391728405, num_envs=args.envs, spawn_mode="canonical", navigation_mode=True,
                                    world_variant="xy1_mini_128x128", observation_window_tiles=(64, 64),
-                                   player_collider="compound", episode_length_steps=100000, num_workers=1)
+                                   player_collider="compound", episode_length_steps=100000, num_workers=1, bottom_exit_terminates=args.bottom_exit)
     env = BatchedIsaacLayer1Env(env_cfg, action_decoder=cb[0], observation_encoder=cb[1], reward_function=cb[2], terrain_mode="independent")
     rng = np.random.default_rng(args.seed)
     env.reset(seed=args.seed)

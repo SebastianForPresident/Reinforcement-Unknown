@@ -1,0 +1,24 @@
+== unit (Isaac python)
+Ran 157 tests in 37.625s
+
+OK (skipped=1)
+== xy1 gate, reference v1
+XY1_TRAJECTORY 284e8dded47e45216b6e0709dfe31b146415572405834fa24b5f2922bde52337 frames 300 compiled True terra
+== xy1 dump, v2 (up to the first terminal event)
+XY1_TRAJECTORY 284e8dded47e45216b6e0709dfe31b146415572405834fa24b5f2922bde52337 frames 300 compiled True terra
+v1 frames 300 layer_exit events: n/a keys ['step', 'players', 'crouch', 'grounded', 'reward', 'terminated', 'terrain', 'physical']
+v2 frames 300 layer_exit events: n/a keys ['step', 'players', 'crouch', 'grounded', 'reward', 'terminated', 'terrain', 'physical']
+== perf check
+trajectory e16_random_fixture: passed | /results/check_tmp/e16_random_fixture.json: bit-identical=Tr
+trajectory e4_run_fixture: passed | perf/results/check_tmp/e4_run_fixture.json: bit-identical=True m
+trajectory e4_random_canonical: passed | results/check_tmp/e4_random_canonical.json: bit-identical=T
+trajectory ind4_random_fixture: passed | results/check_tmp/ind4_random_fixture.json: bit-identical=T
+trajectory ind4_run_fixture: passed | rf/results/check_tmp/ind4_run_fixture.json: bit-identical=True
+trajectory hull_e16_random_fixture: passed | lts/check_tmp/hull_e16_random_fixture.json: bit-identic
+trajectory hull_e4_run_fixture: passed | results/check_tmp/hull_e4_run_fixture.json: bit-identical=T
+trajectory hull_ind4_random_fixture: passed | ts/check_tmp/hull_ind4_random_fixture.json: bit-identi
+correctness gates: passed | throughput: ok
+== kit
+Ran 1 test in 15.290s
+OK
+GATEDONE

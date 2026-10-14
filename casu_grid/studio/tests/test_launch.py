@@ -23,8 +23,8 @@ _FILE = Path(_TMP.name) / "latest.pt"
 _FILE.write_bytes(b"x")
 
 
-def checkpoint(fingerprint, partition):
-    return CheckpointInfo(_FILE, "latest", 5, 5000, None, 10, fingerprint, partition, 0.0)
+def checkpoint(fingerprint, partition, termination="xy1-termination-v2-layer-exit"):
+    return CheckpointInfo(_FILE, "latest", 5, 5000, None, 10, fingerprint, partition, 0.0, termination)
 
 
 class LaunchTests(unittest.TestCase):
@@ -93,6 +93,29 @@ class LaunchTests(unittest.TestCase):
         unknown = launch.resume_checks(plan(self.root, resume=checkpoint(None, None)))
         self.assertFalse(launch.blocking(unknown))
         self.assertTrue(any(c.level == launch.WARN for c in unknown))
+
+    def test_checkpoints_cannot_be_resumed_across_termination_contracts(self):
+        exp = mini()
+        self.assertEqual(exp.termination_contract, "xy1-termination-v2-layer-exit")
+        ok = launch.resume_checks(plan(self.root, resume=checkpoint(exp.fingerprint, [8] * 8)))
+        self.assertFalse(launch.blocking(ok))
+        wrong = launch.resume_checks(plan(self.root, resume=checkpoint(exp.fingerprint, [8] * 8, termination="xy1-termination-v1")))
+        self.assertTrue(any("Termination contract" in c.title for c in launch.blocking(wrong)))         # same learning contract, different experiment: still refused
+
+    def test_experiments_identify_their_termination_contract(self):
+        by_role = {}
+        for e in discover_experiments():
+            by_role.setdefault(e.role, []).append(e)
+        self.assertEqual({e.termination_contract for e in by_role["recommended"]}, {"xy1-termination-v2-layer-exit"})
+        self.assertIn("xy1-termination-v1", {e.termination_contract for e in by_role["reference"]})
+        self.assertEqual(by_role["recommended"][0].fingerprint, by_role["reference"][0].fingerprint)      # same learning contract...
+        self.assertNotEqual(by_role["recommended"][0].sha256, by_role["reference"][0].sha256)              # ...different experiment file
+        first = discover_experiments()[0]
+        self.assertEqual(first.role, "recommended")                                                        # the Studio offers the v2 experiment first
+
+    def test_launch_validation_names_the_contract(self):
+        titles = [c.title for c in launch.validate(plan(self.root), self.install)]
+        self.assertTrue(any("Termination contract v2" in t for t in titles), titles)
 
     def test_shard_sizes_match_the_trainers_partition(self):
         try:

@@ -37,6 +37,18 @@ class NavigationMetricsTests(unittest.TestCase):
         self.assertAlmostEqual(m["nav/completed_progress_mean"], np.mean([1 - 1 / 20, 1 - 0.5 / 10, 1 - 8 / 10]))
         self.assertNotIn("nav/active_episodes", m)
 
+    def test_layer_exits_are_counted_separately_from_arrivals_and_timeouts(self):
+        eps = episodes([(0, "arrival", 100, 20.0, 1.0, 1.0, 3, 10.0), (1, "layer_exit", 40, 10.0, 6.0, 80.0, 5, 0.3), (2, "layer_exit", 60, 10.0, 9.0, 90.0, 5, 0.1),
+                        (3, "time_limit", 500, 10.0, 8.0, 40.0, 5, 1.0)])
+        m = navigation_metrics(eps, None, None, 4000)
+        self.assertEqual((m["nav/arrivals"], m["nav/layer_exits"], m["nav/timeouts"], m["nav/completed_episodes"]), (1, 2, 1, 4))
+        self.assertAlmostEqual(m["nav/layer_exits_per_1k_decisions"], 0.5)
+        self.assertEqual(m["nav/decisions_to_layer_exit_mean"], 50.0)
+        self.assertAlmostEqual(m["nav/arrival_rate"], 0.25)                  # layer exits are finished episodes that did not arrive
+        none = navigation_metrics(episodes([]), None, None, 4000)
+        self.assertEqual(none["nav/layer_exits"], 0)
+        self.assertIsNone(none["nav/decisions_to_layer_exit_mean"])
+
     def test_agents_outside_the_world_do_not_corrupt_distance_statistics(self):
         m = navigation_metrics(episodes([]), active(), 10.0, 4096)
         self.assertAlmostEqual(m["nav/active_outside_world_fraction"], 1 / 3)

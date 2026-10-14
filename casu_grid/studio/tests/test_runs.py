@@ -104,6 +104,13 @@ class StatusTests(unittest.TestCase):
         self.assertEqual(run.latest.update, 30)
         self.assertEqual(run.latest.fingerprint, "abc")
         self.assertEqual(run.latest.world_partition, [8] * 8)
+        self.assertEqual(run.latest.termination_contract, "xy1-termination-v2-layer-exit")
+        self.assertEqual(run.termination_contract, "xy1-termination-v2-layer-exit")
+
+    def test_runs_and_checkpoints_without_a_contract_id_are_the_reference_xy1(self):
+        make_run(self.root, "old", status="completed", termination=None)
+        run = runs.load_run(self.root / "old")
+        self.assertEqual((run.termination_contract, run.latest.termination_contract), ("xy1-termination-v1", "xy1-termination-v1"))
 
 
 class FormatTests(unittest.TestCase):

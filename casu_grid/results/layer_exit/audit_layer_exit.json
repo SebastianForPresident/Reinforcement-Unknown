@@ -1,0 +1,166 @@
+{
+  "schema": "casu.xy1-readiness-audit.v1",
+  "worlds": 4,
+  "results": [
+    {
+      "check": "A1 every world has its own terrain",
+      "passed": true,
+      "evidence": "terrain hashes ['8c667f27b81a', '428e8b073283', '23299cf49eb6', '9f67679f413e']"
+    },
+    {
+      "check": "A1b terrain seeds are 391728405 + world index",
+      "passed": true,
+      "evidence": "seeds [391728405, 391728406, 391728407, 391728408]"
+    },
+    {
+      "check": "A2 every body starts at its own world's centre (stage position minus offset = (0.5, 0.5) +- fall of one tick)",
+      "passed": true,
+      "evidence": "deviation from centre per world [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]; stage x [0.5, 1040.5, 2080.5, 3120.5]"
+    },
+    {
+      "check": "A2b stage positions are distinct (no stacked bodies)",
+      "passed": true,
+      "evidence": "stage x [0.5, 1040.5, 2080.5, 3120.5]"
+    },
+    {
+      "check": "A2c every observation window contains its own terrain (non-empty cells)",
+      "passed": true,
+      "evidence": "non-empty cells per world [1239, 1141, 1156, 1024]"
+    },
+    {
+      "check": "A2d no window reports 'outside the world' fluid code",
+      "passed": true,
+      "evidence": "windows are inside the world"
+    },
+    {
+      "check": "A3 goals lie in the 64 x 64 viewport around the spawn tile",
+      "passed": true,
+      "evidence": "(world, goal cell, player cell, relative goal) = [(0, (82, 81), (64, 64), (18.0, 17.0)), (1, (85, 80), (64, 64), (21.0, 16.0)), (2, (82, 65), (64, 64), (18.0, 1.0)), (3, (33, 47), (64, 64), (-31.0, -17.0))]"
+    },
+    {
+      "check": "A3b relative-goal observation = goal tile - player tile (recomputed independently)",
+      "passed": true,
+      "evidence": "see A3 details"
+    },
+    {
+      "check": "A3c goal world coordinates are in the world's local frame",
+      "passed": true,
+      "evidence": "goal_world_xy == (gx - 64 + 0.5, gy - 64 + 0.5)"
+    },
+    {
+      "check": "A4 goal sampling is uniform over the viewport",
+      "passed": true,
+      "evidence": "x in [32, 95] mean 63.32; y in [32, 95] mean 63.42"
+    },
+    {
+      "check": "A5 arrival detection: on the goal tile",
+      "passed": true,
+      "evidence": "terminated=True reason=arrival bonus=10.00 reward=10.798"
+    },
+    {
+      "check": "A5 arrival detection: diagonal neighbour",
+      "passed": true,
+      "evidence": "terminated=True reason=arrival bonus=10.00 reward=10.703"
+    },
+    {
+      "check": "A5 arrival detection: two tiles away",
+      "passed": true,
+      "evidence": "terminated=False reason=None bonus=0.00 reward=0.677"
+    },
+    {
+      "check": "A5b arrival bonus is 10 and paid once with the improvement term",
+      "passed": true,
+      "evidence": "bonus 10.0"
+    },
+    {
+      "check": "A6 distance-improvement reward pays only for new all-time bests (0.1 x improvement)",
+      "passed": true,
+      "evidence": "(step, paid, recomputed) = [('closer', 0.0724, 0.0724), ('farther than before', 0.0, 0.0), ('same best again', 0.0, 0.0), ('new best', 0.404, 0.404), ('regress', 0.0, 0.0)]"
+    },
+    {
+      "check": "A7 timeout: episode is truncated (not terminated) exactly at the step limit",
+      "passed": true,
+      "evidence": "steps [(1, False, None), (2, False, None), (3, False, None), (4, False, None), (5, False, None), (6, True, 'time_limit')]"
+    },
+    {
+      "check": "A8 terrain edits stay inside their own world (logical and collider terrain)",
+      "passed": true,
+      "evidence": "edited tile (64, 7) of world 0; logical before ['8c667f27b81a', '428e8b073283', '23299cf49eb6', '9f67679f413e'], after ['79a8a850bde2', '428e8b073283', '23299cf49eb6', '9f67679f413e']; collider terrain after ['79a8a850bde2', '428e8b073283', '23299cf49eb6', '9f67679f413e'] (before ['8c667f27b81a', '428e8b073283', '23299cf49eb6', '9f67679f413e'])"
+    },
+    {
+      "check": "A8b reset_done re-draws the goal and restores the terrain of the finished world only",
+      "passed": true,
+      "evidence": "goals before {0: (45, 93), 1: (32, 43), 2: (83, 45), 3: (93, 46)} after {0: (50, 37), 1: (32, 43), 2: (83, 45), 3: (93, 46)}; terrain restored True"
+    },
+    {
+      "check": "L0 threshold is CasU's rule: y < -halfHeight + 3.1",
+      "passed": true,
+      "evidence": "halfHeight 64, margin 3.1, threshold y < -60.9 (world-relative; floor rows span y -64..-62)"
+    },
+    {
+      "check": "L1 resting on the intact floor never counts as an exit",
+      "passed": true,
+      "evidence": "lowest y over 12 decisions x 4 worlds = -1.38 (threshold -60.9)"
+    },
+    {
+      "check": "L2 bottom exit is a TRUE terminal transition with reason layer_exit (not a truncation)",
+      "passed": true,
+      "evidence": "after 3 decisions: terminated=True truncated=False reason=layer_exit"
+    },
+    {
+      "check": "L2b it fires at the first decision with y below the threshold",
+      "passed": true,
+      "evidence": "y before -56.599857330322266, at exit -61.89, threshold -60.9"
+    },
+    {
+      "check": "L2c no failure reward and no penalty: the exit step pays only the ordinary distance term, never the arrival bonus, never a negative",
+      "passed": true,
+      "evidence": "reward 0.0000 = distance term 0.0000, bonus 0.0"
+    },
+    {
+      "check": "L2d other worlds are unaffected while one world exits",
+      "passed": true,
+      "evidence": "others ended per step [[False, False, False], [False, False, False], [False, False, False]]"
+    },
+    {
+      "check": "L3 world, Timmy and goal are re-initialised: spawn at the world centre, terrain restored, new goal inside the viewport, counters cleared",
+      "passed": true,
+      "evidence": "spawn (0.50, 0.50), goal (62, 46) -> (39, 66), terrain restored True"
+    },
+    {
+      "check": "L3b post-reset observation is valid: relative goal = goal tile - player tile, window holds terrain",
+      "passed": true,
+      "evidence": "relative goal (-25.0, 2.0), non-empty cells 1156"
+    },
+    {
+      "check": "L3c the other worlds keep their goals and positions",
+      "passed": true,
+      "evidence": "goals and logical positions of the other worlds unchanged by the reset"
+    },
+    {
+      "check": "L3d the next episode of the reset world runs normally",
+      "passed": true,
+      "evidence": "after one decision: y = 0.62, ended = False"
+    },
+    {
+      "check": "L4 precedence: arrival beats layer exit when both hold in one decision",
+      "passed": true,
+      "evidence": "y = -62.71 (below threshold), reason arrival, bonus 10.0"
+    },
+    {
+      "check": "L5 precedence: layer exit beats the decision ceiling (terminated, not truncated) when both fall in one decision",
+      "passed": true,
+      "evidence": "decisions (terminated, truncated, reason) = [(False, False, None), (False, False, None), (True, False, 'layer_exit')]"
+    },
+    {
+      "check": "L6 the decision ceiling still truncates (time_limit, not terminated) on an intact floor",
+      "passed": true,
+      "evidence": "reason time_limit"
+    },
+    {
+      "check": "L7 repeated layer exits in several worlds: every exit is terminal, every reset returns Timmy to the centre, the next episode runs",
+      "passed": true,
+      "evidence": "rounds (exit flags, reset at centre, next episode valid) = [({1: (True, False), 3: (True, False)}, True, True), ({1: (True, False), 3: (True, False)}, True, True), ({1: (True, False), 3: (True, False)}, True, True)]"
+    }
+  ]
+}

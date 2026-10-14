@@ -58,6 +58,13 @@ TOPICS: dict[str, Topic] = {t.key: t for t in [
        "The floor of an XY1 world can be destroyed and nothing ends an episode when the agent falls out of the world, so a fallen agent keeps falling until the "
        "100,000-decision ceiling. Every such agent is lost to training. Rising values mean fewer and fewer agents can learn anything, whatever the policy does. "
        "This is a property of the experiment as defined (the Studio does not change it); distance statistics therefore count only agents still inside the world."),
+    _t("layer_exit", "Layer exit", "Timmy left through the bottom of the layer: CasU's layer transition, modelled as a terminal event (not death).",
+       "In CasU, passing below y = −halfHeight + 3.1 (−60.9 in a 128-tile world) opens the layer transition. In XY1 termination contract v2 this ends the navigation episode as a "
+       "true terminal transition: no reward, no penalty, no bootstrapping through it, and a freshly initialised world, Timmy and goal follow. A goal arrival in the same decision takes "
+       "precedence; the 100,000-decision ceiling only applies when neither happened. Counted separately from goal arrivals and timeouts."),
+    _t("termination_contract", "Termination contract", "The rule that ends an episode. A checkpoint belongs to the contract it was trained under.",
+       "v1 (reference): arrival or the decision ceiling only. v2 (layer exit): additionally the bottom-of-layer exit. The learning contract (actions, observations, network, PPO) is "
+       "identical, so the checkpoint fingerprint cannot tell them apart; every checkpoint therefore also stores its termination contract and the Studio refuses to resume across contracts."),
     _t("excavation", "Excavation", "Blocks the agent destroyed by attacking, counted per 1,000 decisions.",
        "Counts blocks actually destroyed (not attack presses). Digging is an exploratory behaviour in XY1; whether it helps navigation is part of what "
        "the experiment studies."),

@@ -32,7 +32,7 @@ print(f"CASU_TRAIN_ENTRY config={args.config} run_dir={args.run_dir} updates={ar
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig, IsaacLayer1NavigationEnv
 from casu_grid.workbench.ppo import PPOTrainer, write_metrics
-from casu_grid.workbench.contracts import validate_contracts
+from casu_grid.workbench.contracts import validate_contracts, termination_contract_id
 from casu_grid.workbench.runtime_validation import checked_callbacks
 from gymnasium import spaces
 
@@ -88,6 +88,8 @@ def main():
                        'episode_steps':args.episode_steps or getattr(config,'ENVIRONMENT',{}).get('episode_length_steps'),
                        'navigation_mode':bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
                        'terminate_out_of_world':bool(getattr(config,'ENVIRONMENT',{}).get('terminate_out_of_world',False)),
+                       'bottom_exit_terminates':bool(getattr(config,'ENVIRONMENT',{}).get('bottom_exit_terminates',False)),
+                       'termination_contract':termination_contract_id(getattr(config,'ENVIRONMENT',{})),
                        'world_variant':getattr(config,'ENVIRONMENT',{}).get('world_variant','canonical'),
                        'player_collider':getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),
                        'physics_dt':0.02,'action_decimation':10},
@@ -114,6 +116,7 @@ def main():
             seed=391728405,num_envs=args.num_envs,spawn_mode='canonical',geometry_scope=args.geometry_scope,
             navigation_mode=bool(getattr(config,'ENVIRONMENT',{}).get('navigation_mode',False)),
             terminate_out_of_world=bool(getattr(config,'ENVIRONMENT',{}).get('terminate_out_of_world',False)),
+            bottom_exit_terminates=bool(getattr(config,'ENVIRONMENT',{}).get('bottom_exit_terminates',False)),
             world_variant=getattr(config,'ENVIRONMENT',{}).get('world_variant','canonical'),
             observation_window_tiles=tuple(getattr(config,'ENVIRONMENT',{}).get('observation_window_tiles',(85,49))),
             player_collider=getattr(config,'ENVIRONMENT',{}).get('player_collider','compound'),
@@ -142,6 +145,7 @@ def main():
         train_device='cuda' if (args.train_device=='auto' and torch.cuda.is_available()) else ('cpu' if args.train_device=='auto' else args.train_device)
         trainer=PPOTrainer(env,config.ACTION,config.OBSERVATION,config.MODEL,config.PPO,
                            device=train_device,seed=args.seed,log_dir=run_dir/'tensorboard')
+        trainer.environment_contract={'termination':termination_contract_id(getattr(config,'ENVIRONMENT',{}))}
         if args.resume: trainer.load(args.resume)
         performance = env.performance_info() if callable(getattr(env, 'performance_info', None)) else {
             'backend': {'requested': os.environ.get('CASU_BACKEND', 'auto'), 'active': 'unknown'},

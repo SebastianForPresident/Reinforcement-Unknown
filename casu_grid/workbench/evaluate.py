@@ -47,7 +47,7 @@ from gymnasium import spaces
 
 from casu_grid.isaac_navigation_env import IsaacLayer1EnvConfig
 from casu_grid.workbench.ppo import PPOTrainer
-from casu_grid.workbench.contracts import validate_contracts
+from casu_grid.workbench.contracts import validate_contracts, termination_contract_id
 from casu_grid.workbench.runtime_validation import checked_callbacks
 
 
@@ -97,7 +97,8 @@ def main():
         world_variant=environment.get("world_variant", "canonical"),
         observation_window_tiles=tuple(environment.get("observation_window_tiles", (85, 49))),
         player_collider=environment.get("player_collider", "compound"),
-        terminate_out_of_world=bool(environment.get("terminate_out_of_world", False)), episode_length_steps=args.horizon)
+        terminate_out_of_world=bool(environment.get("terminate_out_of_world", False)),
+        bottom_exit_terminates=bool(environment.get("bottom_exit_terminates", False)), episode_length_steps=args.horizon)
     from casu_grid.isaac_vector_env import BatchedIsaacLayer1Env
     env = trainer = None
     started = time.time()
@@ -128,7 +129,7 @@ def main():
                 info = {"kind": "untrained", "init_seed": args.init_seed, "update_count": 0, "total_steps": 0}
             else:
                 loaded = trainer.load_policy(path)
-                info = {"kind": "checkpoint", "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                info = {"kind": "checkpoint", "path": str(path), "trained_under_termination_contract": loaded.get("termination_contract"), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                         "update_count": loaded["update_count"], "total_steps": loaded["total_steps"]}
             weights = {k: v.detach().cpu().numpy() for k, v in trainer.model.state_dict().items()}
             for mode in modes:
@@ -152,7 +153,7 @@ def main():
                 results.append({"policy": label, "mode": mode, "checkpoint": info, "summary": summarize(episodes), "episodes": episodes})
         output = {
             "schema": "casu.xy1-evaluation.v1", "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "config": str(args.config.resolve()), "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest(),
+            "termination_contract": termination_contract_id(environment), "config": str(args.config.resolve()), "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest(),
             "source_revision": revision,
             "protocol": {"worlds": args.worlds, "rounds": args.rounds, "horizon_decisions": args.horizon, "eval_seed": args.eval_seed,
                          "world_offset": args.world_offset, "terrain_seed_first": 391728405 + args.world_offset, "training_terrain_seed_first": 391728405,

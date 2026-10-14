@@ -438,7 +438,7 @@ class TrainingPage(QtWidgets.QWidget):
         rows = [("Experiment", run.experiment), ("Run folder", str(run.path)), ("Source revision", f"{(run.revision or launch_rec.get('source_revision') or 'unknown')[:10]}"
                 + (f" ({launch_rec.get('source_branch')})" if launch_rec.get("source_branch") else "")
                 + (f", {launch_rec.get('dirty_files')} uncommitted file(s)" if launch_rec.get("dirty_files") else "")),
-                ("World layout", f"{run.num_envs} worlds × {run.workers} workers × {run.physx_threads} PhysX threads" if run.num_envs else "–"),
+                ("Termination contract", run.termination_contract), ("World layout", f"{run.num_envs} worlds × {run.workers} workers × {run.physx_threads} PhysX threads" if run.num_envs else "–"),
                 ("PPO device", (launch_rec.get("device") or run.device or "–").upper()), ("Seed", str(run.seed)),
                 ("Budget", f"{run.updates_requested} updates ≈ {human_count(launch_rec.get('estimated_decisions'))} decisions" if run.updates_requested else "–"),
                 ("Starting point", f"resumed from {Path(run.resume_from).parent.name} ({Path(run.resume_from).name})" if run.resume_from else "new run, untrained policy"),

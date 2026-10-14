@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from ..workbench import lab
+from ..workbench.contracts import TERMINATION_V1, TERMINATION_V1_OUT_OF_WORLD, TERMINATION_V2_LAYER_EXIT, termination_contract_id
 from .environment import ROOT
 
 EXPERIMENT_DIR = ROOT / "casu_grid" / "workbench" / "experiments"
@@ -43,6 +44,8 @@ class ExperimentInfo:
     fingerprint: str | None = None
     mismatches: list[str] = field(default_factory=list)
     variant_note: str | None = None        # set for exploratory variants whose rules differ from the validated XY1 contract
+    termination_contract: str = TERMINATION_V1
+    role: str = "other"                     # recommended (termination v2) | reference (v1, reproducible) | superseded | other
 
 
 def contract_fingerprint(config) -> str:
@@ -85,9 +88,11 @@ def load_experiment(path: Path) -> ExperimentInfo:
                               fingerprint=contract_fingerprint(cfg))
         if is_xy1:
             info.mismatches = contract_mismatches(summary)
-            if environment.get("terminate_out_of_world"):
-                info.variant_note = "episodes end when the agent leaves the world (differs from XY1)"
-                info.mismatches.append("exploratory variant: " + info.variant_note)
+            info.termination_contract = termination_contract_id(environment)
+            info.role = {TERMINATION_V2_LAYER_EXIT: "recommended", TERMINATION_V1: "reference", TERMINATION_V1_OUT_OF_WORLD: "superseded"}.get(info.termination_contract, "other")
+            if info.role == "superseded":
+                info.variant_note = "SUPERSEDED exploratory variant: episodes are truncated when the agent leaves the world"
+                info.mismatches.append(info.variant_note)
         return info
     except Exception as exc:             # a broken experiment file is shown with its error, it does not break the Studio
         return ExperimentInfo(path=path, name=path.stem, description="", hypothesis="", notes="", sha256="", is_xy1=False, is_mini=False,
@@ -101,5 +106,6 @@ def discover_experiments(directory: Path = EXPERIMENT_DIR) -> list[ExperimentInf
             if not path.name.startswith("_"):
                 found.append(load_experiment(path))
     # the intended XY1 experiment first
-    found.sort(key=lambda e: (not (e.is_mini and not e.variant_note), not e.is_mini, not e.is_xy1, e.name))
+    order = {"recommended": 0, "reference": 1, "other": 2, "superseded": 3}
+    found.sort(key=lambda e: (not e.is_mini, order.get(e.role, 2), e.name))
     return found

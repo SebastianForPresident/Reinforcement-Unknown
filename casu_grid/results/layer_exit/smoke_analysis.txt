@@ -1,0 +1,8 @@
+run 20261014-182448-layer-exit-smoke | updates 60 | decisions 61440
+termination counts: layer_exit 13 | arrival 7 | time_limit 0
+nav/layer_exits 13 nav/arrivals 7 nav/timeouts 0 | max outside-world fraction 0.0
+layer exits per update, blocks of 10: [1, 0, 2, 1, 7, 2]
+layer exits per 1,000 decisions (whole run): 0.212
+raw transitions: 13 layer exits | terminated=True & truncated=False: 13 | reward = ordinary distance term only (no bonus, no penalty): 13
+decision after each exit (reset world): 13 of 13 start at the world centre (|x-0.5|<3, |y|<5); y after reset min/max -0.71/4.49
+lowest y ever recorded: -64.38 (reference XY1 reached -1e7)

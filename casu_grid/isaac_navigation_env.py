@@ -61,6 +61,10 @@ class IsaacLayer1EnvConfig:
     navigation_mode: bool = False
     # EXPLORATORY VARIANT ONLY (default off = the XY1 contract): end an episode, as a truncation, when the agent has left the world
     terminate_out_of_world: bool = False
+    # XY1 termination contract v2 ("layer exit"): CasU's bottom-of-layer transition (WorldGeneration.cs: body y < -halfHeight + 3.1) ends the episode as a TRUE terminal
+    # transition (not a truncation, no reward and no penalty); the world, Timmy and the goal are then re-initialised like after a goal arrival. Default off = the reference XY1.
+    bottom_exit_terminates: bool = False
+    layer_exit_margin: float = 3.1
     world_variant: str = "canonical"  # canonical or xy1_mini_128x128
     spawn_clearance_attempts: int = 50000
     goal_radius_x: int = 42
@@ -121,6 +125,10 @@ class IsaacLayer1EnvConfig:
             raise ValueError("world_variant must be 'canonical' or 'xy1_mini_128x128'")
         if self.world_variant != "canonical" and not self.navigation_mode:
             raise ValueError("the XY1 mini-world requires navigation_mode=True")
+        if self.bottom_exit_terminates and self.terminate_out_of_world:
+            raise ValueError("bottom_exit_terminates (contract v2) and terminate_out_of_world (superseded exploratory variant) are mutually exclusive")
+        if self.bottom_exit_terminates and not self.navigation_mode:
+            raise ValueError("bottom_exit_terminates applies to XY1 navigation only")
         if self.spawn_clearance_attempts <= 0 or self.goal_radius_x < 0 or self.goal_radius_y < 0:
             raise ValueError("navigation sampling limits must be positive")
         if len(self.observation_window_tiles) != 2 or min(self.observation_window_tiles) <= 0:

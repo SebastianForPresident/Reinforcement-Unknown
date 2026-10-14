@@ -1,0 +1,65 @@
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/isaaclab.python.headless.kit
+PASS A1 every world has its own terrain | terrain hashes ['8c667f27b81a', '428e8b073283', '23299cf49eb6', '9f67679f413e']
+PASS A1b terrain seeds are 391728405 + world index | seeds [391728405, 391728406, 391728407, 391728408]
+PASS A2 every body starts at its own world's centre (stage position minus offset = (0.5, 0.5) +- fall of one tick) | deviation from centre per world [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]; stage x [0.5, 1040.5, 2080.5, 3120.5]
+PASS A2b stage positions are distinct (no stacked bodies) | stage x [0.5, 1040.5, 2080.5, 3120.5]
+PASS A2c every observation window contains its own terrain (non-empty cells) | non-empty cells per world [1239, 1141, 1156, 1024]
+PASS A2d no window reports 'outside the world' fluid code | windows are inside the world
+PASS A3 goals lie in the 64 x 64 viewport around the spawn tile | (world, goal cell, player cell, relative goal) = [(0, (82, 81), (64, 64), (18.0, 17.0)), (1, (85, 80), (64, 64), (21.0, 16.0)), (2, (82, 65), (64, 64), (18.0, 1.0)), (3, (33, 47), (64, 64), (-31.0, -17.0))]
+PASS A3b relative-goal observation = goal tile - player tile (recomputed independently) | see A3 details
+PASS A3c goal world coordinates are in the world's local frame | goal_world_xy == (gx - 64 + 0.5, gy - 64 + 0.5)
+PASS A4 goal sampling is uniform over the viewport | x in [32, 95] mean 63.32; y in [32, 95] mean 63.42
+PASS A5 arrival detection: on the goal tile | terminated=True reason=arrival bonus=10.00 reward=10.798
+PASS A5 arrival detection: diagonal neighbour | terminated=True reason=arrival bonus=10.00 reward=10.703
+PASS A5 arrival detection: two tiles away | terminated=False reason=None bonus=0.00 reward=0.677
+PASS A5b arrival bonus is 10 and paid once with the improvement term | bonus 10.0
+PASS A6 distance-improvement reward pays only for new all-time bests (0.1 x improvement) | (step, paid, recomputed) = [('closer', 0.0724, 0.0724), ('farther than before', 0.0, 0.0), ('same best again', 0.0, 0.0), ('new best', 0.404, 0.404), ('regress', 0.0, 0.0)]
+PASS A7 timeout: episode is truncated (not terminated) exactly at the step limit | steps [(1, False, None), (2, False, None), (3, False, None), (4, False, None), (5, False, None), (6, True, 'time_limit')]
+PASS A8 terrain edits stay inside their own world (logical and collider terrain) | edited tile (64, 7) of world 0; logical before ['8c667f27b81a', '428e8b073283', '23299cf49eb6', '9f67679f413e'], after ['79a8a850bde2', '428e8b073283', '23299cf49eb6', '9f67679f413e']; collider terrain after ['79a8a850bde2', '428e8b073283', '23299cf49eb6', '9f67679f413e'] (before ['8c667f27b81a', '428e8b073283', '23299cf49eb6', '9f67679f413e'])
+PASS A8b reset_done re-draws the goal and restores the terrain of the finished world only | goals before {0: (45, 93), 1: (32, 43), 2: (83, 45), 3: (93, 46)} after {0: (50, 37), 1: (32, 43), 2: (83, 45), 3: (93, 46)}; terrain restored True
+PASS L0 threshold is CasU's rule: y < -halfHeight + 3.1 | halfHeight 64, margin 3.1, threshold y < -60.9 (world-relative; floor rows span y -64..-62)
+PASS L1 resting on the intact floor never counts as an exit | lowest y over 12 decisions x 4 worlds = -1.38 (threshold -60.9)
+PASS L2 bottom exit is a TRUE terminal transition with reason layer_exit (not a truncation) | after 3 decisions: terminated=True truncated=False reason=layer_exit
+PASS L2b it fires at the first decision with y below the threshold | y before -56.599857330322266, at exit -61.89, threshold -60.9
+PASS L2c no failure reward and no penalty: the exit step pays only the ordinary distance term, never the arrival bonus, never a negative | reward 0.0000 = distance term 0.0000, bonus 0.0
+PASS L2d other worlds are unaffected while one world exits | others ended per step [[False, False, False], [False, False, False], [False, False, False]]
+PASS L3 world, Timmy and goal are re-initialised: spawn at the world centre, terrain restored, new goal inside the viewport, counters cleared | spawn (0.50, 0.50), goal (62, 46) -> (39, 66), terrain restored True
+PASS L3b post-reset observation is valid: relative goal = goal tile - player tile, window holds terrain | relative goal (-25.0, 2.0), non-empty cells 1156
+PASS L3c the other worlds keep their goals and positions | goals and logical positions of the other worlds unchanged by the reset
+PASS L3d the next episode of the reset world runs normally | after one decision: y = 0.62, ended = False
+PASS L4 precedence: arrival beats layer exit when both hold in one decision | y = -62.71 (below threshold), reason arrival, bonus 10.0
+PASS L5 precedence: layer exit beats the decision ceiling (terminated, not truncated) when both fall in one decision | decisions (terminated, truncated, reason) = [(False, False, None), (False, False, None), (True, False, 'layer_exit')]
+PASS L6 the decision ceiling still truncates (time_limit, not terminated) on an intact floor | reason time_limit
+PASS L7 repeated layer exits in several worlds: every exit is terminal, every reset returns Timmy to the centre, the next episode runs | rounds (exit flags, reset at centre, next episode valid) = [({1: (True, False), 3: (True, False)}, True, True), ({1: (True, False), 3: (True, False)}, True, True), ({1: (True, False), 3: (True, False)}, True, True)]
+AUDIT PASSED: 32 of 32 checks
+Loading user config located at: '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/data/Kit/Isaac-Sim/4.5/user.config.json'
+[Info] [carb] Logging to file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/logs/Kit/Isaac-Sim/4.5/kit_20261014_182319.log
+2026-10-14 22:23:19 [0ms] [Warning] [omni.kit.app.plugin] No crash reporter present, dumps uploading isn't available.
+2026-10-14 22:23:19 [2ms] [Warning] [omni.ext.plugin] [ext: rendering_modes] Extensions config 'extension.toml' doesn't exist '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes' or '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes/config'
+2026-10-14 22:23:19 [328ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-10-14 22:23:19 [502ms] [Warning] [omni.datastore] OmniHub is inaccessible
+2026-10-14 22:23:19 [658ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 615.71.09     | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 3070          | Yes: 0 |     | 8438    MB | 10de      | 0          |
+|     |                                  |        |     |            | 2488      | 364378d9.. |
+|     |                                  |        |     |            | 1         |            |
+|=============================================================================================|
+| OS: 44 (KDE Plasma Desktop Edition) fedora, Version: 44.00.0, Kernel: 7.2.9-200.fc44.x86_64
+| XServer Vendor: The X.Org Foundation, XServer Version: 12401014 (1.24.1.14)
+| Processor: 11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz
+| Cores: 8 | Logical Cores: 16
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 31915 | Free Memory: 25024
+| Total Page/Swap (MB): 8191 | Free Page/Swap: 5162
+|---------------------------------------------------------------------------------------------|
+2026-10-14 22:23:24 [5,559ms] [Warning] [omni.physx.plugin] Detected a rigid at /World/Env_00000/CasuPlayer with more than 4 velocity iterations being added to a TGS scene.The related behavior changed recently, please consult the changelog. This warning will only print once.
+2026-10-14 22:23:25 [6,814ms] [Warning] [omni.fabric.plugin] gFabricState->gUsdStageToSimStageWithHistoryMap had 1 outstanding SimStageWithHistory(s) at shutdown
+2026-10-14 22:23:26 [6,868ms] [Warning] [carb] Recursive unloadAllPlugins() detected!

@@ -15,6 +15,7 @@ from isaaclab.app import AppLauncher
 p = argparse.ArgumentParser()
 p.add_argument("--output", type=Path, required=True)
 p.add_argument("--worlds", type=int, default=4)
+p.add_argument("--layer-exit", action="store_true", help="audit termination contract v2: the bottom exit (CasU layer transition) is a true terminal event")
 p.add_argument("--guarded", action="store_true", help="audit the exploratory variant that ends an episode when the agent leaves the world")
 AppLauncher.add_app_launcher_args(p)
 args = p.parse_args(); args.headless = True
@@ -37,6 +38,137 @@ def neutral(n):
     return {h.name: np.full(n, {"move_x": 1, "jump": 0, "move_y": 1, "crouch": 0, "look_dx": 4, "look_dy": 5, "attack": 0}[h.name]) for h in cfgmod.ACTION.heads}
 
 
+THRESHOLD = -64 + 3.1          # CasU WorldGeneration.cs: body.y < -halfHeight + 3.1 (halfHeight = 64 for the 128-tile world)
+
+
+def dig_shaft(env, w, gx0=62, gx1=66, gy0=0, gy1=12):
+    """Remove the floor and the cells above it in a 5-wide shaft of world w (logical and collider terrain)."""
+    for gx in range(gx0, gx1 + 1):
+        for gy in range(gy0, gy1 + 1):
+            env.slots[w].edit_block(gx, gy, 0)
+    env._rebuild_dirty([w])
+
+
+def terrain_hash(env, w):
+    return hashlib.sha256(np.ascontiguousarray(env.slots[w].physical_blocks).tobytes()).hexdigest()[:12]
+
+
+def fall_until_exit(env, n, w, limit=25):
+    """Step with neutral actions until world w ends its episode; returns the per-step record."""
+    record = []
+    for k in range(limit):
+        _, reward, terminated, truncated, info = env.step(neutral(n))
+        record.append({"step": k + 1, "y": float(info["player"][w]["y"]), "terminated": bool(terminated[w]), "truncated": bool(truncated[w]),
+                       "reason": info["termination_reason"][w], "reward": float(reward[w]),
+                       "bonus": float(info["reward_terms"].get("arrival_bonus", np.zeros(n))[w]),
+                       "improvement": float(info["reward_terms"].get("distance_improvement", np.zeros(n))[w]),
+                       "others_ended": [bool(terminated[j] or truncated[j]) for j in range(n) if j != w]})
+        if terminated[w] or truncated[w]:
+            break
+    return record
+
+
+def layer_exit_checks(env, n, W, initial_hashes):
+    """Contract v2: bottom exit = true terminal, no reward/penalty, precedence arrival > exit > ceiling, independent worlds, valid post-reset episodes."""
+    check("L0 threshold is CasU's rule: y < -halfHeight + 3.1", abs(THRESHOLD - (-60.9)) < 1e-9 and env.cfg.layer_exit_margin == 3.1 and env.slots[0].grid.height // 2 == 64,
+          f"halfHeight {env.slots[0].grid.height // 2}, margin {env.cfg.layer_exit_margin}, threshold y < {THRESHOLD:.1f} (world-relative; floor rows span y -64..-62)")
+    env.reset(seed=11)
+    ys, exited = [], False
+    for _ in range(12):
+        _, reward, terminated, truncated, info = env.step(neutral(n))
+        ys.extend(float(p["y"]) for p in info["player"])
+        exited |= any(r == "layer_exit" for r in info["termination_reason"])
+    check("L1 resting on the intact floor never counts as an exit", not exited and min(ys) > THRESHOLD, f"lowest y over 12 decisions x {n} worlds = {min(ys):.2f} (threshold {THRESHOLD:.1f})")
+    env.reset(seed=12)
+    base = {i: terrain_hash(env, i) for i in range(n)}
+    w = 2
+    dig_shaft(env, w)
+    teleport(env, w, 0.5, -52.0)
+    best_before = env.slots[w].best_goal_distance
+    rec = fall_until_exit(env, n, w)
+    last, prev = rec[-1], (rec[-2] if len(rec) > 1 else None)
+    exit_after = len(rec)
+    check("L2 bottom exit is a TRUE terminal transition with reason layer_exit (not a truncation)", last["terminated"] and not last["truncated"] and last["reason"] == "layer_exit",
+          f"after {len(rec)} decisions: terminated={last['terminated']} truncated={last['truncated']} reason={last['reason']}")
+    check("L2b it fires at the first decision with y below the threshold", last["y"] < THRESHOLD and (prev is None or prev["y"] >= THRESHOLD), f"y before {prev['y'] if prev else None}, at exit {last['y']:.2f}, threshold {THRESHOLD:.1f}")
+    check("L2c no failure reward and no penalty: the exit step pays only the ordinary distance term, never the arrival bonus, never a negative",
+          last["bonus"] == 0.0 and last["improvement"] >= 0.0 and abs(last["reward"] - last["improvement"]) < 1e-6, f"reward {last['reward']:.4f} = distance term {last['improvement']:.4f}, bonus {last['bonus']}")
+    check("L2d other worlds are unaffected while one world exits", not any(any(r["others_ended"]) for r in rec), f"others ended per step {[r['others_ended'] for r in rec]}")
+    before_goals = {i: env.slots[i].goal_cell for i in range(n)}
+    before_pos = {i: (env.slots[i].model.s.x, env.slots[i].model.s.y) for i in range(n) if i != w}
+    old_goal = env.slots[w].goal_cell
+    mask = np.zeros(n, dtype=bool); mask[w] = True
+    env.reset_done(mask, observe=False)
+    obs = env._format_observation()
+    s2 = env.slots[w]
+    px, py = cell_of(env, w, s2.model.s.x, s2.model.s.y)
+    rel = obs["goal_relative"][w]
+    check("L3 world, Timmy and goal are re-initialised: spawn at the world centre, terrain restored, new goal inside the viewport, counters cleared",
+          abs(s2.model.s.x - 0.5) < 1e-6 and abs(s2.model.s.y - 0.5) < 1e-6 and terrain_hash(env, w) == base[w] and 32 <= s2.goal_cell[0] < 96 and 32 <= s2.goal_cell[1] < 96
+          and s2.goal_cell != old_goal and s2.elapsed_steps == 0 and s2.blocks_destroyed == 0,
+          f"spawn ({s2.model.s.x:.2f}, {s2.model.s.y:.2f}), goal {old_goal} -> {s2.goal_cell}, terrain restored {terrain_hash(env, w) == base[w]}")
+    check("L3b post-reset observation is valid: relative goal = goal tile - player tile, window holds terrain", bool(rel[0] == s2.goal_cell[0] - px and rel[1] == s2.goal_cell[1] - py) and int((obs["spatial"][w][0] > 0).sum()) > 100,
+          f"relative goal {tuple(float(v) for v in rel)}, non-empty cells {int((obs['spatial'][w][0] > 0).sum())}")
+    check("L3c the other worlds keep their goals and positions", all(env.slots[i].goal_cell == before_goals[i] for i in range(n) if i != w)
+          and all(env.slots[i].model.s.x == before_pos[i][0] and env.slots[i].model.s.y == before_pos[i][1] for i in before_pos), "goals and logical positions of the other worlds unchanged by the reset")
+    _, reward, terminated, truncated, info = env.step(neutral(n))
+    check("L3d the next episode of the reset world runs normally", not (terminated[w] or truncated[w]) and float(info["player"][w]["y"]) > THRESHOLD and abs(float(info["player"][w]["x"]) - 0.5) < 1.0,
+          f"after one decision: y = {float(info['player'][w]['y']):.2f}, ended = {bool(terminated[w] or truncated[w])}")
+    env.reset(seed=13)
+    w = 0
+    dig_shaft(env, w)
+    s0 = env.slots[w]
+    s0.goal_cell = (64, 1)
+    s0.goal_world_xy = (64 - W / 2 + 0.5, 1 - s0.grid.height / 2 + 0.5)
+    from casu_grid.xy1 import BestDistanceReward
+    teleport(env, w, 0.5, -61.5)
+    d = math.dist((0.5, -61.5), s0.goal_world_xy)
+    s0.best_goal_distance = s0.initial_goal_distance = d
+    s0.xy1_reward = BestDistanceReward(d)
+    _, reward, terminated, truncated, info = env.step(neutral(n))
+    y = float(info["player"][w]["y"])
+    check("L4 precedence: arrival beats layer exit when both hold in one decision", y < THRESHOLD and bool(terminated[w]) and info["termination_reason"][w] == "arrival" and float(info["reward_terms"]["arrival_bonus"][w]) == 10.0,
+          f"y = {y:.2f} (below threshold), reason {info['termination_reason'][w]}, bonus {float(info['reward_terms']['arrival_bonus'][w])}")
+    env.reset(seed=14)
+    w = 1
+    dig_shaft(env, w)
+    teleport(env, w, 0.5, -52.0)
+    rec = []
+    for k in range(exit_after):
+        if k == exit_after - 1:
+            env.slots[w].elapsed_steps = env.cfg.episode_length_steps - 1        # the ceiling falls into exactly the decision in which the body exits
+        _, reward, terminated, truncated, info = env.step(neutral(n))
+        rec.append((bool(terminated[w]), bool(truncated[w]), info["termination_reason"][w]))
+    check("L5 precedence: layer exit beats the decision ceiling (terminated, not truncated) when both fall in one decision", rec[-1] == (True, False, "layer_exit") and not any(r[0] or r[1] for r in rec[:-1]),
+          f"decisions (terminated, truncated, reason) = {rec}")
+    env.reset(seed=15)
+    env.slots[3].elapsed_steps = env.cfg.episode_length_steps - 1
+    _, reward, terminated, truncated, info = env.step(neutral(n))
+    check("L6 the decision ceiling still truncates (time_limit, not terminated) on an intact floor", bool(truncated[3]) and not bool(terminated[3]) and info["termination_reason"][3] == "time_limit", f"reason {info['termination_reason'][3]}")
+    outcomes = []
+    for rnd in range(3):
+        env.reset(seed=100 + rnd)
+        for w in (1, 3):
+            dig_shaft(env, w)
+            teleport(env, w, 0.5, -52.0)
+        seen = {1: None, 3: None}
+        for _ in range(25):
+            _, reward, terminated, truncated, info = env.step(neutral(n))
+            for w in (1, 3):
+                if seen[w] is None and info["termination_reason"][w] == "layer_exit":
+                    seen[w] = (bool(terminated[w]), bool(truncated[w]))
+            if all(v is not None for v in seen.values()):
+                break
+        mask = np.zeros(n, dtype=bool); mask[[1, 3]] = True
+        env.reset_done(mask, observe=False)
+        okp = all(abs(env.slots[w].model.s.x - 0.5) < 1e-6 and abs(env.slots[w].model.s.y - 0.5) < 1e-6 for w in (1, 3))
+        _, reward, terminated, truncated, info = env.step(neutral(n))
+        okn = all(not (terminated[w] or truncated[w]) and float(info["player"][w]["y"]) > THRESHOLD for w in (1, 3))
+        outcomes.append((seen, okp, okn))
+    check("L7 repeated layer exits in several worlds: every exit is terminal, every reset returns Timmy to the centre, the next episode runs",
+          all(all(v == (True, False) for v in seen.values()) and okp and okn for seen, okp, okn in outcomes), f"rounds (exit flags, reset at centre, next episode valid) = {outcomes}")
+
+
 def teleport(env, i, x, y):
     s = env.slots[i].model.s
     s.x, s.y, s.vx, s.vy = float(x), float(y), 0.0, 0.0
@@ -56,7 +188,7 @@ def main():
     assert os.environ.get("CASU_LEGACY_MINI_SPAWN", "0") != "1", "legacy spawn must be off"
     cb = cfgmod.callbacks()
     cfg = IsaacLayer1EnvConfig(seed=391728405, num_envs=n, spawn_mode="canonical", navigation_mode=True, world_variant="xy1_mini_128x128",
-                               observation_window_tiles=(64, 64), episode_length_steps=6, num_workers=1, terminate_out_of_world=args.guarded)
+                               observation_window_tiles=(64, 64), episode_length_steps=6, num_workers=1, terminate_out_of_world=args.guarded, bottom_exit_terminates=args.layer_exit)
     env = BatchedIsaacLayer1Env(cfg, action_decoder=cb[0], observation_encoder=cb[1], reward_function=cb[2], terrain_mode="independent")
     obs, _ = env.reset(seed=12345)
     W = env.slots[0].grid.width
@@ -165,6 +297,11 @@ def main():
     restored = [hashlib.sha256(np.ascontiguousarray(s.physical_blocks).tobytes()).hexdigest()[:12] for s in env.slots]
     check("A8b reset_done re-draws the goal and restores the terrain of the finished world only", after[0] != before[0] and all(after[i] == before[i] for i in range(1, n)) and restored == ground,
           f"goals before {before} after {after}; terrain restored {restored == ground}")
+    if args.layer_exit:
+        layer_exit_checks(env, n, W, hashes)
+        env.close()
+        finish()
+        return
     # ---- A9 leaving the world
     obs, _ = env.reset(seed=6)
     teleport(env, 2, 0.5, -70.0)
@@ -183,8 +320,12 @@ def main():
         env.reset_done(np.array([False, False, True, False][:n]), observe=False)
         check("A9b variant: the agent is back inside its world after the reset", abs(env.slots[2].model.s.y) < 64 and abs(env.slots[2].model.s.x) < 64, f"local position after reset ({env.slots[2].model.s.x:.1f}, {env.slots[2].model.s.y:.1f})")
     env.close()
+    finish()
+
+
+def finish():
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps({"schema": "casu.xy1-readiness-audit.v1", "worlds": n, "results": RESULTS}, indent=2) + "\n")
+    args.output.write_text(json.dumps({"schema": "casu.xy1-readiness-audit.v1", "worlds": args.worlds, "results": RESULTS}, indent=2) + "\n")
     failed = [r for r in RESULTS if not r["passed"]]
     print(f"AUDIT {'PASSED' if not failed else 'FAILED'}: {len(RESULTS) - len(failed)} of {len(RESULTS)} checks", flush=True)
 

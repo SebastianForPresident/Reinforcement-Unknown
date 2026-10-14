@@ -399,7 +399,8 @@ class EvaluationPage(QtWidgets.QWidget):
             return
         proto = data["protocol"]
         self.protocol.setText(f"{proto['worlds']} held-out worlds × {proto['rounds']} goal draws, horizon {proto['horizon_decisions']} decisions, evaluation seed {proto['eval_seed']}, "
-                              f"terrain seeds from {proto['terrain_seed_first']} (training used {proto['training_terrain_seed_first']}+), source {(data.get('source_revision') or '?')[:7]}.")
+                              f"terrain seeds from {proto['terrain_seed_first']} (training used {proto['training_terrain_seed_first']}+), termination contract {data.get('termination_contract', 'xy1-termination-v1')}, "
+                              f"source {(data.get('source_revision') or '?')[:7]}.")
         results = data["results"]
         policies = []
         for r in results:

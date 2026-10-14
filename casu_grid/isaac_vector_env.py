@@ -848,8 +848,10 @@ class BatchedIsaacLayer1Env(gym.Env):
                 d=self._goal_distance((current['x'],current['y']),slot.goal_world_xy)
                 reward,item_terms=slot.xy1_reward((current['x'],current['y']),slot.goal_world_xy,arrived)
                 slot.best_goal_distance=slot.xy1_reward.best_distance
-                slot.elapsed_steps+=1;term=arrived;trunc=slot.elapsed_steps>=self.cfg.episode_length_steps and not term
-                reason='arrival' if term else 'time_limit' if trunc else None;slot.last_state=current
+                # event precedence: goal arrival, then layer exit (true terminal), then the decision ceiling (truncation)
+                layer_exit=bool(self.cfg.bottom_exit_terminates and not arrived and current['y'] < -(slot.grid.height//2) + self.cfg.layer_exit_margin)
+                slot.elapsed_steps+=1;term=arrived or layer_exit;trunc=slot.elapsed_steps>=self.cfg.episode_length_steps and not term
+                reason='arrival' if arrived else 'layer_exit' if layer_exit else 'time_limit' if trunc else None;slot.last_state=current
                 if self.cfg.terminate_out_of_world and not term and not trunc and (abs(current['x'])>slot.grid.width/2 or abs(current['y'])>slot.grid.height/2):
                     trunc=True;reason='out_of_world'      # exploratory variant: a body that left the world can never reach its goal again
                 xy1_diag['outside_world'][i]=float(abs(current['x'])>slot.grid.width/2 or abs(current['y'])>slot.grid.height/2);xy1_diag['goal_distance'][i]=d;xy1_diag['best_distance'][i]=slot.best_goal_distance;xy1_diag['initial_distance'][i]=slot.initial_goal_distance;xy1_diag['blocks_destroyed'][i]=slot.blocks_destroyed

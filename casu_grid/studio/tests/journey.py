@@ -85,7 +85,7 @@ class Harness:
 def start_from_experiments(h: Harness, preset: str, updates: int | None = None, name: str | None = None, resume: dict | None = None, seed: int | None = None):
     page = h.page("experiments")
     h.go("experiments", resume)
-    exp_row = next(i for i, e in enumerate(h.ctx.experiments) if e.is_mini and not e.variant_note)     # always the validated XY1 mini-world unless a stage chose another
+    exp_row = next(i for i, e in enumerate(h.ctx.experiments) if e.role == "recommended")     # always the validated XY1 mini-world unless a stage chose another
     if not getattr(h, "experiment_chosen", False):
         page.list.setCurrentRow(exp_row)
         h.pump(0.4)
@@ -481,6 +481,33 @@ def stage_diag_eval(h: Harness, args) -> bool:
     h.pump(1.5)
     h.shot(f"74_diagnostic_evaluation{args.tag}")
     h.window.resize(1360, 860)
+    return all(l.startswith("PASS") for l in LOG)
+
+
+def stage_layer_exit_smoke(h: Harness, args) -> bool:
+    """Engineering smoke of termination contract v2: repeated bottom exits and valid episodes afterwards, watched in the Studio (16 x 2, 60 updates; not a learning run)."""
+    page = start_from_experiments(h, "smoke", updates=60, name=args.run_name or time.strftime("%Y%m%d-%H%M%S-layer-exit-smoke"))
+    plan = page.current_plan()
+    check(plan.experiment.termination_contract == "xy1-termination-v2-layer-exit", f"experiment is {plan.experiment.termination_contract}")
+    check(any("Termination contract v2" in c.title for c in page._checks), "validation names the termination contract")
+    h.shot("90_layer_exit_experiment")
+    press_start(h, page)
+    run_dir = plan.run_dir
+    done = h.wait(lambda: _status(h, run_dir) in ("completed", "failed", "interrupted"), 600, step=1.0)
+    rec = h.run_record(run_dir)
+    check(done and rec.status == "completed", f"run finished: {rec.status}, {rec.updates_done} updates")
+    check(rec.termination_contract == "xy1-termination-v2-layer-exit", "run record carries the termination contract")
+    h.go("metrics", {"run": str(run_dir), "chart": "nav_layer_exit"})
+    h.pump(1.5)
+    h.shot("91_layer_exit_metrics_focus")
+    mp = h.page("metrics")
+    mp._leave_focus()
+    h.pump(1.0)
+    h.shot("92_layer_exit_metrics_overview")
+    h.go("training", run_dir)
+    h.pump(1.0)
+    h.shot("93_layer_exit_training")
+    (args.shots.parent / "last_layer_exit_smoke.txt").write_text(str(run_dir) + "\n")
     return all(l.startswith("PASS") for l in LOG)
 
 

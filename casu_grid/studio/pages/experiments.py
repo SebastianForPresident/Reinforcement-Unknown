@@ -92,10 +92,10 @@ class ExperimentsPage(QtWidgets.QWidget):
         self.error_banner = Banner("bad", "", "")
         self.error_banner.hide()
         self.layout_.addWidget(self.error_banner)
-        self.limit_banner = Banner("warn", "Known limitation of XY1 as defined: agents can fall out of the world",
-                                   "The floor of a world can be destroyed, and nothing ends an episode when the agent falls out of the world. In real runs "
-                                   "about a fifth of the agents are gone after roughly 20 updates and most after 100; they are lost to training until the 100,000-decision ceiling. "
-                                   "The Studio measures this (chart “Agents that left the world”) but does not change the experiment. See the learning-readiness report.")
+        self.limit_banner = Banner("warn", "Reference termination contract v1: agents can fall out of the world and are never reset",
+                                   "The floor of a world can be destroyed, and in this reference contract nothing ends an episode when the agent falls out of the world. In real runs "
+                                   "10 % of the agents are gone after about 30 updates and 90 % after about 100. Kept as the reproducible reference; for learning use the termination-v2 experiment "
+                                   "(bottom-of-layer exit ends the episode). See the learning-readiness report.")
         self.layout_.addWidget(self.limit_banner)
         self.about = Card("About this experiment")
         self.about_text = make_label("")
@@ -219,7 +219,7 @@ class ExperimentsPage(QtWidgets.QWidget):
         self.list.blockSignals(True)
         self.list.clear()
         for exp in self.ctx.experiments:
-            tag = "  ★ recommended" if (exp.is_mini and not exp.variant_note) else ("  (exploratory variant)" if exp.variant_note else "")
+            tag = {"recommended": "  ★ recommended (termination v2)", "reference": "  (reference, termination v1)", "superseded": "  (superseded variant)"}.get(exp.role, "")
             item = QtWidgets.QListWidgetItem(f"{exp.name}{tag}")
             item.setToolTip(str(exp.path))
             self.list.addItem(item)
@@ -240,10 +240,10 @@ class ExperimentsPage(QtWidgets.QWidget):
         self.header.title.setText(exp.name)
         self.header.subtitle.setText(str(exp.path.relative_to(launch.env.ROOT)) if exp.path.is_relative_to(launch.env.ROOT) else str(exp.path))
         chips = []
-        if exp.is_mini and not exp.variant_note:
+        if exp.is_mini:
             chips.append("★ validated layout: 64 worlds × 8 workers")
-        if exp.variant_note:
-            chips.append("⚠ EXPLORATORY VARIANT: " + exp.variant_note)
+        chips.append({"recommended": "termination contract v2: bottom-of-layer exit ends the episode", "reference": "REFERENCE termination contract v1: agents that fall out of the world are never reset",
+                      "superseded": "⚠ " + (exp.variant_note or "")}.get(exp.role, ""))
         if exp.error:
             chips.append("✖ file does not load")
         elif exp.mismatches:
@@ -259,7 +259,7 @@ class ExperimentsPage(QtWidgets.QWidget):
             self.error_banner.hide()
             for w in (self.about, self.fixed, self.workload):
                 w.setVisible(True)
-            self.limit_banner.setVisible(exp.is_xy1 and not exp.variant_note)
+            self.limit_banner.setVisible(exp.role == "reference")
             self.about_text.setText(f"{exp.description}<br><br><b>Hypothesis.</b> {exp.hypothesis}<br><br><span class='muted'>{exp.notes}</span>")
             self._fill_fixed(exp)
         self._regen_name()
@@ -303,7 +303,7 @@ class ExperimentsPage(QtWidgets.QWidget):
         self._resume_choices = []
         if exp and exp.fingerprint:
             for run in self.ctx.runs:
-                if run.latest and run.status not in ("starting", "running", "stopping") and run.latest.fingerprint in (None, exp.fingerprint):
+                if run.latest and run.status not in ("starting", "running", "stopping") and run.latest.fingerprint in (None, exp.fingerprint) and run.latest.termination_contract == exp.termination_contract:
                     self._resume_choices.append((run.latest, run))
                     other = bool(run.config_sha256 and exp.sha256 and run.config_sha256 != exp.sha256)
                     self.start_from.addItem(f"Continue “{run.run_id}” from update {run.latest.update if run.latest.update is not None else '?'}"

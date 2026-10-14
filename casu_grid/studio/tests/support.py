@@ -33,20 +33,22 @@ def metrics_row(update: int, *, arrivals: float | None = None, episodes: int = 0
 
 
 def make_run(root: Path, name: str, *, updates: int = 30, status: str = "completed", fingerprint: str | None = "fp-test", seed: int = 7, worlds: int = 64,
-             workers: int = 8, config_path: str | None = None, config_sha: str = "abc", rows: list[dict] | None = None, pid: int | None = None) -> Path:
+             workers: int = 8, config_path: str | None = None, config_sha: str = "abc", rows: list[dict] | None = None, pid: int | None = None,
+             termination: str | None = "xy1-termination-v2-layer-exit") -> Path:
     run = root / name
     run.mkdir(parents=True)
     (run / "config.json").write_text(json.dumps({
         "schema": "casu.training-run.v1", "run_id": name, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "seed": seed, "git_revision": "0123456789abcdef",
         "config_path": config_path or "/x/xy1_point_navigation_mini.py", "config_sha256": config_sha,
-        "experiment": {"name": "XY1 Point Navigation · Mini World 128 × 128"}, "environment": {"num_envs": worlds}, "run_kind": "research_training"}))
+        "experiment": {"name": "XY1 Point Navigation · Mini World 128 × 128"}, "environment": {"num_envs": worlds, **({"termination_contract": termination} if termination else {})}, "run_kind": "research_training"}))
     (run / "environment.json").write_text(json.dumps({"performance": {"num_workers": workers, "physx_threads_per_worker": 2}}))
     rows = rows if rows is not None else [metrics_row(i, seed=seed, episodes=1 if i % 5 == 0 else 0) for i in range(1, updates + 1)]
     (run / "metrics.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     if rows:
         (run / "latest.pt").write_bytes(b"x" * 1024)
         (run / "latest.pt.json").write_text(json.dumps({"update_count": len(rows), "total_steps": len(rows) * 4096, "contract_fingerprint": fingerprint,
-                                                         "world_partition": [worlds // workers] * workers, "saved_utc": "2026-10-14T00:00:00Z"}))
+                                                         "world_partition": [worlds // workers] * workers, "saved_utc": "2026-10-14T00:00:00Z",
+                                                         **({"environment_contract": {"termination": termination}} if termination else {})}))
     if status == "completed":
         (run / "COMPLETE").write_text("done\n")
     elif status == "failed":

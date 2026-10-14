@@ -109,6 +109,7 @@ class PPOTrainer:
                                           capturable=self._graph_enabled())      # device-resident step counter (CUDA graphs)
         self.update_count = 0
         self.total_steps = 0
+        self.environment_contract: dict | None = None      # e.g. {'termination': 'xy1-termination-v2-layer-exit'}; set by the launcher, stored in every checkpoint
         self.rng = np.random.default_rng(seed)
         self._observation = None
         self._recurrent_state = None
@@ -680,6 +681,7 @@ class PPOTrainer:
             "episode_returns": self._episode_returns,
             "episode_lengths": self._episode_lengths,
             "environment_state": self.env.snapshot() if hasattr(self.env, "snapshot") else None,
+            "environment_contract": self.environment_contract,
             "metadata": metadata or {},
         }
         # A process interruption during serialization must leave the previous
@@ -706,6 +708,7 @@ class PPOTrainer:
             info = {"schema": "casu.checkpoint-info.v1", "checkpoint_schema": checkpoint["schema"],
                     "contract_fingerprint": checkpoint["contract_fingerprint"], "update_count": int(checkpoint["update_count"]),
                     "total_steps": int(checkpoint["total_steps"]), "world_partition": list(sizes) if sizes is not None else None,
+                    "environment_contract": checkpoint.get("environment_contract"),
                     "terrain_mode": environment.get("terrain_mode") if isinstance(environment, dict) else None,
                     "saved_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "size_bytes": path.stat().st_size,
                     "metadata": checkpoint.get("metadata", {})}
@@ -725,8 +728,8 @@ class PPOTrainer:
         if checkpoint.get("contract_fingerprint") != self.contract_fingerprint:
             raise ValueError("PPO checkpoint learning contract is incompatible with this run")
         self.model.load_state_dict(checkpoint["model"])
-        return {"update_count": int(checkpoint["update_count"]), "total_steps": int(checkpoint["total_steps"]),
-                "metadata": checkpoint.get("metadata", {})}
+        return {"update_count": int(checkpoint["update_count"]), "total_steps": int(checkpoint["total_steps"]), "metadata": checkpoint.get("metadata", {}),
+                "termination_contract": ((checkpoint.get("environment_contract") or {}).get("termination")) or "xy1-termination-v1"}
 
     def load(self, path: str | Path):
         checkpoint = torch.load(path, map_location=self.device, weights_only=False)
@@ -734,6 +737,11 @@ class PPOTrainer:
             raise ValueError("unsupported PPO checkpoint schema")
         if checkpoint.get("contract_fingerprint") != self.contract_fingerprint:
             raise ValueError("PPO checkpoint learning contract is incompatible with this run")
+        if self.environment_contract is not None:
+            saved = ((checkpoint.get("environment_contract") or {}).get("termination")) or "xy1-termination-v1"      # checkpoints before contract ids are the reference XY1
+            if saved != self.environment_contract["termination"]:
+                raise ValueError(f"PPO checkpoint was trained under termination contract {saved}; this run uses {self.environment_contract['termination']}. "
+                                 "They are different experiments: start a new run instead of resuming.")
         self.model.load_state_dict(checkpoint["model"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
         self.adopt_optimizer_state()
@@ -769,6 +777,9 @@ def navigation_metrics(episodes: dict, active: dict | None, blocks_destroyed: fl
         "nav/completed_episodes": completed,
         "nav/arrivals": len(arrivals),
         "nav/timeouts": sum(1 for r in reasons if r == "time_limit"),
+        "nav/layer_exits": sum(1 for r in reasons if r == "layer_exit"),                  # contract v2: bottom-of-layer exits (true terminals); 0 for the reference XY1
+        "nav/layer_exits_per_1k_decisions": 1000.0 * sum(1 for r in reasons if r == "layer_exit") / max(1, decisions),
+        "nav/decisions_to_layer_exit_mean": mean([episodes["length"][i] for i, r in enumerate(reasons) if r == "layer_exit"]),
         "nav/out_of_world_resets": sum(1 for r in reasons if r == "out_of_world"),      # exploratory variant only; 0 for XY1 as defined
         "nav/arrival_rate": (len(arrivals) / completed) if completed else None,
         "nav/arrivals_per_1k_decisions": 1000.0 * len(arrivals) / max(1, decisions),
