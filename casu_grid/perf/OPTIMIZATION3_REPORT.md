@@ -13,10 +13,11 @@ starting commit** (CPU PPO, central policy evaluation, 4 workers × 2 PhysX thre
 
 ## A. Executive summary
 
-* **End-to-end throughput of the unchanged experiment rose 6.0–7.4×** against the re-measured baseline: 16 worlds 179 → 1,125 decisions/s (6.3×),
-  32 worlds 201 → 1,404 (7.0×), 64 worlds 216 → 1,652 (7.7×; 7.4× against the baseline's own best of 223 with 8 workers).
-  At the baseline's own configuration (4 workers) the gains are 6.2× / 6.6× / 6.0×. A 300-update, 1.2 M-decision soak at 64 worlds × 8 workers sustained
-  **1,602 decisions/s end-to-end (1,583 wall-clock including logging and checkpoints)** with flat memory (RSS 24.5 GiB, GPU 3.7 GiB) and no drift.
+* **End-to-end throughput of the unchanged experiment rose 6.1–7.6×** against the re-measured baseline: 16 worlds 179 → 1,198 decisions/s (6.7×),
+  32 worlds 201 → 1,460 (7.3×), 64 worlds 216 → 1,690 (7.8×; 7.6× against the baseline's own best of 223 with 8 workers).
+  At the baseline's own configuration (4 workers) the gains are 6.4× / 6.8× / 6.1×. A one-hour soak (1,500 updates, 6.14 M decisions) at 64 worlds × 8 workers sustained
+  **1,580 decisions/s end-to-end (1,558 wall-clock including logging and checkpoints)**, ≈ 7 % below the short-burst figure because the CPU runs at its thermal limit (84 °C package); memory grew by only ≈ 0.35 GiB/h
+  (summed RSS 24.5 → 24.9 GiB), GPU memory stayed flat at 3.7 GiB and no error occurred.
 * What the time was: the CPU ran the 16 × 64 × 64 convolution network for inference and for PPO (PPO alone was 46 % of the wall clock at 16 worlds, 54 % at 64 worlds with 8 workers), the parent evaluated the policy after
   every decision while all workers waited for the slowest one, 262 KB of float observations per world and decision crossed a pipe, 35 % of the worker time was the
   reference Python controller, crouch-shape switching issued one USD notice per attribute write, and every excavation re-authored a 300-cuboid chunk.
@@ -40,19 +41,20 @@ starting commit** (CPU PPO, central policy evaluation, 4 workers × 2 PhysX thre
 ## B. Benchmarks (worlds 16 / 32 / 64)
 
 Identical protocol for baseline and optimised (`perf/xy1_bench.py`, `workbench.train` as a research launch would run it, `--terrain-mode independent`, 2 PhysX threads per
-worker, 8–9 updates, first dropped; optimised figures are the mean of two repeats that agree within 0.5 %, raw JSON in `results/opt3/final/` and `results/opt3/bench/`).
+worker, 8–9 updates, first dropped; optimised figures are the mean of two repeats that agree within 1 %, raw JSON in `results/opt3/final2/` (final revision; `final/` is the previous revision before the direct-step and observation-slice changes) and `results/opt3/bench/`).
 Peak RSS is the sum over the process tree (shared pages counted once per process, so an overestimate); GPU memory is the whole-GPU high-water mark of the process
 tree (the desktop uses ≈ 380 MiB).
 
 | worlds | workers | baseline end-to-end | **optimised end-to-end** | speed-up | baseline rollout → optimised | optimiser s/update (base → opt) | peak RSS (base → opt) | GPU MiB (base → opt) |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 16 | 4 | 178.8 | **1,102** | **6.2×** | 328 → 1,344 | 2.61 → 0.17 | 10.1 → 13.2 GiB | 1,926 → 2,396 |
-| 16 | 8 | – | 1,125 | 6.3× (vs 4-worker baseline) | – → 1,378 | – → 0.17 | – → 23.0 GiB | – → 3,686 |
-| 32 | 4 | 200.8 | **1,324** | **6.6×** | 404 → 1,682 | 5.13 → 0.33 | 11.3 → 13.7 GiB | 1,926 → 2,416 |
-| 32 | 8 | – | 1,404 | 7.0× | – → 1,813 | – → 0.33 | – → 23.5 GiB | – → 3,690 |
-| 64 | 4 | 215.9 | **1,304** | **6.0×** | 450 → 1,655 | 9.87 → 0.67 | 13.9 → 14.8 GiB | 1,926 → 2,520 |
-| 64 | 6 | – | 1,555 | 7.2× | – → 2,078 | – → 0.66 | – → 19.6 GiB | – → 3,090 |
-| 64 | 8 | 223.1 | **1,652** | **7.4×** | 488 → 2,252 | 9.96 → 0.66 | 21.6 → 24.5 GiB | 2,950 → 3,714 |
+| 16 | 2 | – | 895 | 5.0× | – → 1,047 | – → 0.17 | – → 8.3 GiB | – → 1,760 |
+| 16 | 4 | 178.8 | **1,151** | **6.4×** | 328 → 1,417 | 2.61 → 0.17 | 10.1 → 13.2 GiB | 1,926 → 2,396 |
+| 16 | 8 | – | 1,198 | 6.7× (vs 4-worker baseline) | – → 1,492 | – → 0.17 | – → 22.9 GiB | – → 3,686 |
+| 32 | 4 | 200.8 | **1,362** | **6.8×** | 404 → 1,743 | 5.13 → 0.33 | 11.3 → 13.7 GiB | 1,926 → 2,416 |
+| 32 | 8 | – | 1,460 | 7.3× | – → 1,907 | – → 0.33 | – → 23.5 GiB | – → 3,690 |
+| 64 | 4 | 215.9 | **1,324** | **6.1×** | 450 → 1,687 | 9.87 → 0.67 | 13.9 → 14.7 GiB | 1,926 → 2,694 |
+| 64 | 6 | – | 1,589 | 7.4× | – → 2,138 | – → 0.66 | – → 19.6 GiB | – → 3,076 |
+| 64 | 8 | 223.1 | **1,690** | **7.6×** (7.8× vs the 4-worker baseline) | 488 → 2,321 | 9.96 → 0.66 | 21.6 → 24.5 GiB | 2,950 → 3,714 |
 
 Capacity checks (6 updates each, bounded by a memory guard that kills the run below 2.5 GiB available or +1.5 GiB swap):
 
@@ -63,13 +65,14 @@ Capacity checks (6 updates each, bounded by a memory guard that kills the run be
 | 96 | 12 | – | – | – | – | guard stopped the run at 2.3 GiB available: 12 Kit workers do not fit in 31 GB |
 | 64 | 10 | 1,519 (older revision) | – | 29.1 GiB | 4,063 | slower than 8 workers (7/6-world shards, SMT) |
 
-Soak (`results/opt3/bench/soak_e64_w8.json`): 64 worlds × 8 workers, 300 updates, 1,224,704 decisions, 1,602 decisions/s end-to-end (per-50-update means 1,610 / 1,615 / 1,605 /
-1,603 / 1,598 / 1,581), 1,583 wall-clock (the 1.2 % difference is logging, trajectory writes and the per-update checkpoint), RSS flat at 24.5 GiB, GPU flat at 3,714 MiB,
-minimum available memory 7.8 GiB, all losses finite. The slight downward trend (−2 % over 13 minutes) is consistent with the terrain filling with excavated rectangles under the random policy.
+Soak, one hour (`results/opt3/bench/soak60_e64_w8.json`, ledger-grade log `rssprobe_e64_w8.json`): 64 worlds × 8 workers, 1,500 updates, 6,139,904 decisions, **1,580 decisions/s end-to-end, 1,558 wall-clock**
+(the 1.4 % difference is logging, the 160-byte-per-decision trajectory file and the per-update checkpoint). Per-150-update means: 1,624 → 1,587 → 1,573 → 1,560 → 1,570 → 1,567 → 1,584 → 1,575 → 1,580 → 1,585: the first
+~450 updates lose 4 % as the random policy digs and the workers' physics time rises 1.60 → 1.67 s per rollout, then throughput plateaus. Summed RSS 24.5 → 24.9 GiB over the hour (+0.35 GiB/h: workers +42 MiB/h each, trainer flat),
+GPU 3,712 MiB flat, minimum available memory 6.8 GiB, all losses finite, `trajectories.jsonl` 978 MB (≈ 16 MB/min, ≈ 7.7 GB per 8 h). A shorter earlier soak (300 updates) gave 1,602 / 1,583.
 
 How the speed-up accumulated (16 worlds × 4 workers, measured in sequence on the same machine; the baseline in that session was 189): GPU PPO and inference 373 →
 worker-local rollouts 505 → CUDA-graph sampler + compact observations 604 → batched crouch writes 666 → CUDA-graph PPO minibatch 783 → compiled mini-world controller +
-direct tensor I/O 1,069 → spec writes + cudnn benchmark 1,140 (peak run; 1,102 in the final two-repeat table). Gains do not multiply: after each step a different part is the critical path.
+direct tensor I/O 1,069 → spec writes + cudnn benchmark 1,140 → direct `simulate`/`fetch_results` 1,151 (final two-repeat table). Gains do not multiply: after each step a different part is the critical path.
 
 ## C. Where the time goes
 
@@ -137,10 +140,10 @@ Remaining uncertainty: (i) incremental terrain and batched shape writes are stat
 ## E. Recommended training configuration
 
 * **Maximum throughput:** 64 worlds, 8 workers × 2 PhysX threads (the default thread count; 1 thread hangs PhysX in a worker, 3–4 do not help), CUDA PPO (`--train-device auto`, the new default), worker-local rollouts and CUDA graphs (all default on),
-  `CASU_NUM_WORKERS=8`. Sustained **≈ 1.6 k decisions/s end-to-end**. Budget for ~8 h (28,800 s): ≈ 46 M decisions = ≈ 11,000 PPO updates of 4,096 decisions (each ≈ 2.55 s: 1.7 s collection + 0.66 s optimisation + ≈ 1 % logging/checkpoint).
-  Memory: ≈ 24.5 GiB summed RSS (≈ 18 GiB PSS), 7.8 GiB system memory left, 3.7 GiB GPU — fine for a dedicated run, tight beside other heavy jobs (the GUI).
-* **Memory-lean alternative:** 64 worlds × 6 workers: 1.55 k decisions/s (−6 %), 19.6 GiB RSS, 3.1 GiB GPU; budget ≈ 43 M decisions ≈ 10,500 updates in 8 h.
-* **Smaller experiments:** 32 worlds × 8 workers 1.40 k decisions/s (≈ 40 M decisions in 8 h = ≈ 19,700 updates of 2,048; 32 × 4 gives 1.32 k if memory must be shared); 16 worlds × 4 workers 1.10 k decisions/s (≈ 32 M decisions ≈ 31,000 updates of 1,024).
+  `CASU_NUM_WORKERS=8`. Burst **1.69 k**, sustained over an hour **≈ 1.58 k decisions/s end-to-end (1.56 k wall-clock)**. Budget for ~8 h (28,800 s): ≈ 45 M decisions = ≈ 11,000 PPO updates of 4,096 decisions (each ≈ 2.6 s: 1.9 s collection + 0.66 s optimisation + ≈ 1.4 % logging/checkpoint).
+  Resources: ≈ 24.5–25 GiB summed RSS (≈ 18 GiB PSS; growth ≈ 0.35 GiB/h → ≈ 27 GiB after 8 h), ≈ 7 GiB system memory left after an hour, 3.7 GiB GPU, ≈ 7.7 GB of `trajectories.jsonl` per 8 h — fine for a dedicated run, tight beside other heavy jobs (the GUI). The package temperature (84 °C) is the practical clock limit.
+* **Memory-lean alternative:** 64 worlds × 6 workers: 1.59 k burst (≈ 1.5 k sustained, not soak-tested), 19.6 GiB RSS, 3.1 GiB GPU; budget ≈ 43 M decisions ≈ 10,500 updates in 8 h.
+* **Smaller experiments:** 32 worlds × 8 workers 1.46 k burst (≈ 40 M decisions in 8 h ≈ 19,500 updates of 2,048; 32 × 4 gives 1.36 k if memory must be shared); 16 worlds × 8 workers 1.20 k (4 workers 1.15 k, ≈ 33 M decisions ≈ 32,000 updates of 1,024).
 * Do not exceed 8 workers on this machine (10 is slower, 12 does not fit); 96–128 worlds fit but add < 3 % over 64.
 * Keep `CASU_SHAPE_BATCH`, `CASU_INCREMENTAL_TERRAIN`, `CASU_SHAPE_SPEC` at their defaults for production; set the first two to `0` (and `CASU_COMPILED_CONTROLLER` as is) for bit-exact regression gates.
 * Resume with `--resume <run>/latest.pt` (works for checkpoints written by this branch). The 8-hour campaign was **not** started.
@@ -155,6 +158,7 @@ Remaining uncertainty: (i) incremental terrain and batched shape writes are stat
 * **Workers are memory- and core-bound.** A Kit process costs ≈ 0.95 GiB before any world plus ≈ 0.6 GiB for the CUDA context used by the local policy; eight workers fill the 8 physical cores. More workers would need a leaner Kit configuration (fewer extensions) or more RAM.
 * **PPO update (28 % at 64 worlds).** The graph is launch-free; the remaining 2.4–3.0 ms per 32-sample minibatch is small-batch convolution and elementwise kernels. `torch.compile` needs a C++ compiler (`g++` is not installed); lower precision would change numerics and was not attempted.
 * **Inference contention.** Eight workers time-slice one GPU (≈ 2.5–4.5 % of the rollout); CUDA MPS might halve it (not enabled: system-wide daemon).
+* **Observed flake.** One of ~70 benchmark launches hung in the *trainer's* Kit start-up before any world was built (no worker had started; killed by the benchmark's 10-minute timeout; an identical relaunch worked). Long unattended runs should be launched with a start-up watchdog.
 * **Housekeeping.** The `e4_random_canonical` stored trajectory is stale (fails on the starting commit too) and should be re-recorded; `casu_grid/workbench/test_gui.py` does not import on this machine (not touched). Checkpoints written by the worker-local path do not resume in the central path.
 * **Not done:** a full-length learning comparison, a multi-hour soak (300 updates / 13 minutes were run), and any PhysX-GPU pipeline experiment (would change the physics).
 
