@@ -47,6 +47,7 @@ class _PolicyStep:
             "scale": torch.ones((1,), dtype=torch.float32, device=dev)}
         self.graph = None
         if dev.type == "cuda":
+            torch.backends.cudnn.benchmark = True
             side = torch.cuda.Stream()
             side.wait_stream(torch.cuda.current_stream())
             with torch.cuda.stream(side):
