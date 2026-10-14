@@ -1,0 +1,20 @@
+statistic                                       window      A mean      A sd      B mean      B sd      z
+entropy                                        first30     8.67216   0.01724     8.72043   0.01898   4.61
+entropy                                            all     8.61953   0.05102     8.72043   0.01898   4.54
+approx_kl                                      first30     0.00463   0.00063     0.00439   0.00022  -0.90
+approx_kl                                          all     0.00469   0.00057     0.00439   0.00022  -1.21
+policy_loss                                    first30    -0.00775   0.00050    -0.00786   0.00047  -0.41
+policy_loss                                        all    -0.00756   0.00035    -0.00786   0.00047  -1.28
+value_loss                                     first30     0.14745   0.10566     0.16876   0.18046   0.25
+value_loss                                         all     0.09061   0.05460     0.16876   0.18046   1.02
+grad_norm                                      first30     1.31381   0.05425     1.28996   0.01486  -1.04
+grad_norm                                          all     1.35482   0.09067     1.28996   0.01486  -1.73
+reward_term/distance_improvement               first30     0.00128   0.00043     0.00168   0.00064   1.29
+reward_term/distance_improvement                   all     0.00072   0.00026     0.00168   0.00064   3.43
+reward_term/arrival_bonus                      first30     0.00222   0.00153     0.00254   0.00274   0.24
+reward_term/arrival_bonus                          all     0.00141   0.00079     0.00254   0.00274   0.97
+epochs_completed                               first30     2.00000   0.00000     2.00000   0.00000   0.00
+epochs_completed                                   all     2.00000   0.00000     2.00000   0.00000   0.00
+optimizer_batches                              first30    64.00000   0.00000    64.00000   0.00000   0.00
+optimizer_batches                                  all    64.00000   0.00000    64.00000   0.00000   0.00
+largest |z| over non-action statistics: 4.61

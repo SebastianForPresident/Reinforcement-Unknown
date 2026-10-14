@@ -1,0 +1,50 @@
+diff --git a/casu_grid/workbench/ppo_graph.py b/casu_grid/workbench/ppo_graph.py
+index 0fe4af2..7a6eee7 100644
+--- a/casu_grid/workbench/ppo_graph.py
++++ b/casu_grid/workbench/ppo_graph.py
+@@ -14,9 +14,18 @@ Requirements handled here:
+ """
+ from __future__ import annotations
+ 
++import os
++
+ import torch
+ from torch.nn.utils import clip_grad_norm_
+ 
++# ``CASU_PPO_AMP=fp16|bf16``: run the network's forward/backward under CUDA autocast (convolutions and linear layers in half
++# precision with fp32 accumulation, log-softmax/reductions/loss in fp32). Off by default; see OPTIMIZATION4_LOG.md for the
++# differential tests that gate enabling it. fp16 uses a static loss scale (gradients are unscaled before clipping).
++_AMP = os.environ.get("CASU_PPO_AMP", "0").lower()
++_AMP_DTYPE = {"fp16": torch.float16, "bf16": torch.bfloat16}.get(_AMP)
++_LOSS_SCALE = float(os.environ.get("CASU_PPO_LOSS_SCALE", "1024")) if _AMP == "fp16" else 1.0
++
+ 
+ class GraphedMinibatch:
+     def __init__(self, trainer, minibatch: int):
+@@ -34,14 +43,24 @@ class GraphedMinibatch:
+         if src["expand"] is not None:
+             batch_obs = src["expand"](batch_obs)
+         batch_actions = {k: v[idx] for k, v in src["actions"].items()}
+-        new_log_prob, entropy, new_value = t.model.evaluate_actions(batch_obs, batch_actions)
++        if _AMP_DTYPE is not None:
++            with torch.autocast("cuda", dtype=_AMP_DTYPE):
++                new_log_prob, entropy, new_value = t.model.evaluate_actions(batch_obs, batch_actions)
++            new_log_prob, entropy, new_value = new_log_prob.float(), entropy.float(), new_value.float()
++        else:
++            new_log_prob, entropy, new_value = t.model.evaluate_actions(batch_obs, batch_actions)
+         old_log, adv, ret = src["old"][idx], src["adv"][idx], src["ret"][idx]
+         ratio = (new_log_prob - old_log).exp()
+         policy = -torch.minimum(ratio * adv, ratio.clamp(1.0 - cfg.clip_range, 1.0 + cfg.clip_range) * adv).mean()
+         value_loss = 0.5 * (new_value - ret).square().mean()
+         entropy_mean = entropy.mean()
+         loss = policy + cfg.value_coefficient * value_loss - cfg.entropy_coefficient * entropy_mean
+-        loss.backward()
++        if _LOSS_SCALE != 1.0:
++            (loss * _LOSS_SCALE).backward()
++            grads = [p.grad for p in t.model.parameters() if p.grad is not None]
++            torch._foreach_div_(grads, _LOSS_SCALE)
++        else:
++            loss.backward()
+         grad_norm = clip_grad_norm_(t.model.parameters(), cfg.max_grad_norm)
+         t.optimizer.step()
+         approx_kl = ((ratio - 1.0) - (new_log_prob - old_log)).mean()
