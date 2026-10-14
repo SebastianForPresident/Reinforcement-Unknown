@@ -142,6 +142,26 @@ class LabUsabilityTests(unittest.TestCase):
             self.assertFalse((run / "RUNNING").exists())
             self.assertEqual(lab._status(run, json.loads((run / "config.json").read_text()), []), "failed")
 
+    def test_zero_exit_with_startup_traceback_is_recorded_as_failed(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from unittest.mock import patch
+        class WrapperZeroExit:
+            pid=424244
+            stdout=StringIO("Traceback (most recent call last):\nValueError: startup failed\n")
+            def wait(self):return 0
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);config=root/"smoke.py";config.write_bytes(Path(lab.TEMPLATE).read_bytes())
+            run=root/"zero-exit-failed-run"
+            with patch.object(lab,"_isaac_python_command",return_value="python"), \
+                 patch.object(lab.subprocess,"Popen",return_value=WrapperZeroExit()), \
+                 redirect_stdout(StringIO()):
+                code=lab.main(["launch",str(config),"--engineering-smoke","--run-dir",str(run)])
+            self.assertEqual(code,1)
+            self.assertFalse((run/"COMPLETE").exists())
+            self.assertEqual(lab._status(run,json.loads((run/"config.json").read_text()),[]),"failed")
+            self.assertIn("startup failed",json.loads((run/"failure.json").read_text())["log_tail"])
+
     def test_launch_cancellation_signals_owned_group_and_marks_interrupted(self):
         from contextlib import redirect_stdout
         from io import StringIO
@@ -190,6 +210,28 @@ class LabUsabilityTests(unittest.TestCase):
             self.assertEqual(lab.main(["launch", str(config), "--preview", "--engineering-smoke",
                                        "--run-dir", str(run_dir), "--updates", "2"]), 0)
             self.assertFalse(run_dir.exists())
+
+    def test_xy1_terrain_defaults_independent_and_shared_override_fails_before_isaac(self):
+        from contextlib import redirect_stderr, redirect_stdout
+        from io import StringIO
+        from unittest.mock import patch
+        config=Path(__file__).with_name("experiments")/"xy1_point_navigation.py"
+        cfg,_=lab._load_config(config)
+        self.assertEqual(lab.configured_terrain_mode(cfg),"independent")
+        with patch.object(lab,"_isaac_python_command",side_effect=AssertionError("Isaac resolution should not be reached")), \
+             redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+            code=lab.main(["launch",str(config),"--preview","--terrain-mode","shared",
+                           "--run-dir","experiments/xy1-invalid-mode"])
+        self.assertEqual(code,2)
+
+    def test_training_result_uses_run_failure_evidence_even_for_zero_launcher_exit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run=Path(tmp);(run/"failure.json").write_text('{"status":"failed"}')
+            self.assertTrue(lab.training_result_failed(0,run))
+            (run/"failure.json").unlink();(run/"COMPLETE").write_text("done\n")
+            self.assertFalse(lab.training_result_failed(0,run))
+            (run/"COMPLETE").unlink();(run/"INTERRUPTED").write_text("stopped\n")
+            self.assertFalse(lab.training_result_failed(130,run))
 
     def test_isaac_python_setting_accepts_directory_or_explicit_python_sh(self):
         import os

@@ -32,15 +32,29 @@ class ResearchStudioGuiTests(unittest.TestCase):
                 self.assertEqual(len(window._configs),1)
                 self.assertEqual(window._configs[0][1]["name"],"Candidate")
                 self.assertTrue(components.is_dir())
-                window.run_root=root/"results";window.train_config.setText(str(config));window.train_run.setText(str(root/"results"/"trial"));window.train_kind.setCurrentIndex(1)
+                window.run_root=root/"results";window.train_config.setText(str(config));window._set_terrain_default(config);window.train_run.setText(str(root/"results"/"trial"));window.train_kind.setCurrentIndex(1)
                 command=window._launch_args(True)
                 self.assertEqual(command[:3],["--experiments",str(root/"results"),"launch"])
                 self.assertIn("--engineering-smoke",command)
+                self.assertEqual(command[command.index("--terrain-mode")+1],"shared")
                 dialog=gui.ContractDialog(ModelContract(),PPOContract())
                 self.assertEqual(dialog.values()["PPO"]["target_kl"],0.03)
                 dialog.close()
             finally:
                 window.close();gui.CONFIGS=old_configs;gui.COMPONENTS=old_components
+
+    def test_xy1_selection_defaults_training_terrain_to_independent(self):
+        window=gui.Studio()
+        try:
+            config=Path(gui.ROOT)/"casu_grid/workbench/experiments/xy1_point_navigation.py"
+            window.train_config.setText(str(config));window.train_run.setText(str(Path(gui.ROOT)/"experiments/xy1-gui-test"));window._set_terrain_default(config)
+            self.assertEqual(window.train_terrain.currentText(),"independent")
+            window.train_envs.setValue(16);window.train_updates.setValue(3)
+            args=window._launch_args(True)
+            self.assertEqual(args[args.index("--terrain-mode")+1],"independent")
+            self.assertEqual(args[args.index("--num-envs")+1],"16")
+            self.assertEqual(args[args.index("--updates")+1],"3")
+        finally:window.close()
 
     def test_typed_contract_dialog_preserves_model_and_ppo_values(self):
         dialog=gui.ContractDialog(ModelContract(),PPOContract())

@@ -140,6 +140,33 @@ def inspect_config(path: Path) -> dict[str, Any]:
     }
 
 
+def configured_terrain_mode(config) -> str:
+    """Default terrain mode for an experiment without initializing Isaac."""
+    environment = getattr(config, "ENVIRONMENT", {}) or {}
+    mode = environment.get("terrain_mode")
+    if mode in {"shared", "independent"}:
+        return mode
+    return "independent" if environment.get("navigation_mode") else "shared"
+
+
+def training_result_failed(exit_code: int, run_dir: Path) -> bool:
+    """Treat run-local failure evidence as authoritative even if a wrapper exits zero."""
+    run_dir = Path(run_dir)
+    if int(exit_code) != 0:
+        if int(exit_code) == 130 and (run_dir / "INTERRUPTED").is_file():
+            return False
+        return True
+    if (run_dir / "failure.json").is_file():
+        return True
+    if run_dir.exists() and not (run_dir / "COMPLETE").is_file() and not (run_dir / "INTERRUPTED").is_file():
+        try:
+            manifest = _json(run_dir / "config.json")
+        except ValueError:
+            return False
+        return manifest.get("status") == "failed"
+    return False
+
+
 def _read_metrics(path: Path, *, max_rows: int | None = None) -> tuple[list[dict], str | None]:
     rows, error = [], None
     if not path.exists():
@@ -517,7 +544,7 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("config", type=Path); validate.add_argument("--json", action="store_true")
     launch = sub.add_parser("launch", help="preview or launch the existing Isaac PPO trainer")
     launch.add_argument("config", type=Path); launch.add_argument("--run-dir", type=Path); launch.add_argument("--updates", type=int, default=100)
-    launch.add_argument("--num-envs", type=int, default=1); launch.add_argument("--episode-steps", type=int); launch.add_argument("--terrain-mode", choices=("shared", "independent"), default="shared")
+    launch.add_argument("--num-envs", type=int, default=1); launch.add_argument("--episode-steps", type=int); launch.add_argument("--terrain-mode", choices=("shared", "independent"))
     launch.add_argument("--backend", choices=("auto", "numba", "reference-python"), help="execution backend request (default: CASU_BACKEND or auto)")
     launch.add_argument("--workers", help="process workers request: positive integer or auto (default: CASU_NUM_WORKERS or 1)")
     launch.add_argument("--seed", type=int, default=391728405, help="PPO policy/sampling RNG seed; the world fixture remains canonical seed 391728405"); launch.add_argument("--resume", type=Path); launch.add_argument("--preview", action="store_true"); launch.add_argument("--engineering-smoke", action="store_true", help="explicitly label the engineering-only template")
@@ -575,6 +602,10 @@ def main(argv: list[str] | None = None) -> int:
                     if int(args.workers) <= 0: raise ValueError
                 except ValueError as exc:
                     raise ValueError("--workers must be a positive integer or 'auto'") from exc
+            env_defaults=getattr(cfg,"ENVIRONMENT",{}) or {}
+            effective_terrain=args.terrain_mode or configured_terrain_mode(cfg)
+            if env_defaults.get("navigation_mode") and effective_terrain != "independent":
+                raise ValueError("XY1 navigation requires --terrain-mode independent for per-world excavation")
             python_cmd = _isaac_python_command(preview=args.preview)
             if args.resume and importlib.util.find_spec("isaaclab") is None:
                 raise ValueError("Checkpoint fingerprint inspection requires the Isaac bundled Python (torch). Use the configured python.sh interpreter.")
@@ -596,9 +627,8 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError("Resume checkpoint is incompatible with this config (action/observation/model/PPO contract fingerprint differs)")
             run_dir = (args.run_dir or (root / time.strftime("%Y%m%d-%H%M%S"))).expanduser().resolve()
             if run_dir.exists(): raise ValueError(f"Run directory already exists; choose a new path: {run_dir}")
-            env_defaults=getattr(cfg,"ENVIRONMENT",{})
             effective_envs=args.num_envs if args.num_envs != 1 else int(env_defaults.get("num_envs",1))
-            effective_terrain=args.terrain_mode if args.num_envs != 1 else env_defaults.get("terrain_mode",args.terrain_mode)
+            effective_terrain=args.terrain_mode or configured_terrain_mode(cfg)
             effective_seed=args.seed if args.seed != 391728405 else int(env_defaults.get("seed",args.seed))
             cmd = [python_cmd, "-m", "casu_grid.workbench.train", "--config", str(args.config.expanduser().resolve()), "--run-dir", str(run_dir), "--updates", str(args.updates), "--num-envs", str(effective_envs), "--seed", str(effective_seed), "--geometry-scope", "full", "--terrain-mode", effective_terrain]
             configured_horizon = getattr(cfg, "ENVIRONMENT", {}).get("episode_length_steps")
@@ -670,6 +700,15 @@ def main(argv: list[str] | None = None) -> int:
                             pass
                         child.wait()
                     raise
+                log_text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
+                # Isaac's python.sh wrapper has returned zero in a failed Kit child case.
+                # A traceback before the first PPO artifacts is unambiguously startup failure.
+                startup_traceback = ("Traceback (most recent call last):" in log_text and
+                                     not (run_dir / "latest.pt").is_file() and
+                                     not (run_dir / "metrics.jsonl").is_file())
+                failure_evidence = (run_dir / "failure.json").is_file() or startup_traceback
+                if result_code == 0 and failure_evidence:
+                    result_code = 1
                 if result_code == 0:
                     (run_dir / "COMPLETE").write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
                     (run_dir / "failure.json").unlink(missing_ok=True)
@@ -677,7 +716,7 @@ def main(argv: list[str] | None = None) -> int:
                     _set_run_status(run_dir, "completed")
                 else:
                     if not (run_dir / "failure.json").exists():
-                        log_tail = log_path.read_text(encoding="utf-8", errors="replace")[-12000:] if log_path.exists() else ""
+                        log_tail = log_text[-12000:]
                         (run_dir / "failure.json").write_text(json.dumps({"status": "failed", "exit_code": result_code,
                             "finished_utc": datetime.now(timezone.utc).isoformat(),
                             "log_path": str(log_path), "log_tail": log_tail}, indent=2) + "\n", encoding="utf-8")

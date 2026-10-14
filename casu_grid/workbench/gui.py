@@ -172,10 +172,12 @@ class Studio(QtWidgets.QMainWindow):
         p, v = self._page("Training", "Review the exact launch preview before starting. Runtime operations are supervised; stop sends a graceful interrupt to the selected process.")
         form = QtWidgets.QFormLayout(); v.addLayout(form)
         self.train_config = QtWidgets.QLineEdit(); self.train_run = QtWidgets.QLineEdit(); self.train_updates = QtWidgets.QSpinBox(); self.train_updates.setRange(1, 10_000_000); self.train_updates.setValue(3)
+        self.train_config.editingFinished.connect(lambda:self._set_terrain_default(self.train_config.text()) if self.train_config.text().strip() else None)
         self.train_envs = QtWidgets.QSpinBox(); self.train_envs.setRange(1, 1024); self.train_envs.setValue(1)
+        self.train_terrain = QtWidgets.QComboBox(); self.train_terrain.addItems(["independent", "shared"])
         self.train_kind = QtWidgets.QComboBox(); self.train_kind.addItems(["Research training", "Engineering smoke (explicit)"])
         self.monitor_during_training=QtWidgets.QCheckBox("Refresh metrics while training");self.monitor_during_training.setChecked(True)
-        form.addRow("Experiment config", self.train_config); form.addRow("New run directory", self.train_run); form.addRow("PPO optimizer updates", self.train_updates); form.addRow("Parallel environments", self.train_envs); form.addRow("Run label", self.train_kind);form.addRow("Monitoring",self.monitor_during_training)
+        form.addRow("Experiment config", self.train_config); form.addRow("New run directory", self.train_run); form.addRow("PPO optimizer updates", self.train_updates); form.addRow("Parallel environments", self.train_envs); form.addRow("Terrain mode",self.train_terrain); form.addRow("Run label", self.train_kind);form.addRow("Monitoring",self.monitor_during_training)
         row = QtWidgets.QHBoxLayout(); row.addWidget(self._button("Select config…", self.browse_train_config)); row.addWidget(self._button("Preview launch", self.preview_training)); row.addWidget(self._button("Launch training", self.launch_training)); row.addWidget(self._button("Stop active process", self.stop_training)); v.addLayout(row)
         self.training_process = None; self.training_log = self._log(v)
 
@@ -334,10 +336,18 @@ class Studio(QtWidgets.QMainWindow):
         self._start_command(["observation-probe",str(path.resolve())],self.editor_report,environment=env,executable=isaac)
     def browse_train_config(self):
         path,_=QtWidgets.QFileDialog.getOpenFileName(self,"Training configuration",str(CONFIGS),"Python (*.py)")
-        if path:self.train_config.setText(path); self.train_run.setText(str(self.run_root/Path(path).stem))
+        if path:
+            self.train_config.setText(path); self.train_run.setText(str(self.run_root/Path(path).stem))
+            self._set_terrain_default(path)
+    def _set_terrain_default(self,path):
+        try:
+            config,_=lab._load_config(Path(path))
+            self.train_terrain.setCurrentText(lab.configured_terrain_mode(config))
+        except Exception:
+            self.train_terrain.setCurrentText("shared")
     def _launch_args(self,preview):
         if not self.train_config.text().strip() or not self.train_run.text().strip():raise ValueError("Select an experiment config and a new run directory.")
-        args=["--experiments",str(self.run_root),"launch",self.train_config.text(),"--run-dir",self.train_run.text(),"--updates",str(self.train_updates.value()),"--num-envs",str(self.train_envs.value())]
+        args=["--experiments",str(self.run_root),"launch",self.train_config.text(),"--run-dir",self.train_run.text(),"--updates",str(self.train_updates.value()),"--num-envs",str(self.train_envs.value()),"--terrain-mode",self.train_terrain.currentText()]
         if preview:args.append("--preview")
         if self.train_kind.currentIndex()==1:args.append("--engineering-smoke")
         return args
@@ -377,7 +387,18 @@ class Studio(QtWidgets.QMainWindow):
     def _poll_training(self):
         proc=self.training_process
         if proc and proc.poll() is not None:
-            self.training_log.appendPlainText(f"Launcher exited with status {proc.returncode}");self.training_process=None;self.refresh_runs()
+            failed=lab.training_result_failed(proc.returncode,Path(self.train_run.text()).expanduser())
+            if failed:
+                message=f"TRAINING FAILED (launcher exit status {proc.returncode}; see failure.json and launcher.log)."
+                self.training_log.appendPlainText(message);self.statusBar().showMessage(message,15000)
+                self._error(message)
+            elif Path(self.train_run.text()).expanduser().joinpath("INTERRUPTED").is_file():
+                self.training_log.appendPlainText("Training interrupted; inspect the run checkpoint before resuming.")
+                self.statusBar().showMessage("Training interrupted.",10000)
+            else:
+                self.training_log.appendPlainText(f"Training completed (launcher exit status {proc.returncode}).")
+                self.statusBar().showMessage("Training completed successfully.",10000)
+            self.training_process=None;self.refresh_runs()
     def _refresh_training_status(self):
         proc=self.training_process
         if not proc:return
