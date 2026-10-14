@@ -80,7 +80,7 @@ truncated; an all-zero series hidden on the axis frame; misleading "improving" v
 
 ## 8. Testing evidence
 
-* Unit and widget tests (`casu_grid/studio/tests`, 80 tests, ~26 s, offscreen Qt): incremental metrics reading incl. partial/malformed lines and truncation, status from process state,
+* Unit and widget tests (`casu_grid/studio/tests`, 81 tests, ~27 s, offscreen Qt): incremental metrics reading incl. partial/malformed lines and truncation, status from process state,
   launch validation (legacy spawn, layouts, existing folders, no-GPU, resume compatibility, shard partition parity with the trainer), chart maths (smoothing keeps gaps, decimation keeps spikes,
   runs are split at gaps, hover/zoom), catalog ↔ **real trainer keys** (fixture captured from a real run), learning-signal rules, statistics, every page with and without runs, theme switching,
   resume offers only compatible checkpoints, evaluation reading, help search.

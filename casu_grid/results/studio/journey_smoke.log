@@ -1,4 +1,4 @@
-PASS validation passes for the smoke configuration (10 checks, 3 warnings)
+PASS validation passes for the smoke configuration (9 checks, 2 warnings)
 PASS smoke preset sets 16 worlds x 2 workers x 5 updates
 PASS Start navigates to the training monitor
 PASS status observed while launching: ['completed', 'none', 'running', 'starting']

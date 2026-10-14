@@ -3,7 +3,7 @@ PASS status passed through ['interrupted', 'stopping']
 PASS graceful stop leaves the run 'interrupted' (got interrupted)
 PASS checkpoint matches the last finished update (9 vs 9)
 PASS no failure.json after a graceful stop
-PASS resume validation passes for a compatible checkpoint: Experiment contract is valid; Differs from the intended XY1 contract; Not the validated execution layout; Learning contract matches; World layout matches
+PASS resume validation passes for a compatible checkpoint: Experiment contract is valid; Not the validated execution layout; Learning contract matches; World layout matches
 PASS worlds and workers are locked to the checkpoint's layout
 PASS resumed run completed (completed)
 PASS update numbering continues: 9 -> 17

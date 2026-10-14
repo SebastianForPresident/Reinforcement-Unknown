@@ -44,7 +44,7 @@ Machine: i7-11700K, RTX 3070, Isaac Sim 4.5.0 / Isaac Lab 2.1.1. All numbers bel
 | **leaving the world: the episode does not end; the body keeps falling (y −71 → −88 in 4 ticks)** | documented behaviour (§5) |
 
 Other validation carried over and re-run on this branch: XY1 trajectory gate `284e8dde…` unchanged, 8 of 8 trajectory gates bit-identical (`perf/run_perf_check.py --quick`), 151 trainer-side
-tests and the Kit test OK, Studio tests 80 OK; fresh-run PPO statistics with the new instrumentation differ from the baseline by 4.5e-5 relative, less than two identical Optimization IV
+tests and the Kit test OK, Studio tests 81 OK; fresh-run PPO statistics with the new instrumentation differ from the baseline by 4.5e-5 relative, less than two identical Optimization IV
 runs differ from each other (6.3e-4; GPU kernel selection), trajectories identical. PPO rollout, GAE, optimisation and checkpointing are unchanged (differential tests in `tests/`); resume was
 validated in Optimization IV and again through the Studio (stop → resume continues at update N+1 with a valid contract/layout check).
 
