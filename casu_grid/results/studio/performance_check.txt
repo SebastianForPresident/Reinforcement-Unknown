@@ -1,0 +1,7 @@
+write 20,000-row metrics.jsonl (73.4 MB): 0.56 s
+initial incremental read of 20000 rows: 0.71 s
+poll after 10 new rows: 0.0004 s (10 rows read)
+build series for all 24 charts: 0.30 s
+paint 10 charts of 20,000 points each: 0.68 s (68 ms per chart)
+20 pan steps on a zoomed chart: 7 ms per repaint
+discover 401 run folders (one with 20,000 rows): 0.10 s

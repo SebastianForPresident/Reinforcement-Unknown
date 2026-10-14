@@ -200,6 +200,7 @@ class EvaluationPage(QtWidgets.QWidget):
         self.table.setHorizontalHeaderLabels(["Policy", "Mode", "Episodes", "Reached the goal", "95 % interval", "Median decisions to arrive", "Progress toward goal", "Blocks destroyed"])
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setMinimumHeight(190)
         self.results.add(self.table)

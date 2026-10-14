@@ -1,0 +1,122 @@
+{
+ "baseline": {
+  "run": "20261014-163836-diagnostic-s7",
+  "rows": [
+   {
+    "updates": "1-50",
+    "goals_per_1k": 0.1611328125,
+    "arrivals": 33,
+    "outside_world": 0.094375,
+    "progress": 0.5024178986175304,
+    "entropy": 8.749183703288436,
+    "kl": 0.006435680194990709,
+    "clip": 0.081884765625,
+    "explained_variance": 0.3947505755994085
+   },
+   {
+    "updates": "51-100",
+    "goals_per_1k": 0.01953125,
+    "arrivals": 4,
+    "outside_world": 0.68375,
+    "progress": 0.5457768982903514,
+    "entropy": 8.754527718275785,
+    "kl": 0.005551490300567821,
+    "clip": 0.06268798828125,
+    "explained_variance": 0.5726155694461356
+   },
+   {
+    "updates": "101-150",
+    "goals_per_1k": 0.0,
+    "arrivals": 0,
+    "outside_world": 0.9178125,
+    "progress": 0.5464663851003748,
+    "entropy": 8.8059997408248,
+    "kl": 0.005396218812745759,
+    "clip": 0.05942258022712643,
+    "explained_variance": -2.0653617961592703
+   },
+   {
+    "updates": "151-200",
+    "goals_per_1k": 0.0,
+    "arrivals": 0,
+    "outside_world": 0.9828125,
+    "progress": 0.5464663851003748,
+    "entropy": 8.796751591414214,
+    "kl": 0.005252622711268486,
+    "clip": 0.05732421875,
+    "explained_variance": -1.3255634497359605
+   },
+   {
+    "updates": "201-250",
+    "goals_per_1k": 0.0,
+    "arrivals": 0,
+    "outside_world": 0.9996875,
+    "progress": 0.5464663851003748,
+    "entropy": 8.752668449953198,
+    "kl": 0.005563105714682024,
+    "clip": 0.06058837890625,
+    "explained_variance": -0.2485466470942007
+   }
+  ]
+ },
+ "guarded": {
+  "run": "20261014-165539-diagnostic-s7-_guarded",
+  "rows": [
+   {
+    "updates": "1-50",
+    "goals_per_1k": 0.224609375,
+    "arrivals": 46,
+    "outside_world": 0.0,
+    "progress": 0.4885202065279431,
+    "entropy": 8.757655759453774,
+    "kl": 0.006457432138267905,
+    "clip": 0.08273193359375,
+    "explained_variance": 0.3150686569054361
+   },
+   {
+    "updates": "51-100",
+    "goals_per_1k": 0.21484375,
+    "arrivals": 44,
+    "outside_world": 0.0,
+    "progress": 0.531881249638459,
+    "entropy": 8.719491268247365,
+    "kl": 0.005522863685764605,
+    "clip": 0.063828125,
+    "explained_variance": 0.45106828703316654
+   },
+   {
+    "updates": "101-150",
+    "goals_per_1k": 0.185546875,
+    "arrivals": 38,
+    "outside_world": 0.0,
+    "progress": 0.5139720257758373,
+    "entropy": 8.708390694707631,
+    "kl": 0.0055396372450923085,
+    "clip": 0.065341796875,
+    "explained_variance": 0.4327273254744386
+   },
+   {
+    "updates": "151-200",
+    "goals_per_1k": 0.478515625,
+    "arrivals": 98,
+    "outside_world": 0.0,
+    "progress": 0.5220086159965859,
+    "entropy": 8.645812914893032,
+    "kl": 0.005502694654132938,
+    "clip": 0.06352294921875,
+    "explained_variance": 0.38434627589889997
+   },
+   {
+    "updates": "201-250",
+    "goals_per_1k": 0.3466796875,
+    "arrivals": 71,
+    "outside_world": 0.0,
+    "progress": 0.5673247967015671,
+    "entropy": 8.696248601786182,
+    "kl": 0.005729841284041645,
+    "clip": 0.06691554335297131,
+    "explained_variance": 0.5279269990607465
+   }
+  ]
+ }
+}

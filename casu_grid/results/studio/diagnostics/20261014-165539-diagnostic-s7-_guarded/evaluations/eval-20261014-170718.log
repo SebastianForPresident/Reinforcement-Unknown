@@ -1,0 +1,56 @@
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/isaaclab.python.headless.kit
+Loading user config located at: '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/data/Kit/Isaac-Sim/4.5/user.config.json'
+[Info] [carb] Logging to file: /home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/isaac-sim-4.5.0/kit/logs/Kit/Isaac-Sim/4.5/kit_20261014_170718.log
+2026-10-14 21:07:18 [0ms] [Warning] [omni.kit.app.plugin] No crash reporter present, dumps uploading isn't available.
+2026-10-14 21:07:18 [2ms] [Warning] [omni.ext.plugin] [ext: rendering_modes] Extensions config 'extension.toml' doesn't exist '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes' or '/home/sebastian/Applications/IsaacLab-2.1.1-IsaacSim-4.5.0/IsaacLab-2.1.1/apps/rendering_modes/config'
+2026-10-14 21:07:19 [315ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-10-14 21:07:19 [512ms] [Warning] [omni.datastore] OmniHub is inaccessible
+2026-10-14 21:07:19 [614ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 615.71.09     | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 3070          | Yes: 0 |     | 8438    MB | 10de      | 0          |
+|     |                                  |        |     |            | 2488      | 364378d9.. |
+|     |                                  |        |     |            | 1         |            |
+|=============================================================================================|
+| OS: 44 (KDE Plasma Desktop Edition) fedora, Version: 44.00.0, Kernel: 7.2.9-200.fc44.x86_64
+| XServer Vendor: The X.Org Foundation, XServer Version: 12401014 (1.24.1.14)
+| Processor: 11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz
+| Cores: 8 | Logical Cores: 16
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 31915 | Free Memory: 24499
+| Total Page/Swap (MB): 8191 | Free Page/Swap: 5157
+|---------------------------------------------------------------------------------------------|
+CASU_EVAL_PROGRESS 1/24 policy=untrained mode=deterministic round=0
+CASU_EVAL_PROGRESS 2/24 policy=untrained mode=deterministic round=1
+CASU_EVAL_PROGRESS 3/24 policy=untrained mode=deterministic round=2
+CASU_EVAL_PROGRESS 4/24 policy=untrained mode=deterministic round=3
+CASU_EVAL_PROGRESS 5/24 policy=untrained mode=deterministic round=4
+CASU_EVAL_PROGRESS 6/24 policy=untrained mode=deterministic round=5
+CASU_EVAL_PROGRESS 7/24 policy=untrained mode=stochastic round=0
+CASU_EVAL_PROGRESS 8/24 policy=untrained mode=stochastic round=1
+CASU_EVAL_PROGRESS 9/24 policy=untrained mode=stochastic round=2
+CASU_EVAL_PROGRESS 10/24 policy=untrained mode=stochastic round=3
+CASU_EVAL_PROGRESS 11/24 policy=untrained mode=stochastic round=4
+CASU_EVAL_PROGRESS 12/24 policy=untrained mode=stochastic round=5
+CASU_EVAL_PROGRESS 13/24 policy=latest mode=deterministic round=0
+CASU_EVAL_PROGRESS 14/24 policy=latest mode=deterministic round=1
+CASU_EVAL_PROGRESS 15/24 policy=latest mode=deterministic round=2
+CASU_EVAL_PROGRESS 16/24 policy=latest mode=deterministic round=3
+CASU_EVAL_PROGRESS 17/24 policy=latest mode=deterministic round=4
+CASU_EVAL_PROGRESS 18/24 policy=latest mode=deterministic round=5
+CASU_EVAL_PROGRESS 19/24 policy=latest mode=stochastic round=0
+CASU_EVAL_PROGRESS 20/24 policy=latest mode=stochastic round=1
+CASU_EVAL_PROGRESS 21/24 policy=latest mode=stochastic round=2
+CASU_EVAL_PROGRESS 22/24 policy=latest mode=stochastic round=3
+CASU_EVAL_PROGRESS 23/24 policy=latest mode=stochastic round=4
+CASU_EVAL_PROGRESS 24/24 policy=latest mode=stochastic round=5
+CASU_EVAL_DONE /home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-studio/experiments/20261014-165539-diagnostic-s7-_guarded/evaluations/eval-20261014-170718.json
+2026-10-14 21:11:11 [232,642ms] [Warning] [omni.fabric.plugin] gFabricState->gUsdStageToSimStageWithHistoryMap had 1 outstanding SimStageWithHistory(s) at shutdown
+2026-10-14 21:11:11 [232,694ms] [Warning] [carb] Recursive unloadAllPlugins() detected!

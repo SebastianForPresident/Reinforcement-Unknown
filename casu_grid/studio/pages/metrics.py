@@ -196,7 +196,8 @@ class MetricsPage(QtWidgets.QWidget):
         self.data = {}
         for i, path in enumerate(self.selected):
             run = self.ctx.run_by_path(path)
-            label = run.run_id if run else path.name
+            label = (run.run_id if run else path.name)
+            label = __import__("re").sub(r"^\d{8}-\d{6}-", "", label) or label        # the timestamp prefix is identical noise in a legend
             rd = catalog.RunData(label, MetricsStore(path / "metrics.jsonl"), MetricsStore(path / "system.jsonl"), theme.SERIES_COLORS[i % len(theme.SERIES_COLORS)])
             self.data[path] = rd
         self._last_rows = {}
