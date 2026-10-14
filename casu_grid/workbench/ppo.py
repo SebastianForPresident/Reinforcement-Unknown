@@ -95,6 +95,8 @@ class PPOTrainer:
         self.actions = actions
         self.observations = observations
         self.config = config
+        self.model_contract = model
+        self._local_mode = None          # None = undecided, False = central rollouts, True = worker-local rollouts
         self.device = torch.device(device)
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -124,7 +126,97 @@ class PPOTrainer:
         }, sort_keys=True, separators=(",", ":"), default=list).encode("utf-8")
         self.contract_fingerprint = hashlib.sha256(contract_payload).hexdigest()
 
+    # ------------------------------------------------------ worker-local rollouts
+    def _use_local_rollout(self) -> bool:
+        """Worker-local policy inference (see :mod:`casu_grid.workbench.local_rollout`) when the environment supports it.
+
+        ``CASU_LOCAL_ROLLOUT=0`` forces the central path (policy evaluated by the trainer after every environment step)."""
+        if self._local_mode is None:
+            mode = os.environ.get("CASU_LOCAL_ROLLOUT", "auto")
+            supported = (mode != "0" and hasattr(self.env, "local_rollout_run") and getattr(self.env, "has_stock_xy1_observation", False)
+                         and not self.model.recurrent and len(self.observations.spatial) == 1 and len(self.observations.scalar) == 1
+                         and all(h.kind == "categorical" for h in self.actions.heads)
+                         and (self.device.type == "cuda" or mode == "1"))
+            if supported:
+                self.env.local_rollout_setup(self.actions, self.observations, self.model_contract,
+                                             "cuda" if self.device.type == "cuda" else "cpu")
+            self._local_mode = bool(supported)
+        return self._local_mode
+
+    def _expand_compact_batch(self, batch):
+        from ..xy1 import expand_compact_observation
+        spatial = expand_compact_observation(batch["block_ids"], batch["fluid_ids"], batch["cursor"], self.device)
+        return {self.observations.spatial[0].name: spatial, self.observations.scalar[0].name: batch["goal"].float()}
+
+    def _collect_local(self, steps: int):
+        started = time.perf_counter()
+        env = self.env
+        if self._observation is None:
+            env.reset(seed=int(self.rng.integers(0, 2**31 - 1)), observe=False)
+            if self.trajectory_path is not None:
+                with self.trajectory_path.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps({"schema": "casu.trajectory-reset.v1", "global_step": self.total_steps}) + "\n")
+            self._observation = {self.observations.scalar[0].name: torch.zeros((env.count, 2), device=self.device)}
+        n = env.count
+        if self._episode_returns is None:
+            self._episode_returns = torch.zeros(n, device=self.device)
+            self._episode_lengths = torch.zeros(n, dtype=torch.long, device=self.device)
+        workers = getattr(env, "num_workers", 1)
+        seeds = [int(self.rng.integers(0, 2**31 - 1)) for _ in range(workers)]
+        weights = {k: v.detach().cpu().numpy() for k, v in self.model.state_dict().items()}
+        res = env.local_rollout_run(weights, steps, seeds, False, self._episode_returns.cpu().numpy(),
+                                    self._episode_lengths.cpu().numpy())
+        dev = self.device
+
+        def t(array, dtype=None):
+            return torch.as_tensor(array, dtype=dtype, device=dev)
+        compact = {k: t(res[k]) for k in ("block_ids", "fluid_ids", "cursor", "goal")}
+        latent, log_prob, value = t(res["latent"]), t(res["log_prob"]), t(res["value"])
+        names = [h.name for h in self.actions.heads]
+        records = {
+            "obs": None, "obs_compact": compact,
+            "actions": [{name: latent[i, :, k] for k, name in enumerate(names)} for i in range(steps)],
+            "log_prob": list(log_prob.unbind(0)), "value": list(value.unbind(0)),
+            "reward": list(t(res["reward"]).unbind(0)), "done": list(t(res["done"]).unbind(0)),
+            "terminated": list(t(res["terminated"]).unbind(0)), "next_value": list(t(res["next_value"]).unbind(0)),
+            "reward_terms": [{name: t(arr[i]) for name, arr in res["reward_terms"].items()} for i in range(steps)],
+            "initial_state": [],
+        }
+        self._episode_returns = t(res["episode_returns"], torch.float32)
+        self._episode_lengths = t(res["episode_lengths"], torch.long)
+        if self.trajectory_path is not None:
+            self._write_local_trajectory(res, names, steps, n)
+        self.total_steps += n * steps
+        total_rows = max(1, steps * n)
+        frequencies = {}
+        for head, counts in zip(self.actions.heads, res["action_counts"]):
+            for choice, count in enumerate(counts.tolist()):
+                frequencies[f"action/{head.name}/choice_{choice}_fraction"] = count / total_rows
+        physics_step_seconds = max(res["seconds"]["env_step"]) + max(res["seconds"]["reset"])
+        self._last_local_seconds = res["seconds"]
+        return (records, torch.zeros(n, device=dev), res["completed_returns"], res["completed_lengths"],
+                res["termination_counts"], frequencies, time.perf_counter() - started, physics_step_seconds, res["physics_ticks"])
+
+    def _write_local_trajectory(self, res, names, steps, n):
+        """Append the same per-step rows the central path writes (``casu.trajectory-step.v1``)."""
+        content_id = None
+        rows = []
+        for i in range(steps):
+            info = {"reward_terms": {k: v[i] for k, v in res["reward_terms"].items()},
+                    "termination_reason": res["reasons"][i], "physics_ticks": int(res["physics_ticks"] // steps),
+                    "player": [dict(x=float(p[0]), y=float(p[1]), vx=float(p[2]), vy=float(p[3])) for p in res["players"][i]],
+                    "canonical_content_id": getattr(self.env, "reference").manifest["content_id"]}
+            row = {"schema": "casu.trajectory-step.v1", "global_step": self.total_steps + i * n,
+                   "actions": {name: res["latent"][i, :, k].tolist() for k, name in enumerate(names)},
+                   "reward": res["reward"][i].tolist(), "terminated": np.asarray(res["terminated"][i] > 0).tolist(),
+                   "truncated": np.asarray(res["truncated"][i]).tolist(), "info": info}
+            rows.append(json.dumps(row, sort_keys=True, default=_json_default, allow_nan=False))
+        with self.trajectory_path.open("a", encoding="utf-8") as stream:
+            stream.write("\n".join(rows) + "\n")
+
     def _collect(self, steps: int):
+        if self._use_local_rollout():
+            return self._collect_local(steps)
         collection_started = time.perf_counter()
         physics_step_seconds = 0.0
         physics_ticks = 0
@@ -285,6 +377,10 @@ class PPOTrainer:
         models only; recurrent models always use the reference path). Equivalence is tested bit for bit
         by ``casu_grid/perf/ppo_update_bench.py`` and ``tests/test_ppo_execution.py``."""
         if os.environ.get("CASU_PPO_EXECUTION", "optimized") == "reference" or self.model.recurrent:
+            if records.get("obs") is None and records.get("obs_compact") is not None:      # reference path wants dense observations
+                dense = self._expand_compact_batch({k: v.flatten(0, 1) for k, v in records["obs_compact"].items()})
+                steps = records["obs_compact"]["goal"].shape[0]
+                records = dict(records, obs=[{k: v.reshape(steps, -1, *v.shape[1:])[i] for k, v in dense.items()} for i in range(steps)])
             return self._update_reference(records, last_value)
         return self._update_optimized(records, last_value)
 
@@ -299,7 +395,12 @@ class PPOTrainer:
         advantages, returns = _generalized_advantage_estimate(
             rewards, values, dones, terminated, next_values, cfg.gamma, cfg.gae_lambda)
         advantages = (advantages - advantages.mean()) / advantages.std(unbiased=False).clamp_min(1e-8)
-        obs = {k: torch.stack([row[k] for row in records["obs"]]).flatten(0, 1) for k in records["obs"][0]}
+        expand = None
+        if records.get("obs_compact") is not None:      # worker-local rollouts: id windows, expanded per minibatch (exact)
+            obs = {k: v.flatten(0, 1) for k, v in records["obs_compact"].items()}
+            expand = self._expand_compact_batch
+        else:
+            obs = {k: torch.stack([row[k] for row in records["obs"]]).flatten(0, 1) for k in records["obs"][0]}
         actions = {k: torch.stack([row[k] for row in records["actions"]]).flatten(0, 1) for k in records["actions"][0]}
         old_log_prob, advantage_flat, return_flat = log_probs.flatten(), advantages.flatten(), returns.flatten()
         count = len(old_log_prob)
@@ -316,8 +417,11 @@ class PPOTrainer:
             stop_epoch = False
             for start in range(0, count, minibatch):
                 part = slice(start, start + minibatch)
+                batch_obs = {k: v[part] for k, v in p_obs.items()}
+                if expand is not None:
+                    batch_obs = expand(batch_obs)
                 new_log_prob, entropy, new_value = self.model.evaluate_actions(
-                    {k: v[part] for k, v in p_obs.items()}, {k: v[part] for k, v in p_actions.items()})
+                    batch_obs, {k: v[part] for k, v in p_actions.items()})
                 old_log, adv, ret = p_old[part], p_adv[part], p_ret[part]
                 ratio = (new_log_prob - old_log).exp()
                 policy = -torch.minimum(

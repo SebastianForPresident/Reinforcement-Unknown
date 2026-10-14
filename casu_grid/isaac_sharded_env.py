@@ -111,6 +111,11 @@ class ShardedBatchedEnv(gym.Env):
         self.reference = (load_mini_world_reference(config.seed)
                           if config.world_variant == "xy1_mini_128x128" else load_layer1_reference())
         self.closed = False
+        _encoder = observation_encoder
+        while getattr(_encoder, "casu_wrapped", None) is not None:
+            _encoder = _encoder.casu_wrapped
+        self._stock_xy1 = bool(config.navigation_mode and getattr(_encoder, "__module__", "") == "casu_grid.xy1_callbacks"
+                               and getattr(_encoder, "__name__", "") == "observation_encoder")
         self.timers = _ShardedTimers(self)
         # callbacks run inside the workers; verify in the parent that they survive the trip
         callbacks = callback_transport.dumps({"action_decoder": action_decoder,
@@ -229,9 +234,9 @@ class ShardedBatchedEnv(gym.Env):
                 return k, index - sl.start
 
     # ----------------------------------------------------------------- env API
-    def reset(self, *, seed=None, options=None):
-        parts = self._broadcast("reset", {"seed": seed, "options": options})
-        return self._concat_obs([p[0] for p in parts]), {
+    def reset(self, *, seed=None, options=None, observe=True):
+        parts = self._broadcast("reset", {"seed": seed, "options": options, "observe": observe})
+        return (self._concat_obs([p[0] for p in parts]) if observe else None), {
             "seed": seed, "canonical_content_id": self.reference.manifest["content_id"]}
 
     def reset_done(self, mask):
@@ -271,6 +276,40 @@ class ShardedBatchedEnv(gym.Env):
                 "player": [x for i in infos for x in i["player"]],
                 "canonical_content_id": infos[0]["canonical_content_id"]}
         return obs, rewards, terminated, truncated, info
+
+    @property
+    def has_stock_xy1_observation(self) -> bool:
+        return self._stock_xy1
+
+    def local_rollout_setup(self, actions, observations, model, device="cuda"):
+        self._broadcast("rollout_setup", {"actions": actions, "observations": observations, "model": model, "device": device})
+
+    def local_rollout_run(self, weights, steps, seeds, deterministic, episode_returns, episode_lengths):
+        """Run ``steps`` decisions in every worker with its own policy copy and merge the shards (world order)."""
+        slices = self._slices()
+        payloads = [{"weights": weights, "steps": steps, "seed": int(seeds[k]), "deterministic": bool(deterministic),
+                     "episode_returns": np.asarray(episode_returns)[sl], "episode_lengths": np.asarray(episode_lengths)[sl]}
+                    for k, sl in enumerate(slices)]
+        parts = self._scatter("rollout_run", payloads)
+        merged = {}
+        for key in ("block_ids", "fluid_ids", "cursor", "goal", "players", "latent", "log_prob", "value", "next_value",
+                    "reward", "done", "terminated", "truncated"):
+            merged[key] = np.concatenate([p[key] for p in parts], axis=1)
+        merged["reasons"] = [[r for p in parts for r in p["reasons"][t]] for t in range(steps)]
+        merged["reward_terms"] = {k: np.concatenate([p["reward_terms"][k] for p in parts], axis=1) for k in parts[0]["reward_terms"]}
+        merged["completed_returns"] = [v for p in parts for v in p["completed_returns"]]
+        merged["completed_lengths"] = [v for p in parts for v in p["completed_lengths"]]
+        counts: dict[str, int] = {}
+        for p in parts:
+            for reason, c in p["termination_counts"].items():
+                counts[reason] = counts.get(reason, 0) + c
+        merged["termination_counts"] = counts
+        merged["action_counts"] = [sum(p["action_counts"][h] for p in parts) for h in range(len(parts[0]["action_counts"]))]
+        merged["episode_returns"] = np.concatenate([p["episode_returns"] for p in parts])
+        merged["episode_lengths"] = np.concatenate([p["episode_lengths"] for p in parts])
+        merged["seconds"] = {k: [p["seconds"][k] for p in parts] for k in parts[0]["seconds"]}
+        merged["physics_ticks"] = sum(p["physics_ticks"] for p in parts)
+        return merged
 
     def set_block(self, env_index: int, x: int, y: int, block_id: int):
         if self.terrain_mode != "independent":

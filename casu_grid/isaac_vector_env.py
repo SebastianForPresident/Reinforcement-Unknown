@@ -393,6 +393,35 @@ class BatchedIsaacLayer1Env(gym.Env):
                 out['goal_relative'][i]=np.asarray([slot.goal_cell[0]-px,slot.goal_cell[1]-py],dtype=np.float32)
         return out
 
+    # ----------------------------------------------------- compact observation (XY1)
+    @property
+    def has_stock_xy1_observation(self) -> bool:
+        """True when the observation encoder is the unmodified XY1 encoder, so the compact id-window
+        representation (``xy1.expand_compact_observation``) reproduces the observation bit for bit."""
+        encoder = self.observation_encoder
+        while getattr(encoder, "casu_wrapped", None) is not None:
+            encoder = encoder.casu_wrapped
+        return (self.cfg.navigation_mode and getattr(encoder, "__module__", "") == "casu_grid.xy1_callbacks"
+                and getattr(encoder, "__name__", "") == "observation_encoder")
+
+    def local_rollout_setup(self, actions, observations, model, device="cuda"):
+        from .workbench.local_rollout import LocalRollout
+        self._local_rollout = LocalRollout(self, actions, observations, model, device)
+
+    def local_rollout_run(self, weights, steps, seeds, deterministic, episode_returns, episode_lengths):
+        self._local_rollout.load_weights(weights)
+        result = self._local_rollout.run(steps, seeds[0], deterministic, episode_returns, episode_lengths)
+        result["seconds"] = {k: [v] for k, v in result["seconds"].items()}
+        return result
+
+    def compact_observation(self):
+        """Per-world (block ids, fluid ids, cursor cell, goal offsets) windows; see :mod:`casu_grid.xy1`."""
+        from .xy1 import encode_xy1_compact
+        parts = [encode_xy1_compact(view) for view in self.views]
+        return {"block_ids": np.stack([p[0] for p in parts]), "fluid_ids": np.stack([p[1] for p in parts]),
+                "cursor": np.asarray([p[2] for p in parts], dtype=np.int16),
+                "goal": np.asarray([p[3] for p in parts], dtype=np.float32)}
+
     def _apply_door_state(self, indices):
         for k, door_body in enumerate(self.doors):
             ids = torch.as_tensor(indices, dtype=torch.int32, device=self.sim.device)
@@ -584,7 +613,7 @@ class BatchedIsaacLayer1Env(gym.Env):
         for i in ids:
             self.slots[i].last_state = self.slots[i].body_dict()
 
-    def reset(self, *, seed=None, options=None):
+    def reset(self, *, seed=None, options=None, observe=True):
         self._reset_indices(range(self.count))
         if seed is not None:
             self.np_random, _ = gym.utils.seeding.np_random(seed)
@@ -604,7 +633,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 s.grounded = False; s.crouch_amount = 0.0; s.ragdoll_event = None
                 slot.last_state=slot.body_dict()
             self._write_slot_states(range(self.count))
-        return self._format_observation(), {"seed": seed, "canonical_content_id": self.reference.manifest["content_id"]}
+        return (self._format_observation() if observe else None), {"seed": seed, "canonical_content_id": self.reference.manifest["content_id"]}
 
     def _sample_clear_spawn(self, slot, rng, index=None):
         hw, hh = self.controller_config.orig_col_size[0]/2, self.controller_config.orig_col_size[1]/2
@@ -638,7 +667,7 @@ class BatchedIsaacLayer1Env(gym.Env):
     def _goal_distance(position, goal):
         return float(np.hypot(position[0]-goal[0],position[1]-goal[1]))
 
-    def reset_done(self, mask):
+    def reset_done(self, mask, observe=True):
         mask = np.asarray(mask, dtype=bool).reshape(self.count)
         ids=np.flatnonzero(mask);self._reset_indices(ids)
         if self.cfg.navigation_mode:
@@ -655,7 +684,7 @@ class BatchedIsaacLayer1Env(gym.Env):
                 s=slot.model.s;s.x,s.y=local_spawn;s.vx=s.vy=0.0;s.grounded=False;s.crouch_amount=0.0;s.ragdoll_event=None
                 slot.last_state=slot.body_dict()
             self._write_slot_states(ids)
-        return self._format_observation()
+        return self._format_observation() if observe else None
 
     def set_block(self, env_index: int, x: int, y: int, block_id: int):
         """Edit one world's terrain and rebuild its changed collision chunk."""
@@ -699,7 +728,7 @@ class BatchedIsaacLayer1Env(gym.Env):
             self.sim.play()
             self.player.update(self.cfg.physics_dt)
 
-    def step(self, action_dict):
+    def step(self, action_dict, observe=True):
         actions = self._decode_actions(action_dict)
         self._last_actions = actions
         if len(actions) != self.count:
@@ -752,7 +781,7 @@ class BatchedIsaacLayer1Env(gym.Env):
             players.append(current)
             for key, value in item_terms.items():
                 terms.setdefault(key, np.zeros(self.count, np.float32))[i] = value
-        return self._format_observation(), rewards, terminated, truncated, {
+        return (self._format_observation() if observe else None), rewards, terminated, truncated, {
             "reward_terms": terms, "termination_reason": reasons,
             "physics_ticks": self.cfg.action_decimation * self.count, "player": players,
             "canonical_content_id": self.reference.manifest["content_id"]}

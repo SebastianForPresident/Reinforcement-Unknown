@@ -65,6 +65,7 @@ def checked_callbacks(callbacks, observations, rewards):
                     raise ValueError(f"callbacks.observation_encoder field {name} contains non-finite values")
                 checked[name] = array
             return checked
+        observe.casu_wrapped = encoder_callback        # lets the environment recognise the unmodified XY1 encoder
         observation_encoder = observe
 
     if reward_function is not None:

@@ -83,6 +83,7 @@ def main() -> None:
     def timers():
         return {k: float(v) for k, v in env.timers.items()}
 
+    roll = None
     try:
         while True:
             try:
@@ -118,6 +119,14 @@ def main() -> None:
                     reply = timers()
                 elif kind == "slot_summaries":
                     reply = env.slot_summaries()
+                elif kind == "rollout_setup":
+                    from casu_grid.workbench.local_rollout import LocalRollout
+                    roll = LocalRollout(env, payload["actions"], payload["observations"], payload["model"], payload["device"])
+                    reply = None
+                elif kind == "rollout_run":
+                    roll.load_weights(payload["weights"])
+                    reply = roll.run(payload["steps"], payload["seed"], payload["deterministic"],
+                                     payload["episode_returns"], payload["episode_lengths"])
                 else:
                     raise ValueError(f"unknown request {kind!r}")
                 conn.send(("ok", reply))

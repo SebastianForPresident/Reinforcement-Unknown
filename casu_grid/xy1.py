@@ -77,3 +77,82 @@ class BestDistanceReward:
         terms={"distance_improvement":self.progress_weight*improvement,
                "arrival_bonus":self.arrival_bonus if arrived else 0.0}
         return sum(terms.values()),terms
+
+
+# --------------------------------------------------------------------------------------------------
+# Compact observation: the 16-channel map is a pure function of the block-id window, the fluid-id window and
+# the cursor cell. Workers and the trainer exchange (block ids, fluid ids, cursor, goal) -- 8 KB per world instead
+# of 262 KB -- and the channels are rebuilt, bit for bit, by ``expand_compact_observation`` (tests/test_xy1_compact.py).
+
+def encode_xy1_compact(env):
+    """Block/fluid id windows (uint8), cursor cell (int16, -1 when outside the window) and goal offsets (float32)."""
+    slot, grid = env.slot, env.grid
+    s = env.model.s
+    px, py = grid.world_to_cell(s.x, s.y, grid.width, grid.height)
+    cfg = getattr(env, "cfg", None)
+    window_w, window_h = tuple(getattr(cfg, "observation_window_tiles", (85, 49)))
+    left_x, left_y = window_w // 2, window_h // 2
+    xs = np.arange(px - left_x, px + (window_w - left_x))
+    ys = np.arange(py - left_y, py + (window_h - left_y))
+    valid = ((xs[:, None] >= 0) & (xs[:, None] < grid.width) & (ys[None, :] >= 0) & (ys[None, :] < grid.height))
+    cx = np.clip(xs, 0, grid.width - 1)
+    cy = np.clip(ys, 0, grid.height - 1)
+    block_ids = grid.blocks[np.ix_(cx, cy)].astype(np.uint8)
+    fluid_ids = grid.fluids[np.ix_(cx, cy)].astype(np.uint8)
+    block_ids[~valid] = 0
+    fluid_ids[~valid] = 7
+    ix = px + int(s.current_action.look_dx) - (px - left_x)
+    iy = py + int(s.current_action.look_dy) - (py - left_y)
+    cursor = (ix, iy) if (0 <= ix < window_w and 0 <= iy < window_h) else (-1, -1)
+    goal = slot.goal_cell
+    return block_ids, fluid_ids, cursor, (goal[0] - px, goal[1] - py)
+
+
+_LUT_CACHE = {}
+
+
+def _channel_luts():
+    """float32 lookup tables built with exactly the arithmetic of ``encode_xy1_observation``."""
+    if "luts" not in _LUT_CACHE:
+        from .state import BLOCK_HEALTH, TOXICITY
+        extreme_health = 420133760.0
+        health = np.zeros(256, dtype=np.float32)
+        for bid, hp in BLOCK_HEALTH.items():
+            health[bid] = min(1.0, math.log1p(min(hp, 15000.0)) / math.log1p(15000.0))
+        health[14] = min(1.0, math.log1p(extreme_health) / math.log1p(extreme_health))
+        toxicity = np.zeros(256, dtype=np.float32)
+        for bid, value in TOXICITY.items():
+            toxicity[bid] = min(1.0, value / 2.5)
+        _LUT_CACHE["luts"] = (health, toxicity)
+    return _LUT_CACHE["luts"]
+
+
+def expand_compact_observation(block_ids, fluid_ids, cursor, device=None):
+    """(n,W,H) uint8 ids + (n,2) cursor -> (n,16,W,H) float32 channels identical to ``encode_xy1_observation``.
+
+    Accepts NumPy arrays or torch tensors; returns a torch tensor on ``device``.
+    """
+    import torch
+    device = device or "cpu"
+    health_lut, tox_lut = _channel_luts()
+    cache_key = ("torch", str(device))
+    if cache_key not in _LUT_CACHE:
+        _LUT_CACHE[cache_key] = (torch.as_tensor(health_lut, device=device), torch.as_tensor(tox_lut, device=device))
+    health_t, tox_t = _LUT_CACHE[cache_key]
+    blocks = torch.as_tensor(block_ids, device=device).long()
+    fluids = torch.as_tensor(fluid_ids, device=device).long()
+    cursor = torch.as_tensor(cursor, device=device).long()
+    n, w, h = blocks.shape
+    out = torch.zeros((n, 16, w, h), dtype=torch.float32, device=device)
+    out[:, 0] = health_t[blocks]
+    out[:, 1] = (blocks == 14).float()
+    out[:, 2] = tox_t[blocks]
+    # channels 3-6 (sleep quality) stay zero
+    for fluid in range(7):
+        out[:, 7 + fluid] = (fluids == fluid).float()
+    out[:, 14, w // 2, h // 2] = 1.0
+    has_cursor = (cursor[:, 0] >= 0)
+    rows = torch.nonzero(has_cursor).flatten()
+    if rows.numel():
+        out[rows, 15, cursor[rows, 0], cursor[rows, 1]] = 1.0
+    return out
