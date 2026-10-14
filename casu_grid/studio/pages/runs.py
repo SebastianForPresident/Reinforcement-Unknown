@@ -11,7 +11,7 @@ from ..runs import CheckpointInfo, MetricsStore, RunRecord, human_bytes, human_c
 from ..widgets import Banner, Card, PageHeader, StatusBadge, make_label, open_path
 from .training import parse_utc
 
-COLUMNS = ["Status", "Run", "Created", "Progress", "Worlds × workers", "Seed", "Revision", "Latest checkpoint", "Evaluated"]
+COLUMNS = ["Status", "Run", "Created", "Progress", "Layout", "Seed", "Rev.", "Checkpoint", "Evaluated"]
 
 
 class RunsPage(QtWidgets.QWidget):
@@ -44,13 +44,14 @@ class RunsPage(QtWidgets.QWidget):
         outer.addWidget(splitter, 1)
         self.table = QtWidgets.QTableWidget(0, len(COLUMNS))
         self.table.setHorizontalHeaderLabels(COLUMNS)
+        self.table.horizontalHeaderItem(4).setToolTip("worlds × simulation workers")
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
-        for col, width in enumerate((118, 215, 128, 250, 118, 48, 68)):
+        for col, width in enumerate((112, 215, 122, 245, 70, 48, 62, 90)):
             self.table.setColumnWidth(col, width)
         self.table.setMinimumHeight(150)
         self.table.itemSelectionChanged.connect(self._selection_changed)
@@ -151,8 +152,9 @@ class RunsPage(QtWidgets.QWidget):
         for i, r in enumerate(runs):
             created = parse_utc(r.created_utc)
             created_text = time.strftime("%Y-%m-%d %H:%M", time.localtime(created)) if created else "–"
-            progress = f"{r.updates_done}" + (f" / {r.updates_requested}" if r.updates_requested else "") + f" updates · {human_count(r.decisions)} decisions"
-            layout_text = f"{r.num_envs or '?'} worlds × {r.workers or '?'}"
+            progress = (f"{r.updates_in_run}" + (f" / {r.updates_requested}" if r.updates_requested else "") + " updates"
+                        + (f" (from {r.start_update})" if r.start_update else "") + f" · {human_count(r.decisions)} decisions")
+            layout_text = f"{r.num_envs or '?'} × {r.workers or '?'}"
             ck = r.latest
             values = [theme.status_text(r.status), r.run_id + ("  (smoke test)" if r.is_engineering_smoke else ""), created_text, progress, layout_text,
                       str(r.seed if r.seed is not None else "–"), (r.revision or "")[:7], (f"update {ck.update}" if ck and ck.update is not None else ("saved" if ck else "none")),
@@ -202,7 +204,8 @@ class RunsPage(QtWidgets.QWidget):
         rows = [("Experiment", run.experiment), ("Folder", str(run.path)),
                 ("Source revision", (run.revision or "unknown")[:10] + (" (uncommitted changes)" if launch_rec.get("dirty_files") else "")),
                 ("Seed / layout", f"seed {run.seed} · {run.num_envs} worlds × {run.workers} workers × {run.physx_threads} PhysX threads · PPO on {(launch_rec.get('device') or run.device or '?').upper()}"),
-                ("Progress", f"{run.updates_done} updates, {human_count(run.decisions)} decisions" + (f" of {run.updates_requested} updates planned" if run.updates_requested else "")),
+                ("Progress", (f"{run.updates_in_run} updates in this run (continuing from update {run.start_update}; the counter is now {run.updates_done}), " if run.start_update else f"{run.updates_done} updates, ")
+                 + f"{human_count(run.decisions)} decisions in total" + (f"; {run.updates_requested} updates planned" if run.updates_requested else "")),
                 ("Starting point", f"resumed from {Path(run.resume_from).parent.name}" if run.resume_from else "new run"),
                 ("Artifacts", ", ".join(n for n, ok in (("metrics", run.has_metrics), ("trajectories", (run.path / 'trajectories.jsonl').exists()), ("system samples", (run.path / 'system.jsonl').exists()),
                                                          ("evaluations", bool(run.evaluations)), ("tensorboard", (run.path / 'tensorboard').exists())) if ok) or "none")]

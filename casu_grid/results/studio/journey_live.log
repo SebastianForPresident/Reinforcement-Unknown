@@ -1,11 +1,11 @@
 PASS run is 'running' with live metrics
 PASS badge shows Running ('● Running')
 PASS Stop button is offered while running
-PASS updates tile live (8)
-PASS metrics page marks the run live ('● live · 10 updates read')
+PASS updates tile live (10)
+PASS metrics page marks the run live ('● live · 11 updates read')
 PASS goals-per-1,000-decisions chart has data
-PASS chart data grows while the run continues (10 -> 14 rows)
-PASS mouse wheel zooms the chart (13.4 -> 10.7 updates wide)
+PASS chart data grows while the run continues (11 -> 16 rows)
+PASS mouse wheel zooms the chart (15.5 -> 12.4 updates wide)
 PASS zoom is linked across charts
 PASS focus view shows the chart with its numbers and explanation
 PASS run completed all 70 updates (completed, 70)

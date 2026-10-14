@@ -85,6 +85,10 @@ class Harness:
 def start_from_experiments(h: Harness, preset: str, updates: int | None = None, name: str | None = None, resume: dict | None = None, seed: int | None = None):
     page = h.page("experiments")
     h.go("experiments", resume)
+    exp_row = next(i for i, e in enumerate(h.ctx.experiments) if e.is_mini and not e.variant_note)     # always the validated XY1 mini-world unless a stage chose another
+    if not getattr(h, "experiment_chosen", False):
+        page.list.setCurrentRow(exp_row)
+        h.pump(0.4)
     if updates is not None or preset == "custom":
         pass
     index = page.preset.findData(preset)
@@ -136,7 +140,8 @@ def stage_smoke(h: Harness, args) -> bool:
     """Steps 1-8 of the primary journey: open XY1, inspect, validate, start a small run, watch it live, let it finish."""
     h.go("overview")
     h.shot("01_overview_no_runs")
-    check("No learning run exists yet" in h.page("overview").hero_title.text(), "overview says plainly that no learning run exists")
+    if not [r for r in h.ctx.runs if not r.is_engineering_smoke]:
+        check("No learning run exists yet" in h.page("overview").hero_title.text(), "overview says plainly that no learning run exists")
     page = start_from_experiments(h, "smoke", name=args.run_name or time.strftime("%Y%m%d-%H%M%S-smoke"))
     h.shot("02_experiment_configuration")
     errors = [c for c in page._checks if c.level == "error"]
@@ -150,9 +155,9 @@ def stage_smoke(h: Harness, args) -> bool:
     h.wait(lambda: (seen.add((h.ctx.run_by_path(run_dir).status if h.ctx.run_by_path(run_dir) else "none")), False)[1], 25, step=0.5)
     h.shot("03_training_starting")
     check("starting" in seen or "running" in seen, f"status observed while launching: {sorted(seen)}")
-    running = h.wait(lambda: (h.ctx.run_by_path(run_dir) and h.ctx.run_by_path(run_dir).status == "running" and h.ctx.run_by_path(run_dir).updates_done >= 3), 240, step=1.0)
+    running = h.wait(lambda: (h.ctx.run_by_path(run_dir) and h.ctx.run_by_path(run_dir).updates_done >= 3), 240, step=1.0)
     h.shot("04_training_running")
-    check(running, "run reached 'running' with live metrics (>= 3 updates)")
+    check(running, "run produced live metrics (>= 3 updates; a 5-update smoke run may already be finished)")
     done = h.wait(lambda: (h.ctx.run_by_path(run_dir) and h.ctx.run_by_path(run_dir).status in ("completed", "failed", "interrupted")), 240, step=1.0)
     rec = h.run_record(run_dir)
     check(done and rec.status == "completed", f"run finished with status {rec.status if rec else None}")
@@ -425,6 +430,7 @@ def stage_diagnostic(h: Harness, args) -> bool:
         h.go("experiments")
         row = next(i for i, e in enumerate(h.ctx.experiments) if args.experiment in str(e.path))
         exp_page_.list.setCurrentRow(row)
+        h.experiment_chosen = True
         h.pump(0.5)
     page = start_from_experiments(h, "diagnostic", name=name, seed=7)
     plan = page.current_plan()

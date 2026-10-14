@@ -125,6 +125,12 @@ class RunRecord:
     mtime: float = 0.0
     updates_requested: int | None = None
     legacy_spawn: bool = False
+    start_update: int = 0           # >0 for a resumed run: the update of the checkpoint it continued from
+    start_decisions: int = 0
+
+    @property
+    def updates_in_run(self) -> int:
+        return max(0, self.updates_done - self.start_update)
 
     @property
     def latest(self) -> CheckpointInfo | None:
@@ -188,6 +194,10 @@ def load_run(path: Path) -> RunRecord | None:
     if last:
         run.updates_done = int(last.get("update") or 0)
         run.decisions = int(last.get("environment_steps") or 0)
+    if run.resume_from:
+        origin = read_json(Path(run.resume_from).with_name(Path(run.resume_from).name + ".json")) or {}
+        run.start_update = int(origin.get("update_count") or 0)
+        run.start_decisions = int(origin.get("total_steps") or 0)
     run.status = derive_status(path, manifest, last is not None)
     checkpoints = []
     for candidate in [path / "latest.pt"]:

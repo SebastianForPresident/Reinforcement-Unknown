@@ -116,3 +116,16 @@ class FormatTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ResumedRunTests(unittest.TestCase):
+    def test_resumed_run_knows_where_it_started(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            parent = make_run(root, "parent", updates=9)
+            child = make_run(root, "child", rows=[metrics_row(i) for i in range(10, 18)])
+            manifest = json.loads((child / "config.json").read_text())
+            manifest["resume_from"] = str(parent / "latest.pt")
+            (child / "config.json").write_text(json.dumps(manifest))
+            run = runs.load_run(child)
+            self.assertEqual((run.start_update, run.updates_done, run.updates_in_run), (9, 17, 8))

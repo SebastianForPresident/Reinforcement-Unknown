@@ -298,8 +298,14 @@ class TrainingPage(QtWidgets.QWidget):
         if budget_updates and m is not None and m.rows:
             per = m.column("environment_steps")[-1] / max(1, run.updates_done)
             budget_decisions = per * budget_updates
-        self.tiles["decisions"].set(human_count(run.decisions), f"of {human_count(budget_decisions)}" if budget_decisions else "")
-        self.tiles["updates"].set(f"{run.updates_done:,}", f"of {budget_updates:,}" if budget_updates else "")
+        if run.start_update and m is not None and m.rows:
+            per = m.column("environment_steps")[-1] - run.start_decisions
+            budget_decisions = per / max(1, run.updates_in_run) * budget_updates if budget_updates else None
+            self.tiles["decisions"].set(human_count(run.decisions), (f"+{human_count(per)} in this run, of {human_count(budget_decisions)}" if budget_decisions else f"+{human_count(per)} in this run"))
+            self.tiles["updates"].set(f"{run.updates_done:,}", (f"{run.updates_in_run} of {budget_updates} in this run (continuing from {run.start_update})" if budget_updates else f"continuing from {run.start_update}"))
+        else:
+            self.tiles["decisions"].set(human_count(run.decisions), f"of {human_count(budget_decisions)}" if budget_decisions else "")
+            self.tiles["updates"].set(f"{run.updates_done:,}", f"of {budget_updates:,}" if budget_updates else "")
         speed = None
         if m is not None and m.rows:
             e2e = [v for v in self.store.derived("e2e_decisions_per_s")[-5:] if v]
@@ -314,15 +320,16 @@ class TrainingPage(QtWidgets.QWidget):
         else:
             self.tiles["checkpoint"].set("none yet", "written after every update" if alive else "")
         if budget_updates:
+            done_here = run.updates_in_run
             self.progress.setRange(0, budget_updates)
-            self.progress.setValue(min(run.updates_done, budget_updates))
-            remaining = max(0, budget_updates - run.updates_done)
+            self.progress.setValue(min(done_here, budget_updates))
+            remaining = max(0, budget_updates - done_here)
             per_update = None
             if m is not None and m.rows >= 2:
                 last = [a + b for a, b in zip(m.column("collection_seconds")[-10:], m.column("optimization_seconds")[-10:]) if a and b]
                 per_update = sum(last) / len(last) if last else None
             eta = f" · about {human_duration(remaining * per_update)} left" if (alive and per_update) else ""
-            self.progress.setFormat(f"{run.updates_done} / {budget_updates} updates ({100 * run.updates_done / budget_updates:.0f} %){eta}")
+            self.progress.setFormat(f"{done_here} / {budget_updates} updates ({100 * done_here / budget_updates:.0f} %){eta}")
         else:
             self.progress.setRange(0, 1)
             self.progress.setValue(0)

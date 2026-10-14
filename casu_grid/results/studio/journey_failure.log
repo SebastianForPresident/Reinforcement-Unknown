@@ -1,5 +1,5 @@
 PASS run is running
-PASS killed simulation worker pid 2938824
+PASS killed simulation worker pid 3358297
 PASS status becomes 'failed' from the real process state
 PASS explanation names the cause: '<b>A simulation worker process died.</b>'
 PASS technical details are available
