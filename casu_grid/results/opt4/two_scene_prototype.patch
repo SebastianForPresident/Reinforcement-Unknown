@@ -1,0 +1,355 @@
+diff --git a/casu_grid/collision_usd.py b/casu_grid/collision_usd.py
+index 5015c94..9ed7e9d 100644
+--- a/casu_grid/collision_usd.py
++++ b/casu_grid/collision_usd.py
+@@ -94,7 +94,7 @@ def _collision_offset_schemas(contact_offset):
+ 
+ 
+ def _author_chunk_cuboids(stage, chunk_path, rectangles, *, half_thickness,
+-                          world_offset, material_path, contact_offset=None):
++                          world_offset, material_path, contact_offset=None, simulation_owner=None):
+     """Write one static Cube collider per rectangle directly as Sdf prim specs.
+ 
+     This is equivalent to the Isaac Lab ``CuboidCfg`` spawner (a unit Cube
+@@ -132,6 +132,9 @@ def _author_chunk_cuboids(stage, chunk_path, rectangles, *, half_thickness,
+             if material_path:
+                 relationship = Sdf.RelationshipSpec(spec, "material:binding:physics")
+                 relationship.targetPathList.explicitItems = [Sdf.Path(material_path)]
++            if simulation_owner:          # static colliders belong to the default PhysX scene unless an owner is named
++                owner = Sdf.RelationshipSpec(spec, "physics:simulationOwner")
++                owner.targetPathList.explicitItems = [Sdf.Path(simulation_owner)]
+             count += 1
+     return count
+ 
+@@ -141,7 +144,7 @@ def rect_prim_name(rect) -> str:
+ 
+ 
+ def update_chunk_cuboids(stage, chunk_path, blocks, chunk_x, chunk_y, *, chunk_size=64, half_thickness,
+-                         world_offset=(0.0, 0.0, 0.0), material_path=None, contact_offset=None) -> dict:
++                         world_offset=(0.0, 0.0, 0.0), material_path=None, contact_offset=None, simulation_owner=None) -> dict:
+     """Bring an authored chunk to the rectangle set of its current occupancy by adding/removing only the rectangles that differ.
+ 
+     The decomposition is the same deterministic ``rectangles_for_chunk`` result that a full rebuild would author, and a
+@@ -160,7 +163,8 @@ def update_chunk_cuboids(stage, chunk_path, blocks, chunk_x, chunk_y, *, chunk_s
+     if not (prim and prim.IsValid()):
+         UsdGeom.Xform.Define(stage, chunk_path)
+         added = _author_chunk_cuboids(stage, chunk_path, rectangles, half_thickness=half_thickness,
+-                                      world_offset=world_offset, material_path=material_path, contact_offset=contact_offset)
++                                      world_offset=world_offset, material_path=material_path, contact_offset=contact_offset,
++                                      simulation_owner=simulation_owner)
+         return {"removed": 0, "added": added, "kept": 0, "chunk_removed": False}
+     wanted = {rect_prim_name(r): r for r in rectangles}
+     existing = set(prim.GetChildrenNames())
+@@ -173,7 +177,8 @@ def update_chunk_cuboids(stage, chunk_path, blocks, chunk_x, chunk_y, *, chunk_s
+             for name in stale:
+                 del parent.nameChildren[name]
+     added = (_author_chunk_cuboids(stage, chunk_path, fresh, half_thickness=half_thickness, world_offset=world_offset,
+-                                   material_path=material_path, contact_offset=contact_offset) if fresh else 0)
++                                   material_path=material_path, contact_offset=contact_offset,
++                                   simulation_owner=simulation_owner) if fresh else 0)
+     return {"removed": len(stale), "added": added, "kept": len(existing) - len(stale), "chunk_removed": False}
+ 
+ 
+@@ -185,7 +190,8 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
+                                 replace_chunks=False,
+                                 root_path: str = "/World/CasUTerrain",
+                                 world_offset: tuple[float, float, float] = (0.0, 0.0, 0.0),
+-                                contact_offset: float | None = None) -> dict:
++                                contact_offset: float | None = None,
++                                simulation_owner: str | None = None) -> dict:
+     """Create chunk-preserving static cuboids from exact occupied rectangles.
+ 
+     ``contact_offset`` sets the PhysX contact distance of the terrain shapes (rest offset 0).
+@@ -234,7 +240,7 @@ def author_layer1_box_collision(stage, blocks, *, chunk_size: int = 64,
+                 half_thickness=half_thickness, world_offset=world_offset,
+                 material_path=(physics_material_path
+                                if physics_material is not None else None),
+-                contact_offset=contact_offset)
++                contact_offset=contact_offset, simulation_owner=simulation_owner)
+     return {
+         "nonempty_chunk_count": nonempty_chunk_count,
+         "occupied_cells": occupied,
+diff --git a/casu_grid/isaac_vector_env.py b/casu_grid/isaac_vector_env.py
+index 9b73233..09bee54 100644
+--- a/casu_grid/isaac_vector_env.py
++++ b/casu_grid/isaac_vector_env.py
+@@ -282,6 +282,20 @@ class BatchedIsaacLayer1Env(gym.Env):
+                 self.doors.append(RigidObject(cfg=RigidObjectCfg(
+                     prim_path=f"/World/Env_[0-9]{{5}}/ShuttleDoor{'LR'[k]}", spawn=None,
+                     init_state=RigidObjectCfg.InitialStateCfg())))
++        self._scene_groups = None
++        for what in filter(None, os.environ.get("CASU_DIAG_REMOVE", "").split(",")):          # DIAGNOSTIC
++            for i in range(self.count):
++                if what == "joint":
++                    self.stage.RemovePrim(f"/World/Env_{i:05d}/CasuPlanarConstraint")
++                elif what == "anchor":
++                    self.stage.RemovePrim(f"/World/Env_{i:05d}/CasuPlanarAnchor")
++                elif what == "levels":
++                    for lv in range(1, self.cfg.crouch_levels + 1):
++                        self.stage.RemovePrim(f"/World/Env_{i:05d}/CasuPlayer/Level_{lv}")
++                elif what == "ccd":
++                    self.stage.GetPrimAtPath(f"/World/Env_{i:05d}/CasuPlayer").GetAttribute("physxRigidBody:enableCCD").Set(False)
++        if self._two_scenes_requested():
++            self._configure_two_scenes()
+         stage_utils.update_stage()
+         self.sim.reset()
+         self.sim.play()
+@@ -289,6 +303,93 @@ class BatchedIsaacLayer1Env(gym.Env):
+         if self.player.num_instances != self.count:
+             raise RuntimeError(f"expected {self.count} indexed player bodies, found {self.player.num_instances}")
+ 
++    # ------------------------------------------------------------------ two PhysX scenes
++    def _two_scenes_requested(self) -> bool:
++        """``CASU_TWO_SCENES=1``: split this process's worlds over two PhysX scenes (see :meth:`_configure_two_scenes`)."""
++        return (os.environ.get("CASU_TWO_SCENES", "0") == "1" and self.count >= 2 and self.terrain_mode == "independent"
++                and self.sim.device == "cpu" and not (self.slots[0].door_defs if self.slots else False))
++
++    def _scene_owner(self, index: int):
++        """USD path of the scene that owns world ``index`` (None = the default scene)."""
++        if self._scene_groups is None:
++            return None
++        lower = index < self._scene_groups[0][1]
++        if os.environ.get("CASU_DIAG_SWAP"):          # DIAGNOSTIC
++            return "/physicsScene2" if lower else None
++        return None if lower else "/physicsScene2"
++
++    def _configure_two_scenes(self) -> None:
++        """Second PhysicsScene (a spec-level copy of the first) owning the upper half of the worlds.
++
++        Worlds never interact, so splitting them over two scenes does not change any world's physics; it lets one half's
++        Python/USD work run while the other half's PhysX step is in flight (``simulate_scene`` / ``fetch_results_scene``).
++        Static colliders belong to the default scene unless ``physics:simulationOwner`` names the scene, so every body, joint
++        and collider of an upper-half world gets the relationship (new terrain rectangles get it when they are authored).
++        PhysX needs at least 3 CPU threads with two scenes (2 deadlocks the warm start).
++        """
++        from pxr import PhysxSchema, Sdf, Usd, UsdPhysics
++        import carb.settings
++        settings = carb.settings.get_settings()
++        threads = settings.get("/persistent/physics/numThreads")
++        if threads is None or int(threads) in (1, 2):
++            settings.set("/persistent/physics/numThreads", 4)       # 2 threads + 2 scenes deadlock the warm start
++        layer = self.stage.GetEditTarget().GetLayer()
++        first = None
++        for prim in self.stage.Traverse():
++            if prim.GetTypeName() == "PhysicsScene":
++                first = prim.GetPath()
++                break
++        if os.environ.get('CASU_DIAG_SCENE_COPY') == 'attrs':          # DIAGNOSTIC: attributes and API schemas only
++            src = self.stage.GetPrimAtPath(first)
++            dst = UsdPhysics.Scene.Define(self.stage, "/physicsScene2").GetPrim()
++            for api in src.GetAppliedSchemas():
++                dst.AddAppliedSchema(api)
++            for attr in src.GetAttributes():
++                if attr.HasAuthoredValue():
++                    new_attr = dst.CreateAttribute(attr.GetName(), attr.GetTypeName())
++                    new_attr.Set(attr.Get())
++        else:
++            Sdf.CopySpec(layer, first, layer, Sdf.Path("/physicsScene2"))
++        if os.environ.get('CASU_DIAG_SQ'):
++            for pth in (first, Sdf.Path('/physicsScene2')):
++                self.stage.GetPrimAtPath(pth).GetAttribute('physxScene:enableSceneQuerySupport').Set(True)
++        self._scene_first_path = str(first)
++        if os.environ.get("CASU_TWO_SCENES_BP"):          # DIAGNOSTIC
++            for pth in (first, Sdf.Path("/physicsScene2")):
++                self.stage.GetPrimAtPath(pth).GetAttribute("physxScene:broadphaseType").Set(os.environ["CASU_TWO_SCENES_BP"])
++        n_first = self.count // 2 + self.count % 2          # lower half (>= upper half)
++        if os.environ.get('CASU_TWO_SCENES_B'): n_first = self.count - int(os.environ['CASU_TWO_SCENES_B'])        # DIAGNOSTIC
++        self._scene_groups = [(0, n_first), (n_first, self.count)]
++        owner = Sdf.Path("/physicsScene2")
++        assigned = 0
++        if os.environ.get("CASU_DIAG_MATERIAL_B"):
++            Sdf.CopySpec(layer, Sdf.Path(self.material_path), layer, Sdf.Path(self.material_path + "B"))
++        explicit_a = os.environ.get("CASU_TWO_SCENES_EXPLICIT") == "1"          # DIAGNOSTIC
++        swap = bool(os.environ.get("CASU_DIAG_SWAP"))
++        only = os.environ.get('CASU_DIAG_ONLY')
++        for i in ([int(only)] if only else (range(0, n_first) if swap else range(0 if explicit_a else n_first, self.count))):
++            owner = Sdf.Path("/physicsScene2") if (i >= n_first) != swap else first
++            if os.environ.get('CASU_DIAG_OWNER_DEFAULT'): owner = first
++            root = self.stage.GetPrimAtPath(f"/World/Env_{i:05d}")
++            for prim in Usd.PrimRange(root):
++                if os.environ.get('CASU_DIAG_OWNER_ALL') or prim.HasAPI(UsdPhysics.RigidBodyAPI) or prim.HasAPI(UsdPhysics.CollisionAPI) or prim.IsA(UsdPhysics.Joint):
++                    spec = layer.GetPrimAtPath(prim.GetPath())
++                    if spec is None:
++                        continue
++                    if "physics:simulationOwner" in spec.relationships:
++                        continue
++                    if os.environ.get("CASU_DIAG_MATERIAL_B") and i >= n_first and "material:binding:physics" in spec.relationships:
++                        spec.relationships["material:binding:physics"].targetPathList.explicitItems = [Sdf.Path(self.material_path + "B")]
++                    if os.environ.get("CASU_DIAG_USDAPI"):
++                        prim.CreateRelationship("physics:simulationOwner").SetTargets([owner])
++                    else:
++                        Sdf.RelationshipSpec(spec, "physics:simulationOwner").targetPathList.explicitItems = [owner]
++                    assigned += 1
++        self.scene_owner_assignments = assigned
++        if os.environ.get('CASU_DIAG_DROP_A_TERRAIN'):          # DIAGNOSTIC
++            for i in range(n_first):
++                self.stage.RemovePrim(f"/World/Env_{i:05d}/CasUTerrain")
++
+     def _copy_terrain(self, source_root: str, destination_root: str) -> None:
+         from pxr import Sdf
+         layer = self.stage.GetEditTarget().GetLayer()
+@@ -470,6 +571,13 @@ class BatchedIsaacLayer1Env(gym.Env):
+                 self._physics_dt_exact = self.sim.get_physics_dt()
+             if self._direct:
+                 self._pview = self.player.root_physx_view
++                self._group_views = None
++                if self._scene_groups is not None:
++                    # one tensor view per PhysX scene: a view that spans scenes can be read and written only while no scene runs
++                    self._group_views = [
++                        (slice(a, b), self.sim.physics_sim_view.create_rigid_body_view([f"/World/Env_{i:05d}/CasuPlayer" for i in range(a, b)]),
++                         torch.arange(b - a, dtype=torch.int32))
++                        for a, b in self._scene_groups]
+                 self._idx_all = torch.arange(n, dtype=torch.int32)
+                 self._force_flat = self._stage_force.view(n, 3)
+                 self._torque_flat = self._stage_torque.view(n, 3)
+@@ -560,6 +668,114 @@ class BatchedIsaacLayer1Env(gym.Env):
+         timers["tensor_read"] += t4 - t3
+         timers["controller_post_and_shapes"] += t5 - t4
+ 
++    # ------------------------------------------------------------- grouped (two-scene) ticks
++    def _scene_path_ids(self):
++        if getattr(self, "_scene_ids", None) is None:
++            from pxr import PhysicsSchemaTools, Sdf
++            paths = (self._scene_first_path, "/physicsScene2")
++            if os.environ.get("CASU_DIAG_SWAP"): paths = paths[::-1]
++            self._scene_ids = [PhysicsSchemaTools.sdfPathToInt(Sdf.Path(p)) for p in paths]
++        return self._scene_ids
++
++    def _group_pre(self, g: int) -> None:
++        """Controller pre-phase, terrain edits and tensor writes of the worlds of scene ``g``."""
++        from . import controller_kernels as CK
++        clock = time.perf_counter
++        sl, view, idx = self._group_views[g]
++        S, R = self._state_rows, self._result_rows
++        pose, vel, force = self._np_pose, self._np_vel, self._np_force
++        t0 = clock()
++        for fast in self._fast[sl]:
++            fast.pre_tick()
++        pose[sl, 0] = np.add(S[sl, CK.X], self._off_x[sl])
++        pose[sl, 2] = np.add(S[sl, CK.Y], self._off_z[sl])
++        vel[sl, 0], vel[sl, 2] = S[sl, CK.VX], S[sl, CK.VY]
++        force[sl, 0, 0], force[sl, 0, 2] = R[sl, 0], R[sl, 1]
++        t1 = clock()
++        stale = [i for i in range(sl.start, sl.stop) if self.slots[i].physical_dirty]
++        if stale:
++            self._rebuild_dirty(stale)
++        current = view.get_transforms().numpy()
++        moved = np.flatnonzero((np.abs(current[:, 0].astype(np.float64) - pose[sl, 0].astype(np.float64)) > 1e-6)
++                               | (np.abs(current[:, 2].astype(np.float64) - pose[sl, 2].astype(np.float64)) > 1e-6))
++        if moved.size:
++            view.set_transforms(self._stage_pose[sl], indices=torch.as_tensor(moved, dtype=torch.int32))
++        view.set_velocities(self._stage_vel[sl], indices=idx)
++        view.apply_forces_and_torques_at_position(force_data=self._force_flat[sl], torque_data=self._torque_flat[sl],
++                                                  position_data=None, indices=idx, is_global=True)
++        t2 = clock()
++        self.timers["controller_and_fluid_pre"] += t1 - t0
++        self.timers["tensor_write"] += t2 - t1
++
++    def _group_post(self, g: int, completed: int) -> None:
++        """Read back scene ``g`` (after its fetch), controller post-phase and crouch-shape switching."""
++        from . import controller_kernels as CK
++        clock = time.perf_counter
++        sl, view, _ = self._group_views[g]
++        S = self._state_rows
++        t3 = clock()
++        pos = view.get_transforms().numpy()
++        lin = view.get_velocities().numpy()
++        S[sl, CK.X] = pos[:, 0].astype(np.float64) - self._off_x[sl]
++        S[sl, CK.Y] = pos[:, 2].astype(np.float64) - self._off_z[sl]
++        S[sl, CK.VX] = lin[:, 0]
++        S[sl, CK.VY] = lin[:, 2]
++        t4 = clock()
++        for fast in self._fast[sl]:
++            fast.post_tick(completed)
++        t4b = clock()
++        levels = np.rint(np.clip(S[sl, CK.CROUCH], 0.0, 1.0) * self.cfg.crouch_levels).astype(np.int64).tolist()
++        colliders = self.colliders[sl]
++        changes = sum(1 for c, lv in zip(colliders, levels) if lv != c.active_level)
++        set_levels(colliders, levels)
++        t5 = clock()
++        self.timers["tensor_read"] += t4 - t3
++        self.timers["diag_controller_post_kernels"] += t4b - t4
++        self.timers["diag_crouch_shape_switch"] += t5 - t4b
++        self.timers["controller_post_and_shapes"] += t5 - t4
++        self.counters["shape_changes"] += changes
++
++    def _run_ticks_grouped(self) -> None:
++        """The ``action_decimation`` physics ticks of one decision with the worlds split over two PhysX scenes.
++
++        Per scene the sequence of operations is exactly that of :meth:`_physics_tick` (pre-phase, tensor writes, step, read-back,
++        post-phase, crouch shapes); the scenes are software-pipelined so that one scene's Python/USD work runs while the other
++        scene's ``simulate_scene`` is in flight (``CASU_TWO_SCENE_PIPELINE=0`` runs them back to back instead).
++        """
++        clock = time.perf_counter
++        iface, ids, dt = self._physx_iface, self._scene_path_ids(), self._physics_dt_exact
++        ticks = self.cfg.action_decimation
++        groups = range(len(self._group_views))
++        pipeline = os.environ.get("CASU_TWO_SCENE_PIPELINE", "1") != "0"
++        now = self.sim.current_time
++        if pipeline:
++            def launch(g):
++                t = clock()
++                iface.simulate_scene(ids[g], dt, now)
++                self.timers["diag_simulate_call"] += clock() - t
++            for g in groups:
++                self._group_pre(g)
++                launch(g)
++            for tick in range(1, ticks + 1):
++                for g in groups:
++                    t0 = clock()
++                    iface.fetch_results_scene(ids[g])
++                    self.timers["physx_step"] += clock() - t0
++                    self._group_post(g, tick)
++                    if tick < ticks:
++                        self._group_pre(g)
++                        launch(g)
++        else:
++            for tick in range(1, ticks + 1):
++                for g in groups:
++                    self._group_pre(g)
++                    t0 = clock()
++                    iface.simulate_scene(ids[g], dt, now)
++                    iface.fetch_results_scene(ids[g])
++                    self.timers["physx_step"] += clock() - t0
++                    self._group_post(g, tick)
++        self.player.update(self.cfg.physics_dt * ticks)
++
+     def _physics_tick_reference(self, completed: int):
+         clock = time.perf_counter
+         timers = self.timers
+@@ -762,7 +978,8 @@ class BatchedIsaacLayer1Env(gym.Env):
+                     from .collision_usd import update_chunk_cuboids
+                     update_chunk_cuboids(
+                         self.stage, path, slot.physical_blocks, cx, cy, half_thickness=self.cfg.terrain_extrusion_depth / 2,
+-                        material_path=self.material_path, contact_offset=self.cfg.terrain_contact_offset)
++                        material_path=self.material_path, contact_offset=self.cfg.terrain_contact_offset,
++                        simulation_owner=self._scene_owner(i))
+                     any_change = True
+                     continue
+                 prim = self.stage.GetPrimAtPath(path)
+@@ -774,7 +991,7 @@ class BatchedIsaacLayer1Env(gym.Env):
+                         self.stage, slot.physical_blocks, half_thickness=self.cfg.terrain_extrusion_depth / 2,
+                         physics_material=self.material, physics_material_path=self.material_path,
+                         root_path=root, only_chunks=[(cx, cy)],   # local coordinates: the root carries the offset
+-                        contact_offset=self.cfg.terrain_contact_offset)
++                        contact_offset=self.cfg.terrain_contact_offset, simulation_owner=self._scene_owner(i))
+                 any_change = True
+             slot.physical_dirty.clear()
+         if any_change and self.cfg.terrain_edit_scene_reset:
+@@ -817,8 +1034,14 @@ class BatchedIsaacLayer1Env(gym.Env):
+             if self.terrain_mode == "independent":
+                 dirty=[i for i,s in enumerate(self.slots) if s.physical_dirty]
+                 if dirty:self._rebuild_dirty(dirty)
+-        for tick in range(self.cfg.action_decimation):
+-            self._physics_tick(tick + 1)
++        if self._scene_groups is not None and self._fast is not None and os.environ.get('CASU_TWO_SCENE_GROUPED', '1') != '0':
++            self._staging()
++            if not (self._direct and self._physx_iface is not None):
++                raise RuntimeError("CASU_TWO_SCENES needs the direct tensor-I/O and direct-step paths (CASU_DIRECT_TENSOR_IO / CASU_DIRECT_STEP on)")
++            self._run_ticks_grouped()
++        else:
++            for tick in range(self.cfg.action_decimation):
++                self._physics_tick(tick + 1)
+         if self._fast is not None:
+             for fast in self._fast:
+                 fast.end_macrostep()

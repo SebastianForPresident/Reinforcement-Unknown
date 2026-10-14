@@ -3,7 +3,9 @@ separate tensor views. Prints what works; no part of the training stack depends 
 
     python casu_grid/perf/two_scene_probe.py
 """
-import argparse, sys, time
+import argparse, faulthandler, os, sys, time
+MODE = os.environ.get('PROBE_MODE', 'owners')      # control | empty2 | owners | owners_noapi
+faulthandler.dump_traceback_later(45, exit=True)      # hard stop with a Python stack if a physics call hangs
 from isaaclab.app import AppLauncher
 
 p = argparse.ArgumentParser(); AppLauncher.add_app_launcher_args(p); args = p.parse_args(); args.headless = True
@@ -17,12 +19,18 @@ from omni.physx import get_physx_simulation_interface
 
 
 def main():
+    if os.environ.get('PROBE_THREADS'):
+        import carb.settings; carb.settings.get_settings().set('/persistent/physics/numThreads', int(os.environ['PROBE_THREADS']))
+    for item in filter(None, os.environ.get('PROBE_CARB', '').split(';')):
+        import carb.settings; k, v = item.split('='); carb.settings.get_settings().set(k, {'true': True, 'false': False}.get(v, v)); print('PROBE carb', k, v, flush=True)
     sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=0.02, device="cpu", gravity=(0.0, 0.0, -9.81)))
     stage = sim.stage
     # a second physics scene next to the default one
-    scene2 = UsdPhysics.Scene.Define(stage, "/physicsScene2")
-    scene2.CreateGravityDirectionAttr(Gf.Vec3f(0, 0, -1)); scene2.CreateGravityMagnitudeAttr(9.81)
-    PhysxSchema.PhysxSceneAPI.Apply(scene2.GetPrim()).CreateTimeStepsPerSecondAttr(50)
+    if MODE != "control":
+        scene2 = UsdPhysics.Scene.Define(stage, "/physicsScene2")
+        scene2.CreateGravityDirectionAttr(Gf.Vec3f(0, 0, -1)); scene2.CreateGravityMagnitudeAttr(9.81)
+        if MODE != "owners_noapi":
+            PhysxSchema.PhysxSceneAPI.Apply(scene2.GetPrim()).CreateTimeStepsPerSecondAttr(50)
     n_per_scene = 4
     for scene_index, owner in enumerate(("/physicsScene", "/physicsScene2")):
         for k in range(n_per_scene):
@@ -34,9 +42,11 @@ def main():
             cube.AddTranslateOp().Set(Gf.Vec3d(k * 10.0, scene_index * 10.0, 3.0 + k))
             UsdPhysics.RigidBodyAPI.Apply(cube.GetPrim()); UsdPhysics.CollisionAPI.Apply(cube.GetPrim()); UsdPhysics.MassAPI.Apply(cube.GetPrim()).CreateMassAttr(1.0)
             for prim in (ground.GetPrim(), cube.GetPrim()):
+                if MODE in ("control", "empty2"):
+                    continue
                 rel = prim.CreateRelationship("physics:simulationOwner"); rel.SetTargets([Sdf.Path(owner)])
     sim.reset()
-    print("PROBE reset ok; playing", sim.is_playing(), flush=True)
+    print("PROBE", MODE, "reset ok; playing", sim.is_playing(), flush=True)
     sv = sim.physics_sim_view
     views = []
     for scene_index in range(2):

@@ -27,6 +27,8 @@ from casu_grid.workbench.experiments import xy1_point_navigation_mini as cfg
 
 
 def main():
+    if os.environ.get('CASU_DUMP_PHYSX_THREADS'):
+        import carb.settings; carb.settings.get_settings().set('/persistent/physics/numThreads', int(os.environ['CASU_DUMP_PHYSX_THREADS']))
     cb = cfg.callbacks()
     env_cfg = IsaacLayer1EnvConfig(seed=391728405, num_envs=args.envs, spawn_mode="canonical", navigation_mode=True,
                                    world_variant="xy1_mini_128x128", observation_window_tiles=(64, 64),

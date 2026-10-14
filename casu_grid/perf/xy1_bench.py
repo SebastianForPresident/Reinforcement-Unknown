@@ -49,10 +49,31 @@ stop = threading.Event()
 
 def gpu_used_mib():
     try:
-        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=5)
-        return int(out.stdout.strip().splitlines()[0])
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.used,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=5)
+        used, util = out.stdout.strip().splitlines()[0].split(",")
+        gpu_util.append(int(util))
+        return int(used)
     except Exception:
         return None
+
+
+gpu_util = []
+unique_mem = []         # (seconds, PSS bytes, USS bytes, system used bytes) of the whole process tree, every ~10 s
+
+
+def tree_unique(tree):
+    pss = uss = 0
+    for q in tree:
+        try:
+            with open(f"/proc/{q.pid}/smaps_rollup") as f:
+                for line in f:
+                    if line.startswith("Pss:"):
+                        pss += int(line.split()[1]) * 1024
+                    elif line.startswith(("Private_Clean:", "Private_Dirty:")):
+                        uss += int(line.split()[1]) * 1024
+        except OSError:
+            pass
+    return pss, uss
 
 
 def monitor():
@@ -63,6 +84,10 @@ def monitor():
             rss = sum(q.memory_info().rss for q in tree if q.is_running())
             if args.series and int(time.perf_counter() - started) % 30 == 0:
                 per_process.append((round(time.perf_counter() - started), {q.pid: q.memory_info().rss for q in tree if q.is_running()}))
+            if int(time.perf_counter() - started) % 10 == 0 and (not unique_mem or time.perf_counter() - started - unique_mem[-1][0] > 5):
+                pss, uss = tree_unique(tree)
+                vm = psutil.virtual_memory()
+                unique_mem.append((time.perf_counter() - started, pss, uss, vm.total - vm.available))
             avail = psutil.virtual_memory().available
             samples.append((time.perf_counter() - started, rss, avail, gpu_used_mib(), psutil.cpu_percent(interval=None)))
             try:
@@ -100,10 +125,14 @@ result = {
     "seconds_per_update": {"collection": collect / len(steady), "optimization": optimize / len(steady), "environment_step": env_step / len(steady)},
     "per_update_end_to_end": [(b["environment_steps"] - a["environment_steps"]) / (b["collection_seconds"] + b["optimization_seconds"])
                               for a, b in zip(rows, rows[1:])],
+    "worker_seconds": {k: statistics.fmean(r[k] for r in steady if k in r) for k in (rows[-1].keys()) if k.startswith("worker_")},
     "process_wall_seconds_including_startup": wall_total,
     "peak_rss_gib": max(s[1] for s in samples) / 2**30, "min_available_memory_gib": min(s[2] for s in samples) / 2**30,
     "peak_gpu_memory_mib": max([s[3] for s in samples if s[3] is not None] or [None]),
     "baseline_gpu_memory_mib": min([s[3] for s in samples if s[3] is not None] or [None]),
+    "peak_pss_gib": max([u[1] for u in unique_mem] or [0]) / 2**30, "peak_uss_gib": max([u[2] for u in unique_mem] or [0]) / 2**30,
+    "peak_system_used_gib": max([u[3] for u in unique_mem] or [0]) / 2**30,
+    "gpu_utilization_percent_mean": (statistics.mean(gpu_util[len(gpu_util) // 3:]) if gpu_util else None),
     "mean_cpu_percent_steady": statistics.mean([s[4] for s in samples[len(samples) // 3:]] or [0]),
     "finite_losses": all(all(v == v and abs(v) != float("inf") for v in (r["policy_loss"], r["value_loss"], r["grad_norm"])) for r in rows),
     "git_revision": subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip(),
@@ -119,11 +148,11 @@ if args.series:
     stride = max(1, len(samples) // 1500)
     result["series"] = {"t": [round(s[0], 1) for s in samples[::stride]], "rss_gib": [round(s[1] / 2**30, 3) for s in samples[::stride]],
                         "available_gib": [round(s[2] / 2**30, 3) for s in samples[::stride]], "gpu_mib": [s[3] for s in samples[::stride]],
-                        "updates_completed": progress, "per_process_rss": per_process, "per_update_end_to_end": result["per_update_end_to_end"]}
+                        "updates_completed": progress, "unique_memory": [(round(a, 1), b, c, d) for a, b, c, d in unique_mem], "per_process_rss": per_process, "per_update_end_to_end": result["per_update_end_to_end"]}
 args.output.parent.mkdir(parents=True, exist_ok=True)
 args.output.write_text(json.dumps(result, indent=2) + "\n")
 if not args.keep_run:
     shutil.rmtree(run_dir.parent, ignore_errors=True)
 print(f"envs={args.envs} workers={args.workers}: sim {result['simulation_only_decisions_per_second']:.0f}, rollout {result['rollout_decisions_per_second']:.0f}, "
       f"end-to-end {result['end_to_end_decisions_per_second']:.0f} decisions/s; opt {optimize / len(steady):.2f} s/update; "
-      f"peak RSS {result['peak_rss_gib']:.1f} GiB, GPU {result['peak_gpu_memory_mib']} MiB", flush=True)
+      f"peak RSS {result['peak_rss_gib']:.1f} GiB (PSS {result['peak_pss_gib']:.1f}, USS {result['peak_uss_gib']:.1f}), GPU {result['peak_gpu_memory_mib']} MiB", flush=True)
