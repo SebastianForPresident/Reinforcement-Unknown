@@ -17,6 +17,9 @@ Isaac bundled Python (`"$ISAAC_SIM/python.sh"`, set up as in `ISAAC_LAB_SETUP.md
 | `perf/ppo_update_bench.py` | PPO update microbenchmark with exact reference-vs-optimized equivalence check (no simulator) |
 | `perf/gpu_probe.py`, `perf/gpu_scenarios.py`, `perf/run_gpu_scenarios.sh`, `perf/fall_test.py` | GPU-PhysX feasibility probes and CPU-vs-GPU scenario comparison (`tools/compare_scenarios.py`) |
 | `tools/compare_ab.py` | compare two `isaac_player_ab.py` result files (e.g. compound vs hull) |
+| `perf/xy1_bench.py`, `perf/make_opt4_table.py` | XY1 end-to-end benchmark/soak (PSS/USS memory, GPU utilisation, per-process series, `CASU_SRC_ROOT` to benchmark another checkout) and the comparison tables of Optimization IV |
+| `perf/checkpoint_inspect.py`, `perf/resume_fault_test.py` | checkpoint integrity summary; SIGINT / killed-worker fault injection for the trainer |
+| `perf/OPTIMIZATION3_REPORT.md`, `perf/OPTIMIZATION4_REPORT.md` (+ `_LOG.md`) | XY1 throughput campaigns III and IV: results, rejected ideas, the mini-world spawn-offset bug |
 | `casu_grid/OPTIMIZATION_ACCEPTANCE_REPORT.md`, `casu_grid/OPTIMIZATION2_ACCEPTANCE_REPORT.md` | consolidated results of campaigns I and II |
 
 ## Backends and execution layout
