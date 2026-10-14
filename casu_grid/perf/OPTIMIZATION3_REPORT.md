@@ -57,14 +57,14 @@ tree (the desktop uses ≈ 380 MiB).
 | 64 | 6 | – | **1,631** | **6.7×** (vs 4-worker baseline) | – → 2,217 | – → 0.66 | – → 19.6 | – → 2820 | 2: 1,634, 1,628 |
 | 64 | 8 | 253.4 | **1,772** | **7.0×** | 534 → 2,469 | 8.49 → 0.65 | 21.4 → 24.5 | 2694 → 3456 | 2: 1,778, 1,767 |
 
-Capacity checks (6 updates each, taken while the stale process still ran, so ≈ 5 % low; bounded by a memory guard that kills the run below 2.5 GiB available or +1.5 GiB swap):
+Capacity checks (clean machine, 7 updates each, bounded by a memory guard that kills the run below 2.5 GiB available or +1.5 GiB swap):
 
 | worlds | workers | end-to-end | optimiser s/update | peak RSS | GPU MiB | note |
 |---:|---:|---:|---:|---:|---:|---|
-| 96 | 8 | 1,631 | 0.99 | 25.5 GiB | 3,748 | fits; no gain over 64 (CPU-bound) |
-| 128 | 8 | 1,709 | 1.31 | 26.5 GiB | 3,940 | fits; +3 % over 64 |
-| 96 | 12 | – | – | – | – | guard stopped the run at 2.3 GiB available: 12 Kit workers do not fit in 31 GB |
-| 64 | 10 | 1,519 (older revision) | – | 29.1 GiB | 4,063 | slower than 8 workers (7/6-world shards, SMT) |
+| 96 | 8 | 1,744 | 0.99 | 25.5 GiB | 3,490 | fits; −2 % vs 64 (CPU-bound, larger PPO batch) |
+| 128 | 8 | 1,789 | 1.31 | 26.5 GiB | 3,682 | fits; +1 % vs 64 |
+| 96 | 12 | – | – | – | – | guard stopped the run at 2.3 GiB available: 12 Kit workers do not fit in 31 GB (earlier series) |
+| 64 | 10 | 1,519 (earlier series) | – | 29.1 GiB | 4,063 | slower than 8 workers (7/6-world shards, SMT) |
 
 Soak, clean machine (`results/opt3/bench/soakclean_e64_w8.json`): 64 worlds × 8 workers, 1,000 updates, 4,091,904 decisions in 41 minutes, **1,688 decisions/s end-to-end, 1,663 wall-clock**
 (the 1.5 % difference is logging, the 160-byte-per-decision trajectory file and the per-update checkpoint). Per-100-update means: 1,711 → 1,717 → 1,716 → 1,690 → 1,671 → 1,677 → 1,678 → 1,673 → 1,679 → 1,676: the first
@@ -146,7 +146,7 @@ Remaining uncertainty: (i) incremental terrain and batched shape writes are stat
   Resources: ≈ 24.5–25 GiB summed RSS (≈ 18 GiB PSS; growth ≈ 0.4 GiB/h → ≈ 28 GiB after 8 h), ≈ 7 GiB system memory left, 3.5 GiB GPU, ≈ 7.7 GB of `trajectories.jsonl` per 8 h — fine for a dedicated run, tight beside other heavy jobs (the GUI). The CPU runs at its thermal limit (82–84 °C package), so the clock is the practical limit.
 * **Memory-lean alternative:** 64 worlds × 6 workers: 1.63 k burst (≈ 1.55 k sustained, not soak-tested), 19.6 GiB RSS, 2.8 GiB GPU; budget ≈ 45 M decisions ≈ 11,000 updates in 8 h.
 * **Smaller experiments:** 32 worlds × 8 workers 1.54 k burst (≈ 42 M decisions in 8 h ≈ 20,500 updates of 2,048; 32 × 4 gives 1.39 k if memory must be shared); 16 worlds × 8 workers 1.28 k (4 workers 1.17 k, ≈ 35 M decisions ≈ 34,000 updates of 1,024).
-* Do not exceed 8 workers on this machine (10 is slower, 12 does not fit); 96–128 worlds fit but add < 3 % over 64.
+* Do not exceed 8 workers on this machine (10 is slower, 12 does not fit); 96–128 worlds fit but add ≤ 1 % over 64.
 * Keep `CASU_SHAPE_BATCH`, `CASU_INCREMENTAL_TERRAIN`, `CASU_SHAPE_SPEC` at their defaults for production; set the first two to `0` (and `CASU_COMPILED_CONTROLLER` as is) for bit-exact regression gates.
 * Resume with `--resume <run>/latest.pt` (works for checkpoints written by this branch). The 8-hour campaign was **not** started.
 
