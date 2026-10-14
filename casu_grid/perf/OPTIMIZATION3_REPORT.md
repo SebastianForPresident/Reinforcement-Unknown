@@ -42,7 +42,7 @@ starting commit** (CPU PPO, central policy evaluation, 4 workers × 2 PhysX thre
 Identical protocol for baseline and optimised (`perf/xy1_bench.py`, `workbench.train` as a research launch would run it, `--terrain-mode independent`, 2 PhysX threads per
 worker, 5 (baseline) / 9 (optimised) updates, first dropped; optimised figures are the mean of two repeats that agree within 1 %). **These are clean-machine re-measurements** (`results/opt3/base_clean/`, `results/opt3/final3/`, final revision). An earlier
 series (`results/opt3/final/`, `final2/`, `bench/base_e*`, and the one-hour soak `bench/soak60_e64_w8.json`) was taken while a stale diagnostic process — a hung profiling run that I had not killed — occupied one logical core from 01:57 to 05:55;
-it lowered the baseline by ≈ 11 % and the optimised runs by ≈ 4–7 %, so speed-ups there were 5–10 % higher than the clean ones. The clean series is the one to quote.
+it lowered the baseline by ≈ 11–14 % and the optimised runs by ≈ 2–7 %, so speed-ups there were 5–10 % higher than the clean ones. The clean series is the one to quote.
 Peak RSS is the sum over the process tree (shared pages counted once per process, so an overestimate); GPU memory is the whole-GPU high-water mark of the process
 tree (the desktop uses ≈ 380 MiB).
 
