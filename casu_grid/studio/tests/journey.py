@@ -125,6 +125,7 @@ def main():
     ap.add_argument("--resume-run", default=None)
     ap.add_argument("--experiment", default=None, help="substring of the experiment file to select (default: the validated XY1 mini-world)")
     ap.add_argument("--tag", default="")
+    ap.add_argument("--seed", type=int, default=7)
     args = ap.parse_args()
     h = Harness(args.shots)
     stage = globals()["stage_" + args.stage]
@@ -432,9 +433,9 @@ def stage_diagnostic(h: Harness, args) -> bool:
         exp_page_.list.setCurrentRow(row)
         h.experiment_chosen = True
         h.pump(0.5)
-    page = start_from_experiments(h, "diagnostic", name=name, seed=7)
+    page = start_from_experiments(h, "diagnostic", name=name, seed=args.seed)
     plan = page.current_plan()
-    check(plan.is_recommended_layout() and plan.updates == 250 and plan.seed == 7 and plan.checkpoint_every == 25, "diagnostic preset = 64 x 8 x 2 on CUDA, 250 updates, seed 7, checkpoint every 25")
+    check(plan.is_recommended_layout() and plan.updates == 250 and plan.seed == args.seed and plan.checkpoint_every == 25, f"diagnostic preset = 64 x 8 x 2 on CUDA, 250 updates, seed {args.seed}, checkpoint every 25")
     errors = [c for c in page._checks if c.level == "error"]
     check(not errors, "validation passes: " + "; ".join(c.title for c in errors))
     h.shot(f"70_diagnostic_configuration{args.tag}")
