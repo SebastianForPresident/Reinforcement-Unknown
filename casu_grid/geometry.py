@@ -41,6 +41,22 @@ def _row_runs(row: np.ndarray) -> Iterator[tuple[int, int]]:
     return iter(zip(starts.tolist(), ends.tolist()))
 
 
+def _chunk_row_runs(occupancy: np.ndarray) -> list[list[tuple[int, int]]]:
+    """:func:`_row_runs` of every row of ``occupancy`` (x-first) in one vectorised pass; same runs, same order within a row."""
+    width, height = occupancy.shape
+    padded = np.zeros((width + 2, height), dtype=np.int8)
+    padded[1:-1] = occupancy
+    edges = padded[1:] - padded[:-1]                           # (width + 1, height)
+    start_x, start_y = np.nonzero(edges == 1)                  # column-major scan: ascending y, then x -- use a stable sort by row
+    end_x, end_y = np.nonzero(edges == -1)
+    order_s, order_e = np.argsort(start_y, kind="stable"), np.argsort(end_y, kind="stable")
+    start_x, start_y, end_x, end_y = start_x[order_s], start_y[order_s], end_x[order_e], end_y[order_e]
+    rows = [[] for _ in range(height)]
+    for y, a, b in zip(start_y.tolist(), start_x.tolist(), end_x.tolist()):      # runs of a row alternate start/end, so zip pairs them
+        rows[y].append((a, b))
+    return rows
+
+
 def rectangles_for_chunk(blocks: np.ndarray, chunk_x: int, chunk_y: int,
                          *, chunk_size: int = 64,
                          world_shape: tuple[int, int] = (1024, 1024)) -> list[TerrainRectangle]:
@@ -59,8 +75,9 @@ def rectangles_for_chunk(blocks: np.ndarray, chunk_x: int, chunk_y: int,
     occupancy = blocks[x0:x1, y0:y1] != 0
     active: dict[tuple[int, int], int] = {}
     output: list[TerrainRectangle] = []
+    row_runs = _chunk_row_runs(occupancy)
     for local_y in range(chunk_height):
-        runs = set(_row_runs(occupancy[:, local_y]))
+        runs = set(row_runs[local_y])
         for run, start_y in list(active.items()):
             if run not in runs:
                 output.append(TerrainRectangle(chunk_x, chunk_y,
