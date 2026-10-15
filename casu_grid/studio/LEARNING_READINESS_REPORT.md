@@ -1,5 +1,19 @@
 # XY1 learning-readiness report
 
+> **Update (termination contract v2 selected; three-seed validation complete).** The researcher decided that leaving through the bottom of the layer terminates the episode (CasU's layer transition,
+> not death). That is **termination contract `xy1-termination-v2-layer-exit`** (`casu_grid/XY1_TERMINATION_CONTRACT_V2.md`, experiment `xy1_point_navigation_mini_layer_exit.py`); the original XY1 is kept as the reproducible
+> reference `xy1-termination-v1`, and the guarded variant discussed below is superseded.
+>
+> | | status |
+> |---|---|
+> | Blocking finding of §5 (agents fall out of the world and are never reset) | **resolved by v2**: no agent left the world in any of the three seeds (outside-world fraction 0) |
+> | Environment correctness | audit **32 of 32** for v2 (19 of 19 for the reference) |
+> | Learning evidence for v2 | **completed**: three independent seeds (7, 17, 27), 1,024,000 decisions each, held-out paired evaluation: stochastic +25.8 / +37.5 / +33.6 points, deterministic +9.4 / +14.8 / +7.0 points, every interval excludes zero; verdict **encouraging** (`casu_grid/perf/XY1_V2_LEARNING_VALIDATION.md`) |
+> | The single-seed +27-point result in §6 | **historical context only**: it belongs to the superseded guarded variant, not to v2 |
+> | Outstanding | longer-horizon and larger held-out sets; behaviour beyond 250 updates; layer exits still end ≈ 38–40 % of finished training episodes and digging stays near 40 blocks per 1,000 decisions (does the policy learn to avoid the floor?); the 8-hour campaign has **not** been started and needs separate authorisation |
+>
+> The sections below are the original (pre-v2) analysis and are kept unchanged as the record that led to the decision.
+
 Branch `studio-v2` (worktree `Reinforcement-Unknown-Isaac-studio`), starting revision Optimization IV `95640c9`; log `casu_grid/studio/STUDIO_LOG.md`.
 Machine: i7-11700K, RTX 3070, Isaac Sim 4.5.0 / Isaac Lab 2.1.1. All numbers below come from real simulator runs started through the Studio.
 

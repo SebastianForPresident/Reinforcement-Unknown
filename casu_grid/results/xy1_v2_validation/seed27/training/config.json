@@ -1,0 +1,268 @@
+{
+  "schema": "casu.training-run.v1",
+  "run_id": "v2-seed27-20261014-203017",
+  "created_utc": "2026-10-15T00:30:26Z",
+  "seed": 27,
+  "git_revision": "24d76f1067af050519ddddfcafbecd4379c255b1",
+  "working_tree_status": [
+    " M casu_grid/results/studio/journey_diagnostic.log",
+    " M casu_grid/results/xy1_v2_validation/campaign.log",
+    " M casu_grid/results/xy1_v2_validation/seed17/training_journey.log",
+    "?? casu_grid/results/studio/last_diagnostic_run_v2s17.txt",
+    "?? casu_grid/results/studio/last_diagnostic_run_v2s7.txt",
+    "?? casu_grid/results/studio/screenshots/70_diagnostic_configuration_v2s17.png",
+    "?? casu_grid/results/studio/screenshots/70_diagnostic_configuration_v2s27.png",
+    "?? casu_grid/results/studio/screenshots/70_diagnostic_configuration_v2s7.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_00.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_01.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_02.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_03.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_04.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s27_00.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s7_00.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s7_01.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s7_02.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s7_03.png",
+    "?? casu_grid/results/studio/screenshots/71_diagnostic_training_v2s7_04.png",
+    "?? casu_grid/results/studio/screenshots/72_diagnostic_training_final_v2s17.png",
+    "?? casu_grid/results/studio/screenshots/72_diagnostic_training_final_v2s7.png",
+    "?? casu_grid/results/studio/screenshots/73_diagnostic_metrics_v2s17.png",
+    "?? casu_grid/results/studio/screenshots/73_diagnostic_metrics_v2s7.png",
+    "?? casu_grid/results/xy1_v2_validation/seed17/EVAL_DONE",
+    "?? casu_grid/results/xy1_v2_validation/seed17/RUN_DIR",
+    "?? casu_grid/results/xy1_v2_validation/seed17/TRAINING_DONE",
+    "?? casu_grid/results/xy1_v2_validation/seed17/evaluation.json",
+    "?? casu_grid/results/xy1_v2_validation/seed17/evaluation.log",
+    "?? casu_grid/results/xy1_v2_validation/seed17/training/",
+    "?? casu_grid/results/xy1_v2_validation/seed27/",
+    "?? experiments/.studio/v2-seed17-20261014-201349.launch.log",
+    "?? experiments/.studio/v2-seed27-20261014-203017.launch.log",
+    "?? experiments/.studio/v2-seed7-20261014-195719.launch.log",
+    "?? experiments/v2-seed17-20261014-201349/",
+    "?? experiments/v2-seed27-20261014-203017/",
+    "?? experiments/v2-seed7-20261014-195719/"
+  ],
+  "config_path": "/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-layerexit/casu_grid/workbench/experiments/xy1_point_navigation_mini_layer_exit.py",
+  "experiment": {
+    "id": "xy1-point-navigation-mini-128x128-layer-exit-v2",
+    "name": "XY1 Point Navigation \u00b7 Mini World 128 \u00d7 128 \u00b7 bottom exit ends the episode (termination v2)",
+    "description": "The XY1 mini-world where exiting through the bottom of the layer (CasU's layer transition) terminates the episode and starts a freshly initialised world, Timmy and goal.",
+    "hypothesis": "With the bottom-of-layer transition modelled as a terminal event, the sample stream stays populated and the XY1 navigation policy can be trained.",
+    "notes": "Termination contract xy1-termination-v2-layer-exit. Differs from the reference xy1-point-navigation-mini-128x128-v1 in the termination rule only. Parent: xy1-point-navigation-mini-128x128-v1.",
+    "parent": "xy1-point-navigation-mini-128x128-v1",
+    "created_utc": "2026-10-13T00:00:00+00:00",
+    "config_version": 2
+  },
+  "config_sha256": "e7e07933de4b058951f61482d1fbff397263d18a8fa2fd274801f0c3b23e285d",
+  "config_snapshot_path": "/home/sebastian/Documents/Casualties Unknown Projects/Reinforcement-Unknown-Isaac-layerexit/experiments/v2-seed27-20261014-203017/research_config.py",
+  "contracts": {
+    "actions": {
+      "heads": [
+        {
+          "name": "move_x",
+          "kind": "categorical",
+          "size": 3,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        },
+        {
+          "name": "jump",
+          "kind": "categorical",
+          "size": 2,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        },
+        {
+          "name": "move_y",
+          "kind": "categorical",
+          "size": 3,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        },
+        {
+          "name": "crouch",
+          "kind": "categorical",
+          "size": 2,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        },
+        {
+          "name": "look_dx",
+          "kind": "categorical",
+          "size": 9,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        },
+        {
+          "name": "look_dy",
+          "kind": "categorical",
+          "size": 11,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        },
+        {
+          "name": "attack",
+          "kind": "categorical",
+          "size": 2,
+          "low": -1.0,
+          "high": 1.0,
+          "hold_physics_ticks": 10
+        }
+      ],
+      "mapping": {
+        "move_x": {
+          "0": -1,
+          "1": 0,
+          "2": 1
+        },
+        "jump": {
+          "0": false,
+          "1": true
+        },
+        "move_y": {
+          "0": -1,
+          "1": 0,
+          "2": 1
+        },
+        "crouch": {
+          "0": false,
+          "1": true
+        },
+        "look_dx": {
+          "0": -4,
+          "1": -3,
+          "2": -2,
+          "3": -1,
+          "4": 0,
+          "5": 1,
+          "6": 2,
+          "7": 3,
+          "8": 4
+        },
+        "look_dy": {
+          "0": -5,
+          "1": -4,
+          "2": -3,
+          "3": -2,
+          "4": -1,
+          "5": 0,
+          "6": 1,
+          "7": 2,
+          "8": 3,
+          "9": 4,
+          "10": 5
+        },
+        "attack": {
+          "0": false,
+          "1": true
+        }
+      }
+    },
+    "observations": {
+      "spatial": [
+        {
+          "name": "spatial",
+          "shape": [
+            16,
+            64,
+            64
+          ],
+          "source": "xy1.historical_cb1_terrain_fluid",
+          "normalization": "none",
+          "normalization_params": {},
+          "mask": null
+        }
+      ],
+      "scalar": [
+        {
+          "name": "goal_relative",
+          "shape": [
+            2
+          ],
+          "source": "xy1.goal_tile_offset",
+          "normalization": "custom",
+          "normalization_params": {
+            "convention": "unscaled signed tile offsets; x right positive, y up positive"
+          },
+          "mask": null
+        }
+      ],
+      "coordinate_convention": "world-x-right, world-y-up; tensor axes (x,y); mini FOV 64 \u00d7 64; goals are sampled once in that viewport and remain fixed in world coordinates"
+    },
+    "rewards": {
+      "terms": [
+        {
+          "name": "distance_improvement",
+          "source": "xy1.best_absolute_distance_delta",
+          "weight": 0.1,
+          "terminal": false
+        },
+        {
+          "name": "arrival_bonus",
+          "source": "xy1.nine_tile_arrival",
+          "weight": 10.0,
+          "terminal": true
+        }
+      ],
+      "terminal_penalty": 0.0
+    },
+    "model": {
+      "spatial_channels": [
+        16,
+        32
+      ],
+      "spatial_kernels": [
+        5,
+        3
+      ],
+      "scalar_layers": [
+        16
+      ],
+      "fusion_layers": [
+        64
+      ],
+      "recurrent": false,
+      "recurrent_size": 128
+    },
+    "ppo": {
+      "version": 1,
+      "learning_rate": 0.0003,
+      "rollout_steps": 64,
+      "minibatch_size": 32,
+      "epochs": 2,
+      "gamma": 0.99,
+      "gae_lambda": 0.98,
+      "clip_range": 0.2,
+      "value_coefficient": 0.5,
+      "entropy_coefficient": 0.01,
+      "max_grad_norm": 0.5,
+      "target_kl": 0.03
+    }
+  },
+  "environment": {
+    "canonical_seed": 391728405,
+    "num_envs": 64,
+    "geometry_scope": "full",
+    "terrain_mode": "independent",
+    "episode_steps": 100000,
+    "navigation_mode": true,
+    "terminate_out_of_world": false,
+    "bottom_exit_terminates": true,
+    "termination_contract": "xy1-termination-v2-layer-exit",
+    "world_variant": "xy1_mini_128x128",
+    "player_collider": "compound",
+    "physics_dt": 0.02,
+    "action_decimation": 10
+  },
+  "resume_from": null,
+  "run_kind": "research_training",
+  "config_source_sha256": "e7e07933de4b058951f61482d1fbff397263d18a8fa2fd274801f0c3b23e285d",
+  "status": "completed",
+  "status_updated_utc": "2026-10-15T00:41:38.017765+00:00"
+}

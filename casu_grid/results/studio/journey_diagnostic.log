@@ -1,3 +1,3 @@
-PASS diagnostic preset = 64 x 8 x 2 on CUDA, 250 updates, seed 7, checkpoint every 25
+PASS diagnostic preset = 64 x 8 x 2 on CUDA, 250 updates, seed 27, checkpoint every 25
 PASS validation passes: 
 PASS diagnostic run finished: completed, 250 updates, 1,024,000 decisions

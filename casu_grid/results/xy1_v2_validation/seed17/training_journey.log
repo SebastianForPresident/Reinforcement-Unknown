@@ -2,3 +2,11 @@ PASS diagnostic preset = 64 x 8 x 2 on CUDA, 250 updates, seed 17, checkpoint ev
 PASS validation passes: 
 shot casu_grid/results/studio/screenshots/70_diagnostic_configuration_v2s17.png
 shot casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_00.png
+shot casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_01.png
+shot casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_02.png
+shot casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_03.png
+shot casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_04.png
+PASS diagnostic run finished: completed, 250 updates, 1,024,000 decisions
+shot casu_grid/results/studio/screenshots/72_diagnostic_training_final_v2s17.png
+shot casu_grid/results/studio/screenshots/73_diagnostic_metrics_v2s17.png
+RESULT OK
