@@ -40,7 +40,8 @@ doorstop_config.ini
 *.mp4
 *.mkv
 *.mov
-/experiments/   # run folders at the repository root only (casu_grid/workbench/experiments holds the experiment definitions)
+# run folders at the repository root only (casu_grid/workbench/experiments holds the experiment definitions)
+/experiments/
 casu_grid/results/*.pt
 casu_grid/results/*_tensorboard/
 casu_grid/results/*.jsonl
