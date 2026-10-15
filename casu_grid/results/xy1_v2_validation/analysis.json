@@ -1,0 +1,171 @@
+{
+ "seeds": {
+  "17": {
+   "training_done": false,
+   "evaluation_done": false
+  },
+  "7": {
+   "training_done": true,
+   "evaluation_done": true,
+   "manifest": {
+    "termination_contract": "xy1-termination-v2-layer-exit",
+    "bottom_exit_terminates": true,
+    "seed": 7,
+    "num_envs": 64,
+    "episode_steps": 100000,
+    "legacy_spawn": false,
+    "workers": 8,
+    "physx_threads": 2,
+    "device": "cuda",
+    "revision": "d493b756360d82e6d49a9c5258336d02937e3678",
+    "dirty_files": 1,
+    "experiment": "xy1-point-navigation-mini-128x128-layer-exit-v2"
+   },
+   "training": {
+    "updates": 250,
+    "decisions": 1024000,
+    "end_to_end_decisions_per_second": 1594.0787841211472,
+    "all_losses_finite": true,
+    "arrivals": 357,
+    "layer_exits": 215,
+    "timeouts": 0,
+    "finished_episodes": 572,
+    "layer_exit_share_of_finished": 0.3758741258741259,
+    "arrivals_per_1k": [
+     0.2001953125,
+     0.2880859375,
+     0.361328125,
+     0.419921875,
+     0.4736328125
+    ],
+    "layer_exits_per_1k": [
+     0.1171875,
+     0.2294921875,
+     0.2099609375,
+     0.263671875,
+     0.2294921875
+    ],
+    "progress": [
+     0.46872610850864777,
+     0.5232185460013922,
+     0.5334339725960429,
+     0.5315895452240459,
+     0.5023656362474274
+    ],
+    "entropy_first10": 8.783699212968349,
+    "entropy_last10": 8.730191251635551,
+    "kl_mean": 0.005914373518033808,
+    "kl_max": 0.009260328894015402,
+    "updates_with_kl_above_target_0.03": 0,
+    "clip_fraction_mean": 0.07057048389668368,
+    "grad_norm_max": 1.3007346846861765,
+    "explained_variance_first50": 0.43993787725407807,
+    "explained_variance_last50": 0.5647226223161111,
+    "value_loss_first10": 0.3125621789627985,
+    "value_loss_last10": 0.21737600550653155,
+    "attack_fraction_first10": 0.4924560546875,
+    "attack_fraction_last10": 0.5083251953125,
+    "blocks_destroyed_per_1k_first50": 41.4892578125,
+    "blocks_destroyed_per_1k_last50": 41.0791015625,
+    "outside_world_fraction_max": 0,
+    "mean_return_first": 6.851526001119055,
+    "mean_return_last": 8.803205875078417
+   },
+   "evaluation_protocol": {
+    "worlds": 16,
+    "rounds": 8,
+    "horizon_decisions": 1000,
+    "eval_seed": 20261014,
+    "world_offset": 1000000,
+    "terrain_seed_first": 392728405,
+    "training_terrain_seed_first": 391728405,
+    "held_out": true,
+    "scored": "first episode of every world in every round",
+    "success": "arrival within one tile of the goal within the horizon",
+    "termination_contract": "xy1-termination-v2-layer-exit"
+   },
+   "evaluation": {
+    "stochastic": {
+     "cases": 128,
+     "terrains": 16,
+     "initial_successes": 29,
+     "final_successes": 62,
+     "both": 25,
+     "only_final": 37,
+     "only_initial": 4,
+     "initial_rate": 0.2265625,
+     "final_rate": 0.484375,
+     "paired_improvement": 0.2578125,
+     "cluster_bootstrap_95": [
+      0.1640625,
+      0.3671875
+     ],
+     "mcnemar_exact_p": 1.0258372640237212e-07,
+     "initial_outcomes": {
+      "arrival": 29,
+      "layer_exit": 3,
+      "time_limit": 96
+     },
+     "initial_mean_progress": 0.5378706864117216,
+     "initial_mean_best_distance": 11.89564013434574,
+     "initial_median_decisions_to_arrival": 109,
+     "initial_mean_blocks_destroyed": 33.078125,
+     "final_outcomes": {
+      "arrival": 62,
+      "layer_exit": 2,
+      "time_limit": 64
+     },
+     "final_mean_progress": 0.7163789443984391,
+     "final_mean_best_distance": 7.116643313551322,
+     "final_median_decisions_to_arrival": 100,
+     "final_mean_blocks_destroyed": 29.734375,
+     "final_checkpoint_update": 250
+    },
+    "deterministic": {
+     "cases": 128,
+     "terrains": 16,
+     "initial_successes": 2,
+     "final_successes": 14,
+     "both": 1,
+     "only_final": 13,
+     "only_initial": 1,
+     "initial_rate": 0.015625,
+     "final_rate": 0.109375,
+     "paired_improvement": 0.09375,
+     "cluster_bootstrap_95": [
+      0.0390625,
+      0.15625
+     ],
+     "mcnemar_exact_p": 0.0018310546875,
+     "initial_outcomes": {
+      "arrival": 2,
+      "time_limit": 126
+     },
+     "initial_mean_progress": 0.14634134420965042,
+     "initial_mean_best_distance": 21.958127344958484,
+     "initial_median_decisions_to_arrival": 9,
+     "initial_mean_blocks_destroyed": 0.2109375,
+     "final_outcomes": {
+      "arrival": 14,
+      "time_limit": 114
+     },
+     "final_mean_progress": 0.3386234231664213,
+     "final_mean_best_distance": 17.07036326872185,
+     "final_median_decisions_to_arrival": 12,
+     "final_mean_blocks_destroyed": 3.71875,
+     "final_checkpoint_update": 250
+    }
+   }
+  }
+ },
+ "verdict": "INCONCLUSIVE",
+ "verdict_reasons": [
+  "completed seeds with evaluation: [7]",
+  "stochastic improvement positive in all: True",
+  "stochastic intervals excluding 0: 1",
+  "deterministic improvement >= 0 in 1",
+  "non-positive stochastic improvements: 0",
+  "unstable: False",
+  "layer exits dominate: False"
+ ]
+}

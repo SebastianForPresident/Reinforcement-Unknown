@@ -1,0 +1,639 @@
+{
+  "performance": {
+    "backend": {
+      "requested": "auto",
+      "active": "numba",
+      "compiled_controller": true,
+      "numba_version": "0.59.1",
+      "kernel_version": 3
+    },
+    "num_workers": 8,
+    "worlds": 64,
+    "terrain_mode": "independent",
+    "worlds_per_worker": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8
+    ],
+    "physx_threads_per_worker": 2,
+    "worker_log_dir": "/tmp/casu_workers_4154097_77t2zfsy"
+  },
+  "execution": {
+    "requested_backend": "auto",
+    "effective_backend": {
+      "requested": "auto",
+      "active": "numba",
+      "compiled_controller": true,
+      "numba_version": "0.59.1",
+      "kernel_version": 3
+    },
+    "requested_workers": "8",
+    "effective_workers": 8,
+    "num_envs": 64,
+    "worlds_per_worker": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8
+    ]
+  },
+  "world_variant": "xy1_mini_128x128",
+  "world_fixture_id": "xy1-mini-128x128-randomized-v1",
+  "world_content_id": "sha256:8c667f27b81afbef29dba26cd2293b7ba24f7d78256a85ac9a7ea009b14b1d83",
+  "env_startup_seconds": 14.184205655998085,
+  "terrain_box_colliders_total": 77780,
+  "terrain_occupied_cells_per_world": [
+    4737,
+    4876,
+    4938,
+    4572,
+    4717,
+    4668,
+    4620,
+    4851,
+    5002,
+    4526,
+    4330,
+    4776,
+    4699,
+    4645,
+    4880,
+    4782,
+    4760,
+    4863,
+    4643,
+    4667,
+    4679,
+    4781,
+    4813,
+    4583,
+    4522,
+    4726,
+    4662,
+    4827,
+    4474,
+    4741,
+    4744,
+    4614,
+    4500,
+    4586,
+    4890,
+    4908,
+    4799,
+    4870,
+    4873,
+    4601,
+    4570,
+    4632,
+    4822,
+    4930,
+    4778,
+    4733,
+    4733,
+    4595,
+    4954,
+    4667,
+    4859,
+    4859,
+    4745,
+    4486,
+    4956,
+    4723,
+    4806,
+    4848,
+    4668,
+    4423,
+    4604,
+    4738,
+    4590,
+    4933
+  ],
+  "geometry": [
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4737,
+      "box_collider_count": 1214,
+      "build_seconds": 0.1747159469523467,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4876,
+      "box_collider_count": 1251,
+      "build_seconds": 0.1695302680018358,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4938,
+      "box_collider_count": 1303,
+      "build_seconds": 0.17756876000203192,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4572,
+      "box_collider_count": 1185,
+      "build_seconds": 0.15809015498962253,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4717,
+      "box_collider_count": 1195,
+      "build_seconds": 0.16520084702642635,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4668,
+      "box_collider_count": 1181,
+      "build_seconds": 0.16297955304617062,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4620,
+      "box_collider_count": 1238,
+      "build_seconds": 0.1645528309745714,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4851,
+      "box_collider_count": 1227,
+      "build_seconds": 0.16579507302958518,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 5002,
+      "box_collider_count": 1201,
+      "build_seconds": 0.16354118997696787,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4526,
+      "box_collider_count": 1177,
+      "build_seconds": 0.16604998998809606,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4330,
+      "box_collider_count": 1151,
+      "build_seconds": 0.15611781500047073,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4776,
+      "box_collider_count": 1261,
+      "build_seconds": 0.1710064630024135,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4699,
+      "box_collider_count": 1236,
+      "build_seconds": 0.17294383904663846,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4645,
+      "box_collider_count": 1241,
+      "build_seconds": 0.1703031689976342,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4880,
+      "box_collider_count": 1315,
+      "build_seconds": 0.1845477379974909,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4782,
+      "box_collider_count": 1221,
+      "build_seconds": 0.19085050094872713,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4760,
+      "box_collider_count": 1228,
+      "build_seconds": 0.17930706997867674,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4863,
+      "box_collider_count": 1245,
+      "build_seconds": 0.17237241799011827,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4643,
+      "box_collider_count": 1202,
+      "build_seconds": 0.17086811899207532,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4667,
+      "box_collider_count": 1208,
+      "build_seconds": 0.1653388530248776,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4679,
+      "box_collider_count": 1216,
+      "build_seconds": 0.16697498300345615,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4781,
+      "box_collider_count": 1196,
+      "build_seconds": 0.16900079598417506,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4813,
+      "box_collider_count": 1235,
+      "build_seconds": 0.16981556202517822,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4583,
+      "box_collider_count": 1239,
+      "build_seconds": 0.17466082598548383,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4522,
+      "box_collider_count": 1190,
+      "build_seconds": 0.165642260981258,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4726,
+      "box_collider_count": 1195,
+      "build_seconds": 0.1617719529895112,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4662,
+      "box_collider_count": 1228,
+      "build_seconds": 0.16946769802598283,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4827,
+      "box_collider_count": 1196,
+      "build_seconds": 0.1674610449699685,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4474,
+      "box_collider_count": 1214,
+      "build_seconds": 0.16596716700587422,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4741,
+      "box_collider_count": 1204,
+      "build_seconds": 0.16488849802408367,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4744,
+      "box_collider_count": 1204,
+      "build_seconds": 0.16460037097567692,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4614,
+      "box_collider_count": 1205,
+      "build_seconds": 0.19264646200463176,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4500,
+      "box_collider_count": 1155,
+      "build_seconds": 0.1564054690534249,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4586,
+      "box_collider_count": 1225,
+      "build_seconds": 0.16328837000764906,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4890,
+      "box_collider_count": 1171,
+      "build_seconds": 0.1632937790127471,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4908,
+      "box_collider_count": 1212,
+      "build_seconds": 0.17706739500863478,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4799,
+      "box_collider_count": 1254,
+      "build_seconds": 0.17088974098442122,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4870,
+      "box_collider_count": 1252,
+      "build_seconds": 0.17012197303120047,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4873,
+      "box_collider_count": 1223,
+      "build_seconds": 0.16892785794334486,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4601,
+      "box_collider_count": 1208,
+      "build_seconds": 0.1976575999869965,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4570,
+      "box_collider_count": 1165,
+      "build_seconds": 0.16313509503379464,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4632,
+      "box_collider_count": 1224,
+      "build_seconds": 0.167618726962246,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4822,
+      "box_collider_count": 1216,
+      "build_seconds": 0.17115557700162753,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4930,
+      "box_collider_count": 1253,
+      "build_seconds": 0.17511434701737016,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4778,
+      "box_collider_count": 1189,
+      "build_seconds": 0.1626410120516084,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4733,
+      "box_collider_count": 1229,
+      "build_seconds": 0.17505339899798855,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4733,
+      "box_collider_count": 1188,
+      "build_seconds": 0.15822045801905915,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4595,
+      "box_collider_count": 1242,
+      "build_seconds": 0.20268043602118269,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4954,
+      "box_collider_count": 1255,
+      "build_seconds": 0.17699835501844063,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4667,
+      "box_collider_count": 1135,
+      "build_seconds": 0.15692582703195512,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4859,
+      "box_collider_count": 1238,
+      "build_seconds": 0.17795375897549093,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4859,
+      "box_collider_count": 1247,
+      "build_seconds": 0.19400005496572703,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4745,
+      "box_collider_count": 1199,
+      "build_seconds": 0.1700518190045841,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4486,
+      "box_collider_count": 1191,
+      "build_seconds": 0.16395818203454837,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4956,
+      "box_collider_count": 1230,
+      "build_seconds": 0.17399732302874327,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4723,
+      "box_collider_count": 1183,
+      "build_seconds": 0.19157642498612404,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4806,
+      "box_collider_count": 1208,
+      "build_seconds": 0.17748063895851374,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4848,
+      "box_collider_count": 1216,
+      "build_seconds": 0.17022399796405807,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4668,
+      "box_collider_count": 1215,
+      "build_seconds": 0.17711654998129234,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4423,
+      "box_collider_count": 1146,
+      "build_seconds": 0.15601461799815297,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4604,
+      "box_collider_count": 1193,
+      "build_seconds": 0.16621558502083644,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4738,
+      "box_collider_count": 1255,
+      "build_seconds": 0.17765519605018198,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4590,
+      "box_collider_count": 1198,
+      "build_seconds": 0.16620299505302683,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    },
+    {
+      "nonempty_chunk_count": 4,
+      "occupied_cells": 4933,
+      "box_collider_count": 1263,
+      "build_seconds": 0.19534579501487315,
+      "half_thickness": 1.0,
+      "representation": "one static cuboid per merged occupancy rectangle within each source chunk"
+    }
+  ],
+  "geometry_build_seconds": 1.4069858929724433,
+  "physics_dt": 0.02,
+  "action_decimation": 10,
+  "fluid_rng_seed": 391728405,
+  "liquid_affect_phase": "before_controller"
+}

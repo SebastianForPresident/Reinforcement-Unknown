@@ -1,0 +1,4 @@
+PASS diagnostic preset = 64 x 8 x 2 on CUDA, 250 updates, seed 17, checkpoint every 25
+PASS validation passes: 
+shot casu_grid/results/studio/screenshots/70_diagnostic_configuration_v2s17.png
+shot casu_grid/results/studio/screenshots/71_diagnostic_training_v2s17_00.png
